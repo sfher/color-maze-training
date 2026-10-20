@@ -4,6 +4,8 @@ public class PlayerStats : MonoBehaviour
 {
     public const int MaxHealth = 3;
     public const int MaxOxygen = 3;
+    public event System.Action Died;
+    private bool _deathannounced = false;
 
     public int Health { get; private set; } = MaxHealth;
     public int Oxygen { get; private set; } = MaxOxygen;
@@ -33,6 +35,11 @@ public class PlayerStats : MonoBehaviour
     {
         Health = Mathf.Max(0, Health - amount);
         Debug.Log($"生命 -{amount}，剩余 {Health}");
+        if (Health <= 0 && !_deathannounced)
+        {
+            _deathannounced = true;
+            Died?.Invoke();
+        }
     }
 
     private void ConsumeOxygen()
