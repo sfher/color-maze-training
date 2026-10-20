@@ -35,6 +35,18 @@ public class LevelDefinition : ScriptableObject
         return rows[row][cell.x];
     }
 
+    public TileType GetTileType(Vector2Int cell)
+    {
+        switch (GetTile(cell))
+        {
+            case '.': return TileType.Floor;
+            case '#': return TileType.Wall;
+            case 'R': return TileType.Lava;
+            case 'B': return TileType.Water;
+            default: return TileType.Wall;
+        }
+    }
+
     private void OnValidate()
     {
         if (rows == null || rows.Length == 0)

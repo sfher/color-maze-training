@@ -7,6 +7,7 @@ public class PlayerGridMover : MonoBehaviour
     [SerializeField] private Vector2Int startCell = new Vector2Int(1, 1);
 
     private Vector2Int currentCell;
+    private PlayerStats stats;
 
     private void Start()
     {
@@ -19,12 +20,26 @@ public class PlayerGridMover : MonoBehaviour
             return;
         }
 
+        stats = GetComponent<PlayerStats>();
+
+        if(stats == null)
+        {
+            Debug.LogError(
+                "PlayerGridMover: 请在 Inspector 里把 PlayerStats 脚本挂上。",
+                this);
+            enabled = false;
+            return;
+        }
         currentCell = startCell;
         transform.position = maze.CellToWorld(currentCell);
     }
 
     private void Update()
     {
+        if(!stats.IsAlive)
+        {
+            return;
+        }
         Vector2Int direction = ReadDirection();
 
         if (direction != Vector2Int.zero)
@@ -80,5 +95,6 @@ public class PlayerGridMover : MonoBehaviour
 
         currentCell = targetCell;
         transform.position = maze.CellToWorld(currentCell);
+        stats.ApplyTile(maze.GetTileType(currentCell));
     }
 }

@@ -24,7 +24,7 @@ public class MazeBootstrapper : MonoBehaviour
         {
             for (int x = 0; x < Width; x++)
             {
-                char tile = level.GetTile(new Vector2Int(x, y));
+                TileType tile = level.GetTileType(new Vector2Int(x, y));
                 CreateCell(square, x, y, tile);
             }
         }
@@ -32,12 +32,17 @@ public class MazeBootstrapper : MonoBehaviour
 
     public bool IsWalkable(Vector2Int cell)
     {
+        return GetTileType(cell) != TileType.Wall;
+    }
+
+    public TileType GetTileType(Vector2Int cell)
+    {
         if (level == null || !level.Contains(cell))
         {
-            return false;
+            return TileType.Wall;
         }
 
-        return level.GetTile(cell) != '#';
+        return level.GetTileType(cell);
     }
 
     public Vector3 CellToWorld(Vector2Int cell)
@@ -53,7 +58,7 @@ public class MazeBootstrapper : MonoBehaviour
             0f);
     }
 
-    private void CreateCell(Sprite square, int x, int y, char tile)
+    private void CreateCell(Sprite square, int x, int y, TileType tile)
     {
         GameObject cell = new GameObject($"Cell_{x}_{y}");
         cell.transform.SetParent(transform);
@@ -64,14 +69,14 @@ public class MazeBootstrapper : MonoBehaviour
         spriteRenderer.color = ColorFor(tile);
     }
 
-    private Color ColorFor(char tile)
+    private Color ColorFor(TileType tile)
     {
         switch (tile)
         {
-            case '#': return new Color(0.10f, 0.10f, 0.12f);
-            case '.': return new Color(0.93f, 0.92f, 0.88f);
-            case 'R': return new Color(0.82f, 0.22f, 0.20f);
-            case 'B': return new Color(0.16f, 0.45f, 0.86f);
+            case TileType.Wall: return new Color(0.10f, 0.10f, 0.12f);
+            case TileType.Floor: return new Color(0.93f, 0.92f, 0.88f);
+            case TileType.Lava: return new Color(0.82f, 0.22f, 0.20f);
+            case TileType.Water: return new Color(0.16f, 0.45f, 0.86f);
             default: return Color.magenta;
         }
     }
