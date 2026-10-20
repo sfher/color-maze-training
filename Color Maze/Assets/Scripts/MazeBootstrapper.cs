@@ -1,4 +1,5 @@
 using JetBrains.Annotations;
+using UnityEditor.Tilemaps;
 using UnityEngine;
 
 public class MazeBootstrapper : MonoBehaviour
@@ -28,15 +29,40 @@ public class MazeBootstrapper : MonoBehaviour
         }
     }
 
-    // Update is called once per frame
+    public bool IsWalkable(Vector2Int cell)
+    {
+        if (cell.x < 0 || cell.x >= Width ||
+            cell.y < 0 || cell.y >= Height)
+        {
+            return false;
+        }
+
+        return TileAt(cell) != '#';
+    }
+
+    public Vector3 CellToWorld(Vector2Int cell)
+    {
+        return transform.TransformPoint(CellToLocal(cell));
+    }
+
+    private char TileAt(Vector2Int cell)
+    {
+        int index = (Height - 1 - cell.y) * Width + cell.x;
+        return MazeMap[index];
+    }
+
+    private Vector3 CellToLocal(Vector2Int cell)
+    {
+        return new Vector3(
+            cell.x - (Width - 1) * 0.5f,
+            cell.y - (Height - 1) * 0.5f,
+            0f);
+    }
     private void CreateCell(Sprite square, int x, int y, char tile)
     {
         GameObject cell = new GameObject($"Cell_{x}_{y}");
         cell.transform.SetParent(transform);
-        cell.transform.position = new Vector3(
-            x - (Width - 1) * 0.5f,
-            y - (Height - 1) * 0.5f,
-            0f);
+        cell.transform.localPosition = CellToLocal(new Vector2Int(x, y));
 
         SpriteRenderer spriteRenderer = cell.AddComponent<SpriteRenderer>();
         spriteRenderer.sprite = square;
