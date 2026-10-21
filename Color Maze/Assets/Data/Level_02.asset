@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: Level_02
   m_EditorClassIdentifier: Assembly-CSharp::LevelDefinition
   rows:
-  - '#######'
-  - '#.#...#'
-  - '#.#.#.#'
-  - '#.#R#.#'
-  - '#.###.#'
-  - '#.....#'
-  - '#######'
+  - '#########'
+  - '#2#..#C1#'
+  - '#.#S..###'
+  - '###.##.2#'
+  - '#...#SSS#'
+  - '#.##..#.#'
+  - '#BBRRRBB#'
+  - '#.BBB..1#'
+  - '#########'
