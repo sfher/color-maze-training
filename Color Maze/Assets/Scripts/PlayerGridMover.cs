@@ -108,7 +108,13 @@ public class PlayerGridMover : MonoBehaviour
         transform.position = maze.CellToWorld(currentCell);
         stats.ApplyTile(maze.GetTileType(currentCell));
 
-        if(maze.GetTileType(currentCell) == TileType.Chest)
+        if (maze.GetTileType(currentCell) == TileType.Portal)
+        {
+            TryTeleport();
+            return;
+        }
+
+        if (maze.GetTileType(currentCell) == TileType.Chest)
         {
             if (maze.TryOpenChest(currentCell))
             {
@@ -120,6 +126,24 @@ public class PlayerGridMover : MonoBehaviour
             stats.ApplyTile(TileType.Floor);
             return;
         }
+    }
+
+    private void TryTeleport()
+    {
+        Vector2Int entry = currentCell;
+
+        if (!maze.TryGetPortalExit(entry, out Vector2Int exit))
+        {
+            Debug.LogWarning("传送门没有配对的出口。");
+            stats.ApplyTile(TileType.Floor);
+            return;
+        }
+
+        currentCell = exit;
+        transform.position = maze.CellToWorld(currentCell);
+        maze.MarkPortalPairKnown(maze.GetPortalId(currentCell));
+        stats.ApplyTile(TileType.Floor);
+        Debug.Log($"传送门: ({entry.x},{entry.y}) ↔ ({exit.x},{exit.y})");
     }
 
     private bool ReadBombPressed()

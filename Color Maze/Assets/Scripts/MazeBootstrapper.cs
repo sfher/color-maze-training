@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MazeBootstrapper : MonoBehaviour
@@ -5,7 +6,9 @@ public class MazeBootstrapper : MonoBehaviour
     [SerializeField] private LevelDefinition level;
 
     private TileType[,] _tiles;
+    private int[,] _portalIds;
     private SpriteRenderer[,] _renderers;
+    private readonly HashSet<int> _knownPortalIds = new HashSet<int>();
 
     private int Width => level != null ? level.Width : 0;
     private int Height => level != null ? level.Height : 0;
@@ -22,6 +25,7 @@ public class MazeBootstrapper : MonoBehaviour
         }
 
         _tiles = new TileType[Width, Height];
+        _portalIds = new int[Width, Height];
         _renderers = new SpriteRenderer[Width, Height];
 
         Sprite square = CreateSquareSprite();
@@ -30,9 +34,18 @@ public class MazeBootstrapper : MonoBehaviour
         {
             for (int x = 0; x < Width; x++)
             {
-                TileType tile = level.GetTileType(new Vector2Int(x, y));
+                Vector2Int cell = new Vector2Int(x, y);
+                TileType tile = level.GetTileType(cell);
+                int portalId = level.GetPortalId(cell);
+
                 _tiles[x, y] = tile;
+                _portalIds[x, y] = portalId;
                 _renderers[x, y] = CreateCell(square, x, y, tile);
+
+                if (tile == TileType.Portal)
+                {
+                    _renderers[x, y].color = PortalColor(portalId);
+                }
             }
         }
     }
@@ -51,6 +64,67 @@ public class MazeBootstrapper : MonoBehaviour
         }
 
         return _tiles[cell.x, cell.y];
+    }
+
+    public int GetPortalId(Vector2Int cell)
+    {
+        if (level == null || _portalIds == null || !level.Contains(cell))
+        {
+            return 0;
+        }
+
+        return _portalIds[cell.x, cell.y];
+    }
+
+    public bool TryGetPortalExit(
+        Vector2Int entry,
+        out Vector2Int exit)
+    {
+        exit = entry;
+        int id = GetPortalId(entry);
+
+        if (id == 0)
+        {
+            return false;
+        }
+
+        for (int y = 0; y < Height; y++)
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                if (_portalIds[x, y] != id ||
+                    (x == entry.x && y == entry.y))
+                {
+                    continue;
+                }
+
+                exit = new Vector2Int(x, y);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void MarkPortalPairKnown(int id)
+    {
+        if (id == 0)
+        {
+            return;
+        }
+
+        _knownPortalIds.Add(id);
+
+        for (int y = 0; y < Height; y++)
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                if (_portalIds[x, y] == id)
+                {
+                    _renderers[x, y].color = PortalColor(id);
+                }
+            }
+        }
     }
 
     public bool TryBreakStone(Vector2Int cell)
@@ -107,6 +181,13 @@ public class MazeBootstrapper : MonoBehaviour
         return spriteRenderer;
     }
 
+    private Color PortalColor(int id)
+    {
+        return _knownPortalIds.Contains(id)
+            ? new Color(0.78f, 0.55f, 0.95f)
+            : new Color(0.52f, 0.22f, 0.72f);
+    }
+
     private Color ColorFor(TileType tile)
     {
         switch (tile)
@@ -116,7 +197,8 @@ public class MazeBootstrapper : MonoBehaviour
             case TileType.Lava: return new Color(0.82f, 0.22f, 0.20f);
             case TileType.Water: return new Color(0.16f, 0.45f, 0.86f);
             case TileType.Stone: return new Color(0.45f, 0.45f, 0.48f);
-            case TileType.Chest: return new Color(0.95f, 0.65f, 0.13f);
+            case TileType.Chest: return new Color(0.95f, 0.72f, 0.18f);
+            case TileType.Portal: return new Color(0.52f, 0.22f, 0.72f);
             default: return Color.magenta;
         }
     }

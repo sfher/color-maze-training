@@ -37,6 +37,11 @@ public class LevelDefinition : ScriptableObject
 
     public TileType GetTileType(Vector2Int cell)
     {
+        char tile = GetTile(cell);
+        if('1' <= tile && tile <= '9')
+        {
+            return TileType.Portal; //数字对应传送门的编号
+        }
         switch (GetTile(cell))
         {
             case '.': return TileType.Floor;
@@ -49,6 +54,15 @@ public class LevelDefinition : ScriptableObject
         }
     }
 
+
+    public int GetPortalId(Vector2Int cell)
+    {
+        char tile = GetTile(cell);
+
+        return tile >= '1' && tile <= '9'
+            ? tile - '0'
+            : 0;
+    }
     private void OnValidate()
     {
         if (rows == null || rows.Length == 0)

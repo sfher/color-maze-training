@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelDefinition
   rows:
   - '#######'
-  - '#.....#'
+  - '#1...1#'
   - '#.RR..#'
   - '#.....#'
   - '#..BB.#'
