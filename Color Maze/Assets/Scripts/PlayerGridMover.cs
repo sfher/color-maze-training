@@ -9,6 +9,8 @@ public class PlayerGridMover : MonoBehaviour
     private Vector2Int currentCell;
     private PlayerStats stats;
     private Vector2Int facing = Vector2Int.up;
+    private const int ChestCoins = 3;
+    private const int ChestBombs = 1;
 
     private void Start()
     {
@@ -37,15 +39,17 @@ public class PlayerGridMover : MonoBehaviour
 
     private void Update()
     {
+        if (!stats.IsAlive)
+        {
+            return;
+        }
+
         if (ReadBombPressed())
         {
             TryUseBomb();
             return;
         }
-        if (!stats.IsAlive)
-        {
-            return;
-        }
+
         Vector2Int direction = ReadDirection();
 
         if (direction != Vector2Int.zero)
@@ -103,6 +107,19 @@ public class PlayerGridMover : MonoBehaviour
         currentCell = targetCell;
         transform.position = maze.CellToWorld(currentCell);
         stats.ApplyTile(maze.GetTileType(currentCell));
+
+        if(maze.GetTileType(currentCell) == TileType.Chest)
+        {
+            if (maze.TryOpenChest(currentCell))
+            {
+                stats.AddCoins(ChestCoins);
+                stats.AddBombs(ChestBombs);
+                Debug.Log($"打开宝箱，获得 {ChestCoins} 个金币和 {ChestBombs} 个炸弹。");
+            }
+
+            stats.ApplyTile(TileType.Floor);
+            return;
+        }
     }
 
     private bool ReadBombPressed()

@@ -4,5 +4,6 @@ public enum TileType
     Wall,
     Lava,
     Water,
-    Stone
+    Stone,
+    Chest
 }

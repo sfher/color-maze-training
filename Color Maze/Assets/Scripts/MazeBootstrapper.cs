@@ -55,13 +55,26 @@ public class MazeBootstrapper : MonoBehaviour
 
     public bool TryBreakStone(Vector2Int cell)
     {
-        if (GetTileType(cell) != TileType.Stone)
+        return TryReplace(cell, TileType.Stone, TileType.Floor);
+    }
+
+    public bool TryOpenChest(Vector2Int cell)
+    {
+        return TryReplace(cell, TileType.Chest, TileType.Floor);
+    }
+
+    private bool TryReplace(
+        Vector2Int cell,
+        TileType expected,
+        TileType replacement)
+    {
+        if (GetTileType(cell) != expected)
         {
             return false;
         }
 
-        _tiles[cell.x, cell.y] = TileType.Floor;
-        _renderers[cell.x, cell.y].color = ColorFor(TileType.Floor);
+        _tiles[cell.x, cell.y] = replacement;
+        _renderers[cell.x, cell.y].color = ColorFor(replacement);
         return true;
     }
 
@@ -103,6 +116,7 @@ public class MazeBootstrapper : MonoBehaviour
             case TileType.Lava: return new Color(0.82f, 0.22f, 0.20f);
             case TileType.Water: return new Color(0.16f, 0.45f, 0.86f);
             case TileType.Stone: return new Color(0.45f, 0.45f, 0.48f);
+            case TileType.Chest: return new Color(0.95f, 0.65f, 0.13f);
             default: return Color.magenta;
         }
     }
