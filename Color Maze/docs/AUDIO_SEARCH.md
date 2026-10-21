@@ -7,6 +7,29 @@ Updated: 2026-10-21
 Find and evaluate one short sound at a time for the current prototype. Do not
 download a large unknown audio pack just to "have options".
 
+## Starter Set (already acquired)
+
+The first curated set is in `Assets/ThirdParty/Audio/Kenney/`. All three
+source packs are CC0 1.0 and their original `License-*.txt` files are kept.
+
+| Project file | Source pack | Original file | Duration |
+|---|---|---|---:|
+| `pickup_material.ogg` | RPG Audio | `handleCoins2.ogg` | 0.34s |
+| `chest_open.ogg` | RPG Audio | `metalLatch.ogg` | 0.26s |
+| `stone_break.ogg` | RPG Audio | `chop.ogg` | 0.24s |
+| `portal_enter.ogg` | Digital Audio | `phaserUp5.ogg` | 0.31s |
+| `ui_confirm.ogg` | Interface Sounds | `confirmation_001.ogg` | 0.29s |
+| `level_complete.ogg` | Interface Sounds | `confirmation_003.ogg` | 0.32s |
+| `ui_error.ogg` | Interface Sounds | `error_001.ogg` | 0.16s |
+| `damage.ogg` | Interface Sounds | `error_003.ogg` | 0.53s |
+
+Preview the files before wiring them. Filenames describe intended use, not a
+final mix decision.
+
+Two older files in `Assets/ThirdParty/Sounds/` (`Pick up Coin.wav` and
+`Pickup.aiff`) still need source/license verification; see the
+`THIRD_PARTY_NOTICES.md` "Needs Review" section before using them.
+
 ## Sound Brief
 
 | Event | Duration | Feeling | Search terms |
