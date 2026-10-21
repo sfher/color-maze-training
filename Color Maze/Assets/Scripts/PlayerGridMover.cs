@@ -5,6 +5,7 @@ public class PlayerGridMover : MonoBehaviour
 {
     [SerializeField] private MazeBootstrapper maze;
     [SerializeField] private Vector2Int startCell = new Vector2Int(1, 1);
+    [SerializeField] private LevelFlowController flow;
 
     private Vector2Int currentCell;
     private PlayerStats stats;
@@ -14,10 +15,10 @@ public class PlayerGridMover : MonoBehaviour
 
     private void Start()
     {
-        if (maze == null)
+        if (maze == null || flow == null)
         {
             Debug.LogError(
-                "PlayerGridMover: 请在 Inspector 里把 Maze 引用拖进来。",
+                "PlayerGridMover: 请指定 Maze 和 Flow。",
                 this);
             enabled = false;
             return;
@@ -39,7 +40,7 @@ public class PlayerGridMover : MonoBehaviour
 
     private void Update()
     {
-        if (!stats.IsAlive)
+        if (!stats.IsAlive || !flow.IsPlaying)
         {
             return;
         }
@@ -107,14 +108,15 @@ public class PlayerGridMover : MonoBehaviour
         currentCell = targetCell;
         transform.position = maze.CellToWorld(currentCell);
         stats.ApplyTile(maze.GetTileType(currentCell));
+        TileType tile = maze.GetTileType(currentCell);
 
-        if (maze.GetTileType(currentCell) == TileType.Portal)
+        if (tile == TileType.Portal)
         {
             TryTeleport();
             return;
         }
 
-        if (maze.GetTileType(currentCell) == TileType.Chest)
+        if (tile == TileType.Chest)
         {
             if (maze.TryOpenChest(currentCell))
             {
@@ -124,6 +126,25 @@ public class PlayerGridMover : MonoBehaviour
             }
 
             stats.ApplyTile(TileType.Floor);
+            return;
+        }
+
+        if (tile == TileType.Material)
+        {
+            if (maze.TryCollectMaterial(currentCell))
+            {
+                stats.AddMaterial();
+                Debug.Log("找到材料。");
+            }
+
+            stats.ApplyTile(TileType.Floor);
+            return;
+        }
+
+        if (tile == TileType.Exit)
+        {
+            stats.ApplyTile(TileType.Floor);
+            flow.ReachExit(stats.HasMaterial);
             return;
         }
     }

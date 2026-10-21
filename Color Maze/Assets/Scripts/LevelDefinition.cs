@@ -50,6 +50,8 @@ public class LevelDefinition : ScriptableObject
             case 'R': return TileType.Lava;
             case 'B': return TileType.Water;
             case 'C': return TileType.Chest;
+            case 'M': return TileType.Material;
+            case 'E': return TileType.Exit;
             default: return TileType.Wall;
         }
     }

@@ -137,6 +137,14 @@ public class MazeBootstrapper : MonoBehaviour
         return TryReplace(cell, TileType.Chest, TileType.Floor);
     }
 
+    public bool TryCollectMaterial(Vector2Int cell)
+    {
+        return TryReplace(
+            cell,
+            TileType.Material,
+            TileType.Floor);
+    }
+
     private bool TryReplace(
         Vector2Int cell,
         TileType expected,
@@ -199,6 +207,8 @@ public class MazeBootstrapper : MonoBehaviour
             case TileType.Stone: return new Color(0.45f, 0.45f, 0.48f);
             case TileType.Chest: return new Color(0.95f, 0.72f, 0.18f);
             case TileType.Portal: return new Color(0.52f, 0.22f, 0.72f);
+            case TileType.Material: return new Color(0.20f, 0.95f, 0.75f);
+            case TileType.Exit: return new Color(0.18f, 0.65f, 0.35f);
             default: return Color.magenta;
         }
     }

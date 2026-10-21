@@ -163,7 +163,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15dfd5abaaebbb54cb1362f7f71789be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MazeBootstrapper
-  level: {fileID: 11400000, guid: d4cc5b3e78d24f24693e2a6841ba56d3, type: 2}
+  level: {fileID: 11400000, guid: 6f494dbc2382fea4cadf551f962f23ec, type: 2}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -513,6 +513,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerGridMover
   maze: {fileID: 107581995}
   startCell: {x: 1, y: 1}
+  flow: {fileID: 1552829965}
 --- !u!114 &625583095
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -534,7 +535,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1552829964}
-  - component: {fileID: 1552829963}
+  - component: {fileID: 1552829965}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -542,19 +543,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1552829963
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1552829962}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ca3f8ff2acc5df41ac60694b7bd4448, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GameOverController
-  playerStats: {fileID: 625583095}
 --- !u!4 &1552829964
 Transform:
   m_ObjectHideFlags: 0
@@ -570,6 +558,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1552829965
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1552829962}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e22b26a358819d94b9666b4a33f15c0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LevelFlowController
+  playerStats: {fileID: 625583095}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

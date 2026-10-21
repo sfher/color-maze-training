@@ -6,5 +6,7 @@ public enum TileType
     Water,
     Stone,
     Chest,
-    Portal
+    Portal,
+    Material,
+    Exit
 }
