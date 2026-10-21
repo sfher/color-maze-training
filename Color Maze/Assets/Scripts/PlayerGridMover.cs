@@ -8,6 +8,7 @@ public class PlayerGridMover : MonoBehaviour
 
     private Vector2Int currentCell;
     private PlayerStats stats;
+    private Vector2Int facing = Vector2Int.up;
 
     private void Start()
     {
@@ -36,7 +37,12 @@ public class PlayerGridMover : MonoBehaviour
 
     private void Update()
     {
-        if(!stats.IsAlive)
+        if (ReadBombPressed())
+        {
+            TryUseBomb();
+            return;
+        }
+        if (!stats.IsAlive)
         {
             return;
         }
@@ -86,6 +92,7 @@ public class PlayerGridMover : MonoBehaviour
 
     private void TryMove(Vector2Int direction)
     {
+        facing = direction;
         Vector2Int targetCell = currentCell + direction;
 
         if (!maze.IsWalkable(targetCell))
@@ -96,5 +103,40 @@ public class PlayerGridMover : MonoBehaviour
         currentCell = targetCell;
         transform.position = maze.CellToWorld(currentCell);
         stats.ApplyTile(maze.GetTileType(currentCell));
+    }
+
+    private bool ReadBombPressed()
+    {
+        Keyboard keyboard = Keyboard.current;
+
+        if (keyboard == null)
+        {
+            return false;
+        }
+
+        return keyboard.eKey.wasPressedThisFrame ||
+               keyboard.spaceKey.wasPressedThisFrame;
+    }
+
+    private void TryUseBomb()
+    {
+        Vector2Int targetCell = currentCell + facing;
+
+        if (maze.GetTileType(targetCell) != TileType.Stone)
+        {
+            Debug.Log("这里没有灰色石头。");
+            return;
+        }
+
+        if (!stats.TryConsumeBomb())
+        {
+            Debug.Log("没有炸弹了。");
+            return;
+        }
+
+        if (maze.TryBreakStone(targetCell))
+        {
+            Debug.Log("灰色石头被炸开了。");
+        }
     }
 }

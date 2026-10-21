@@ -9,7 +9,7 @@ public class PlayerStats : MonoBehaviour
 
     public int Health { get; private set; } = MaxHealth;
     public int Oxygen { get; private set; } = MaxOxygen;
-
+    public int Bombs { get; private set; } = 1;
     public bool IsAlive => Health > 0;
 
     private GUIStyle _labelStyle;
@@ -59,6 +59,17 @@ public class PlayerStats : MonoBehaviour
         Oxygen = Mathf.Min(MaxOxygen, Oxygen + 1);
     }
 
+    public bool TryConsumeBomb()
+    {
+        if (Bombs <= 0)
+        {
+            return false;
+        }
+
+        Bombs -= 1;
+        Debug.Log($"炸弹 -1，剩余 {Bombs}");
+        return true;
+    }
     private void OnGUI()
     {
         if (_labelStyle == null)
@@ -68,7 +79,7 @@ public class PlayerStats : MonoBehaviour
             _labelStyle.normal.textColor = Color.black;
         }
 
-        GUI.Box(new Rect(12f, 12f, 260f, 96f), "");
+        GUI.Box(new Rect(12f, 12f, 260f, 132f), "");
         GUI.Label(
             new Rect(24f, 22f, 236f, 30f),
             $"生命: {Health} / {MaxHealth}",
@@ -76,6 +87,10 @@ public class PlayerStats : MonoBehaviour
         GUI.Label(
             new Rect(24f, 58f, 236f, 30f),
             $"氧气: {Oxygen} / {MaxOxygen}",
+            _labelStyle);
+        GUI.Label(
+            new Rect(24f, 94f, 236f, 30f),
+            $"炸弹: {Bombs}",
             _labelStyle);
     }
 }

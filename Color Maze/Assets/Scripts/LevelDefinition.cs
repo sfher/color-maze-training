@@ -13,7 +13,7 @@ public class LevelDefinition : ScriptableObject
         "#.RR..#",
         "#.....#",
         "#..BB.#",
-        "#.....#",
+        "#.S...#",
         "#######"
     };
 
@@ -41,6 +41,7 @@ public class LevelDefinition : ScriptableObject
         {
             case '.': return TileType.Floor;
             case '#': return TileType.Wall;
+            case 'S': return TileType.Stone;
             case 'R': return TileType.Lava;
             case 'B': return TileType.Water;
             default: return TileType.Wall;

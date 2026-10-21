@@ -3,5 +3,6 @@ public enum TileType
     Floor,
     Wall,
     Lava,
-    Water
+    Water,
+    Stone
 }

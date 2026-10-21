@@ -4,6 +4,9 @@ public class MazeBootstrapper : MonoBehaviour
 {
     [SerializeField] private LevelDefinition level;
 
+    private TileType[,] _tiles;
+    private SpriteRenderer[,] _renderers;
+
     private int Width => level != null ? level.Width : 0;
     private int Height => level != null ? level.Height : 0;
 
@@ -18,6 +21,9 @@ public class MazeBootstrapper : MonoBehaviour
             return;
         }
 
+        _tiles = new TileType[Width, Height];
+        _renderers = new SpriteRenderer[Width, Height];
+
         Sprite square = CreateSquareSprite();
 
         for (int y = 0; y < Height; y++)
@@ -25,24 +31,38 @@ public class MazeBootstrapper : MonoBehaviour
             for (int x = 0; x < Width; x++)
             {
                 TileType tile = level.GetTileType(new Vector2Int(x, y));
-                CreateCell(square, x, y, tile);
+                _tiles[x, y] = tile;
+                _renderers[x, y] = CreateCell(square, x, y, tile);
             }
         }
     }
 
     public bool IsWalkable(Vector2Int cell)
     {
-        return GetTileType(cell) != TileType.Wall;
+        TileType tile = GetTileType(cell);
+        return tile != TileType.Wall && tile != TileType.Stone;
     }
 
     public TileType GetTileType(Vector2Int cell)
     {
-        if (level == null || !level.Contains(cell))
+        if (level == null || _tiles == null || !level.Contains(cell))
         {
             return TileType.Wall;
         }
 
-        return level.GetTileType(cell);
+        return _tiles[cell.x, cell.y];
+    }
+
+    public bool TryBreakStone(Vector2Int cell)
+    {
+        if (GetTileType(cell) != TileType.Stone)
+        {
+            return false;
+        }
+
+        _tiles[cell.x, cell.y] = TileType.Floor;
+        _renderers[cell.x, cell.y].color = ColorFor(TileType.Floor);
+        return true;
     }
 
     public Vector3 CellToWorld(Vector2Int cell)
@@ -58,7 +78,11 @@ public class MazeBootstrapper : MonoBehaviour
             0f);
     }
 
-    private void CreateCell(Sprite square, int x, int y, TileType tile)
+    private SpriteRenderer CreateCell(
+        Sprite square,
+        int x,
+        int y,
+        TileType tile)
     {
         GameObject cell = new GameObject($"Cell_{x}_{y}");
         cell.transform.SetParent(transform);
@@ -67,6 +91,7 @@ public class MazeBootstrapper : MonoBehaviour
         SpriteRenderer spriteRenderer = cell.AddComponent<SpriteRenderer>();
         spriteRenderer.sprite = square;
         spriteRenderer.color = ColorFor(tile);
+        return spriteRenderer;
     }
 
     private Color ColorFor(TileType tile)
@@ -77,6 +102,7 @@ public class MazeBootstrapper : MonoBehaviour
             case TileType.Floor: return new Color(0.93f, 0.92f, 0.88f);
             case TileType.Lava: return new Color(0.82f, 0.22f, 0.20f);
             case TileType.Water: return new Color(0.16f, 0.45f, 0.86f);
+            case TileType.Stone: return new Color(0.45f, 0.45f, 0.48f);
             default: return Color.magenta;
         }
     }
