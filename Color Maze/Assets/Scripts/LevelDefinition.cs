@@ -17,6 +17,10 @@ public class LevelDefinition : ScriptableObject
         "#######"
     };
 
+    [SerializeField] private LevelDefinition nextLevel;
+
+    public LevelDefinition NextLevel => nextLevel;
+
     public int Width => rows != null && rows.Length > 0
         ? rows[0].Length
         : 0;

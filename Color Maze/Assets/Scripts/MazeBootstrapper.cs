@@ -10,15 +10,29 @@ public class MazeBootstrapper : MonoBehaviour
     private SpriteRenderer[,] _renderers;
     private readonly HashSet<int> _knownPortalIds = new HashSet<int>();
 
+    public LevelDefinition CurrentLevel => level;
+
     private int Width => level != null ? level.Width : 0;
     private int Height => level != null ? level.Height : 0;
+
+    private void Awake()
+    {
+        if (GameSession.CurrentLevel != null)
+        {
+            level = GameSession.CurrentLevel;
+        }
+        else
+        {
+            GameSession.CurrentLevel = level;
+        }
+    }
 
     private void Start()
     {
         if (level == null)
         {
             Debug.LogError(
-                "MazeBootstrapper: ÇëÔÚ Inspector ÀïÖ¸¶¨ Level Definition¡£",
+                "MazeBootstrapper: è¯·åœ¨ Inspector é‡ŒæŒ‡å®š Level Definitionã€‚",
                 this);
             enabled = false;
             return;

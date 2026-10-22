@@ -16,6 +16,7 @@ public class GameHud : MonoBehaviour
     [SerializeField] private GameObject pausePanel;
     [SerializeField] private Button resumeButton;
     [SerializeField] private Button pauseRestartButton;
+    [SerializeField] private Button nextLevelButton;
 
     private Coroutine _hintRoutine;
 
@@ -34,6 +35,7 @@ public class GameHud : MonoBehaviour
         restartButton.onClick.AddListener(flow.Restart);
         resumeButton.onClick.AddListener(flow.Resume);
         pauseRestartButton.onClick.AddListener(flow.Restart);
+        nextLevelButton.onClick.AddListener(flow.AdvanceToNextLevel);
 
         endPanel.SetActive(false);
         pausePanel.SetActive(false);
@@ -70,6 +72,12 @@ public class GameHud : MonoBehaviour
         {
             pauseRestartButton.onClick.RemoveListener(flow.Restart);
         }
+
+        if (nextLevelButton != null && flow != null)
+        {
+            nextLevelButton.onClick.RemoveListener(
+                flow.AdvanceToNextLevel);
+        }
     }
 
     private bool ValidateReferences()
@@ -79,7 +87,7 @@ public class GameHud : MonoBehaviour
             endPanel == null || endTitleText == null ||
             endHintText == null || restartButton == null ||
             pausePanel == null || resumeButton == null ||
-            pauseRestartButton == null)
+            pauseRestartButton == null || nextLevelButton == null)
         {
             Debug.LogError(
                 "GameHud: 有引用没有绑定，请检查 Inspector。",
@@ -110,6 +118,11 @@ public class GameHud : MonoBehaviour
         endPanel.SetActive(ended);
         pausePanel.SetActive(paused);
 
+        bool canAdvance =
+            flow.State == LevelState.Completed &&
+            flow.CanAdvance;
+        nextLevelButton.gameObject.SetActive(canAdvance);
+
         if (!ended)
         {
             return;
@@ -122,7 +135,9 @@ public class GameHud : MonoBehaviour
 
         endHintText.text =
             flow.State == LevelState.Completed
-                ? "你找到了材料。"
+                ? (canAdvance
+                    ? "MAYA：我找到下一条线索了。"
+                    : "MAYA：这次的材料够了，旅程暂告一段落。")
                 : "按 R 或按钮重开。";
     }
 

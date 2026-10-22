@@ -6,6 +6,7 @@ public class LevelFlowController : MonoBehaviour
 {
     [SerializeField] private PlayerStats playerStats;
     [SerializeField] private AudioManager audio;
+    [SerializeField] private MazeBootstrapper maze;
 
     public event System.Action StateChanged;
     public event System.Action<string> HintShown;
@@ -16,14 +17,20 @@ public class LevelFlowController : MonoBehaviour
     public bool IsPlaying =>
         State == LevelState.Playing;
 
+    public bool CanAdvance =>
+        State == LevelState.Completed &&
+        maze != null &&
+        maze.CurrentLevel != null &&
+        maze.CurrentLevel.NextLevel != null;
+
     private void Start()
     {
         Time.timeScale = 1f;
 
-        if (playerStats == null || audio == null)
+        if (playerStats == null || audio == null || maze == null)
         {
             Debug.LogError(
-                "LevelFlowController: 请指定 PlayerStats 和 Audio。",
+                "LevelFlowController: 请指定 PlayerStats、Audio 和 Maze。",
                 this);
             enabled = false;
             return;
@@ -93,6 +100,21 @@ public class LevelFlowController : MonoBehaviour
 
     public void Restart()
     {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(
+            SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public void AdvanceToNextLevel()
+    {
+        if (!CanAdvance)
+        {
+            return;
+        }
+
+        LevelDefinition next = maze.CurrentLevel.NextLevel;
+        audio.PlayUiConfirm();
+        GameSession.CurrentLevel = next;
         Time.timeScale = 1f;
         SceneManager.LoadScene(
             SceneManager.GetActiveScene().buildIndex);

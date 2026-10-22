@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d56df6da890dae54fa1059256e1a3658, type: 3}
   m_Name: Level_FlowTest
   m_EditorClassIdentifier: Assembly-CSharp::LevelDefinition
+  nextLevel: {fileID: 11400000, guid: a9c3fda2cdf612545af410dc2c827c38, type: 2}
   rows:
   - '#######'
   - '#.M..E#'
