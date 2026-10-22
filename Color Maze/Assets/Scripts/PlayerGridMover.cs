@@ -5,7 +5,7 @@ public class PlayerGridMover : MonoBehaviour
 {
     [SerializeField] private MazeBootstrapper maze;
     [SerializeField] private LevelFlowController flow;
-    [SerializeField] private AudioManager audio;
+    [SerializeField] private GameFeedback feedback;
     [SerializeField] private Vector2Int startCell = new Vector2Int(1, 1);
 
     private Vector2Int currentCell;
@@ -16,10 +16,10 @@ public class PlayerGridMover : MonoBehaviour
 
     private void Start()
     {
-        if (maze == null || flow == null || audio == null)
+        if (maze == null || flow == null || feedback == null)
         {
             Debug.LogError(
-                "PlayerGridMover: 请指定 Maze、Flow 和 Audio。",
+                "PlayerGridMover: 请指定 Maze、Flow 和 Feedback。",
                 this);
             enabled = false;
             return;
@@ -117,20 +117,20 @@ public class PlayerGridMover : MonoBehaviour
         if (maze.GetTileType(targetCell) != TileType.Stone)
         {
             Debug.Log("这里没有灰色石头。");
-            audio.PlayUiError();
+            feedback.Error();
             return;
         }
 
         if (!stats.TryConsumeBomb())
         {
             Debug.Log("没有炸弹了。");
-            audio.PlayUiError();
+            feedback.Error();
             return;
         }
 
         if (maze.TryBreakStone(targetCell))
         {
-            audio.PlayStoneBreak();
+            feedback.StoneBroken();
             Debug.Log("灰色石头被炸开了。");
         }
     }
@@ -162,8 +162,9 @@ public class PlayerGridMover : MonoBehaviour
             {
                 stats.AddCoins(ChestCoins);
                 stats.AddBombs(ChestBombs);
-                audio.PlayChestOpen();
-                Debug.Log($"打开宝箱，获得 {ChestCoins} 个金币和 {ChestBombs} 个炸弹。");
+                feedback.ChestOpened();
+                Debug.Log(
+                    $"打开宝箱，获得 {ChestCoins} 个金币和 {ChestBombs} 个炸弹。");
             }
 
             stats.ApplyTile(TileType.Floor);
@@ -175,7 +176,7 @@ public class PlayerGridMover : MonoBehaviour
             if (maze.TryCollectMaterial(currentCell))
             {
                 stats.AddMaterial();
-                audio.PlayPickup();
+                feedback.Pickup();
                 Debug.Log("找到材料。");
             }
 
@@ -194,7 +195,7 @@ public class PlayerGridMover : MonoBehaviour
 
         if (tile == TileType.Lava && stats.IsAlive)
         {
-            audio.PlayDamage();
+            feedback.Damage();
         }
     }
 
@@ -205,7 +206,7 @@ public class PlayerGridMover : MonoBehaviour
         if (!maze.TryGetPortalExit(entry, out Vector2Int exit))
         {
             Debug.LogWarning("传送门没有配对的出口。");
-            audio.PlayUiError();
+            feedback.Error();
             stats.ApplyTile(TileType.Floor);
             return;
         }
@@ -214,7 +215,7 @@ public class PlayerGridMover : MonoBehaviour
         transform.position = maze.CellToWorld(currentCell);
         maze.MarkPortalPairKnown(maze.GetPortalId(currentCell));
         stats.ApplyTile(TileType.Floor);
-        audio.PlayPortal();
+        feedback.PortalUsed();
         Debug.Log($"传送门: ({entry.x},{entry.y}) ↔ ({exit.x},{exit.y})");
     }
 }
