@@ -19,6 +19,18 @@ public class SettingsController : MonoBehaviour
 
     private void Awake()
     {
+        if (volumeSlider == null ||
+            fullscreenToggle == null ||
+            resolutionDropdown == null ||
+            settingsPanel == null)
+        {
+            Debug.LogError(
+                "SettingsController: 有引用没有绑定，请检查 Inspector。",
+                this);
+            enabled = false;
+            return;
+        }
+
         BuildResolutionOptions();
         volumeSlider.onValueChanged.AddListener(
             HandleChanged);
@@ -72,6 +84,7 @@ public class SettingsController : MonoBehaviour
     public void Open()
     {
         settingsPanel.SetActive(true);
+        settingsPanel.transform.SetAsLastSibling();
     }
 
     public void Close()
