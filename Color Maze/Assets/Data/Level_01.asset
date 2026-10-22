@@ -12,11 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d56df6da890dae54fa1059256e1a3658, type: 3}
   m_Name: Level_01
   m_EditorClassIdentifier: Assembly-CSharp::LevelDefinition
+  stepLimit: 15
   rows:
   - '#######'
-  - '#1...1#'
-  - '#.RR..#'
+  - '#.M..E#'
+  - '#.###.#'
   - '#.....#'
-  - '#..BB.#'
-  - '#.SC..#'
+  - '#..R..#'
+  - '#.....#'
   - '#######'
+  nextLevel: {fileID: 11400000, guid: d4cc5b3e78d24f24693e2a6841ba56d3, type: 2}
+  completionDialogue:
+  - "\u8036\uFF0C\u4F60\u62FF\u5230\u4E86\u6750\u6599\uFF01"
+  - "\u524D\u65B9\u8FDB\u5165\u6C34\u4E16\u754C\uFF0C\u6CE8\u610F\u6C27\u6C14\u5B89\u5168\uFF01"

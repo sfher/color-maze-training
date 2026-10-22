@@ -8,6 +8,7 @@ public class MazeBootstrapper : MonoBehaviour
     private TileType[,] _tiles;
     private int[,] _portalIds;
     private SpriteRenderer[,] _renderers;
+    private Sprite _squareSprite;
     private readonly HashSet<int> _knownPortalIds = new HashSet<int>();
 
     public LevelDefinition CurrentLevel => level;
@@ -42,7 +43,7 @@ public class MazeBootstrapper : MonoBehaviour
         _portalIds = new int[Width, Height];
         _renderers = new SpriteRenderer[Width, Height];
 
-        Sprite square = CreateSquareSprite();
+        _squareSprite = CreateSquareSprite();
 
         for (int y = 0; y < Height; y++)
         {
@@ -54,7 +55,8 @@ public class MazeBootstrapper : MonoBehaviour
 
                 _tiles[x, y] = tile;
                 _portalIds[x, y] = portalId;
-                _renderers[x, y] = CreateCell(square, x, y, tile);
+                _renderers[x, y] =
+                    CreateCell(_squareSprite, x, y, tile);
 
                 if (tile == TileType.Portal)
                 {
@@ -177,6 +179,24 @@ public class MazeBootstrapper : MonoBehaviour
     public Vector3 CellToWorld(Vector2Int cell)
     {
         return transform.TransformPoint(CellToLocal(cell));
+    }
+
+    public GameObject CreateBombMarker(
+        Vector2Int cell,
+        Color color)
+    {
+        GameObject marker = new GameObject(
+            $"Bomb_{cell.x}_{cell.y}");
+        marker.transform.SetParent(transform, false);
+        marker.transform.localPosition = CellToLocal(cell);
+        marker.transform.localScale = Vector3.one * 0.5f;
+
+        SpriteRenderer renderer =
+            marker.AddComponent<SpriteRenderer>();
+        renderer.sprite = _squareSprite;
+        renderer.color = color;
+        renderer.sortingOrder = 5;
+        return marker;
     }
 
     private Vector3 CellToLocal(Vector2Int cell)

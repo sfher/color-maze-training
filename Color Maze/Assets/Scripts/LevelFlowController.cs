@@ -10,6 +10,7 @@ public class LevelFlowController : MonoBehaviour
 
     public event System.Action StateChanged;
     public event System.Action<string> HintShown;
+    public event System.Action StepsChanged;
 
     public LevelState State { get; private set; }
         = LevelState.Playing;
@@ -19,6 +20,30 @@ public class LevelFlowController : MonoBehaviour
 
     public LevelDefinition CurrentLevel =>
         maze != null ? maze.CurrentLevel : null;
+
+    public string FailureReason { get; private set; }
+        = string.Empty;
+
+    public int StepLimit => RunState.StepLimit;
+    public int StepsRemaining => RunState.StepsRemaining;
+
+    private LevelRunState _runState;
+
+    private LevelRunState RunState
+    {
+        get
+        {
+            if (_runState == null)
+            {
+                int limit = CurrentLevel != null
+                    ? CurrentLevel.StepLimit
+                    : 1;
+                _runState = new LevelRunState(limit);
+            }
+
+            return _runState;
+        }
+    }
 
     public bool CanAdvance =>
         State == LevelState.Completed &&
@@ -38,6 +63,8 @@ public class LevelFlowController : MonoBehaviour
             return;
         }
 
+        _ = StepLimit;
+        FailureReason = string.Empty;
         playerStats.Died += HandlePlayerDied;
     }
 
@@ -70,6 +97,32 @@ public class LevelFlowController : MonoBehaviour
 
         audio.PlayUiError();
         HintShown?.Invoke("还需要找到材料。");
+    }
+
+    public bool TryUseStep()
+    {
+        if (State != LevelState.Playing)
+        {
+            return false;
+        }
+
+        if (RunState.TrySpendStep())
+        {
+            StepsChanged?.Invoke();
+            return true;
+        }
+
+        Fail("步数耗尽。");
+        return false;
+    }
+
+    public void NotifyMoveResolved()
+    {
+        if (State == LevelState.Playing &&
+            RunState.IsExhausted)
+        {
+            Fail("步数耗尽。");
+        }
     }
 
     public void TogglePause()
@@ -124,8 +177,21 @@ public class LevelFlowController : MonoBehaviour
 
     private void HandlePlayerDied()
     {
+        FailureReason = "生命耗尽。";
         SetState(LevelState.Failed);
         audio.PlayDamage();
+    }
+
+    public void Fail(string reason)
+    {
+        if (State != LevelState.Playing)
+        {
+            return;
+        }
+
+        FailureReason = reason;
+        audio.PlayUiError();
+        SetState(LevelState.Failed);
     }
 
     private void SetState(LevelState nextState)

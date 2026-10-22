@@ -14,11 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelDefinition
   rows:
   - '#########'
-  - '#2#..#C1#'
-  - '#.#S..###'
-  - '###.##.2#'
-  - '#...#SSS#'
-  - '#.##..#.#'
-  - '#BBRRRBB#'
-  - '#.BBB..1#'
+  - '#B..BBBE#'
+  - '#BBBBBBB#'
+  - '#BBBB..B#'
+  - '#BBBBBB.#'
+  - '#BBBBBBB#'
+  - '#.#B..#B#'
+  - '#..BBCSM#'
   - '#########'
+  nextLevel: {fileID: 11400000, guid: a9c3fda2cdf612545af410dc2c827c38, type: 2}
+  completionDialogue:
+  - "\u8BF6\uFF0C\u4F60\u5F88\u4E0D\u9519\u561B"
+  - "\u63A5\u4E0B\u6765\u8981\u8FDB\u5165\u706B\u5C71\u533A"
+  - "\u8DEF\u88AB\u77F3\u5934\u6321\u4F4F\uFF0C\u6CE8\u610F\u6536\u96C6\u5B9D\u7BB1\u91CC\u7684\u70B8\u5F39"
+  - "\u6309E\u4F7F\u7528\u5B83\uFF01"
+  - "\u795D\u4F60\u597D\u8FD0\uFF01"
+  stepLimit: 20

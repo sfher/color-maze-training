@@ -9,8 +9,10 @@ public class PlayerGridMover : MonoBehaviour
     [SerializeField] private Vector2Int startCell = new Vector2Int(1, 1);
 
     private Vector2Int currentCell;
-    private Vector2Int facing = Vector2Int.up;
     private PlayerStats stats;
+    private DelayedBombState _activeBomb;
+    private Vector2Int _activeBombCell;
+    private GameObject _activeBombMarker;
     private const int ChestCoins = 3;
     private const int ChestBombs = 1;
 
@@ -106,17 +108,14 @@ public class PlayerGridMover : MonoBehaviour
             return false;
         }
 
-        return keyboard.eKey.wasPressedThisFrame ||
-               keyboard.spaceKey.wasPressedThisFrame;
+        return keyboard.eKey.wasPressedThisFrame;
     }
 
     private void TryUseBomb()
     {
-        Vector2Int targetCell = currentCell + facing;
-
-        if (maze.GetTileType(targetCell) != TileType.Stone)
+        if (_activeBomb != null)
         {
-            Debug.Log("这里没有灰色石头。");
+            Debug.Log("场上已经有一个炸弹。");
             feedback.Error();
             return;
         }
@@ -128,16 +127,17 @@ public class PlayerGridMover : MonoBehaviour
             return;
         }
 
-        if (maze.TryBreakStone(targetCell))
-        {
-            feedback.StoneBroken();
-            Debug.Log("灰色石头被炸开了。");
-        }
+        _activeBomb = new DelayedBombState();
+        _activeBombCell = currentCell;
+        _activeBombMarker = maze.CreateBombMarker(
+            _activeBombCell,
+            BombColor(_activeBomb.MovesRemaining));
+        feedback.BombPlaced();
+        Debug.Log("炸弹已放置，移动三步后爆炸。");
     }
 
     private void TryMove(Vector2Int direction)
     {
-        facing = direction;
         Vector2Int targetCell = currentCell + direction;
 
         if (!maze.IsWalkable(targetCell))
@@ -145,18 +145,28 @@ public class PlayerGridMover : MonoBehaviour
             return;
         }
 
+        if (!flow.TryUseStep())
+        {
+            return;
+        }
+
         currentCell = targetCell;
         transform.position = maze.CellToWorld(currentCell);
+
+        AdvanceBombAfterMove();
+
+        if (!stats.IsAlive || flow.State != LevelState.Playing)
+        {
+            return;
+        }
 
         TileType tile = maze.GetTileType(currentCell);
 
         if (tile == TileType.Portal)
         {
             TryTeleport();
-            return;
         }
-
-        if (tile == TileType.Chest)
+        else if (tile == TileType.Chest)
         {
             if (maze.TryOpenChest(currentCell))
             {
@@ -168,10 +178,8 @@ public class PlayerGridMover : MonoBehaviour
             }
 
             stats.ApplyTile(TileType.Floor);
-            return;
         }
-
-        if (tile == TileType.Material)
+        else if (tile == TileType.Material)
         {
             if (maze.TryCollectMaterial(currentCell))
             {
@@ -181,22 +189,23 @@ public class PlayerGridMover : MonoBehaviour
             }
 
             stats.ApplyTile(TileType.Floor);
-            return;
         }
-
-        if (tile == TileType.Exit)
+        else if (tile == TileType.Exit)
         {
             stats.ApplyTile(TileType.Floor);
             flow.ReachExit(stats.HasMaterial);
-            return;
         }
-
-        stats.ApplyTile(tile);
-
-        if (tile == TileType.Lava && stats.IsAlive)
+        else
         {
-            feedback.Damage();
+            stats.ApplyTile(tile);
+
+            if (tile == TileType.Lava && stats.IsAlive)
+            {
+                feedback.Damage();
+            }
         }
+
+        flow.NotifyMoveResolved();
     }
 
     private void TryTeleport()
@@ -217,5 +226,76 @@ public class PlayerGridMover : MonoBehaviour
         stats.ApplyTile(TileType.Floor);
         feedback.PortalUsed();
         Debug.Log($"传送门: ({entry.x},{entry.y}) ↔ ({exit.x},{exit.y})");
+    }
+
+    private void AdvanceBombAfterMove()
+    {
+        if (_activeBomb == null)
+        {
+            return;
+        }
+
+        if (_activeBomb.AdvanceMove())
+        {
+            ExplodeBomb();
+            return;
+        }
+
+        SpriteRenderer renderer =
+            _activeBombMarker.GetComponent<SpriteRenderer>();
+        renderer.color =
+            BombColor(_activeBomb.MovesRemaining);
+    }
+
+    private void ExplodeBomb()
+    {
+        Vector2Int[] blastCells =
+        {
+            _activeBombCell + Vector2Int.up,
+            _activeBombCell + Vector2Int.down,
+            _activeBombCell + Vector2Int.left,
+            _activeBombCell + Vector2Int.right
+        };
+
+        foreach (Vector2Int cell in blastCells)
+        {
+            maze.TryBreakStone(cell);
+        }
+
+        bool hitPlayer =
+            currentCell == _activeBombCell ||
+            currentCell == _activeBombCell + Vector2Int.up ||
+            currentCell == _activeBombCell + Vector2Int.down ||
+            currentCell == _activeBombCell + Vector2Int.left ||
+            currentCell == _activeBombCell + Vector2Int.right;
+
+        Object.Destroy(_activeBombMarker);
+        _activeBombMarker = null;
+        _activeBomb = null;
+        feedback.BombExploded();
+
+        if (hitPlayer)
+        {
+            stats.TakeDamage(1);
+
+            if (stats.IsAlive)
+            {
+                feedback.Damage();
+            }
+        }
+
+        Debug.Log(
+            $"炸弹在 ({_activeBombCell.x},{_activeBombCell.y}) 爆炸。",
+            this);
+    }
+
+    private static Color BombColor(int movesRemaining)
+    {
+        switch (movesRemaining)
+        {
+            case 1: return new Color(0.85f, 0.15f, 0.1f);
+            case 2: return new Color(0.95f, 0.52f, 0.1f);
+            default: return new Color(0.95f, 0.82f, 0.18f);
+        }
     }
 }

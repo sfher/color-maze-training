@@ -239,7 +239,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15dfd5abaaebbb54cb1362f7f71789be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MazeBootstrapper
-  level: {fileID: 11400000, guid: bab972ef24c231944a7398f08441635b, type: 2}
+  level: {fileID: 11400000, guid: 2c81e944ac986b2449f578b1f782ab2d, type: 2}
 --- !u!1 &124644421
 GameObject:
   m_ObjectHideFlags: 0

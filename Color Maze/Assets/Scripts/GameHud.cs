@@ -33,6 +33,7 @@ public class GameHud : MonoBehaviour
         playerStats.StatsChanged += RefreshStats;
         flow.StateChanged += HandleStateChanged;
         flow.HintShown += ShowHint;
+        flow.StepsChanged += RefreshStats;
         dialogue.Finished += HandleDialogueFinished;
 
         restartButton.onClick.AddListener(flow.Restart);
@@ -82,6 +83,7 @@ public class GameHud : MonoBehaviour
         {
             flow.StateChanged -= HandleStateChanged;
             flow.HintShown -= ShowHint;
+            flow.StepsChanged -= RefreshStats;
         }
 
         if (dialogue != null)
@@ -137,7 +139,8 @@ public class GameHud : MonoBehaviour
             $"氧气  {playerStats.Oxygen} / {PlayerStats.MaxOxygen}\n" +
             $"炸弹  {playerStats.Bombs}\n" +
             $"金币  {playerStats.Coins}\n" +
-            $"材料  {playerStats.Materials} / 1";
+            $"材料  {playerStats.Materials} / 1\n" +
+            $"步数  {flow.StepsRemaining} / {flow.StepLimit}";
     }
 
     private void HandleStateChanged()
@@ -161,8 +164,9 @@ public class GameHud : MonoBehaviour
             dialogue.HideImmediate();
             restartButton.gameObject.SetActive(true);
             nextLevelButton.gameObject.SetActive(false);
-            endTitleText.text = "生命耗尽";
-            endHintText.text = "按 R 或按钮重开。";
+            endTitleText.text = "关卡失败";
+            endHintText.text =
+                $"{flow.FailureReason}\n按 R 或按钮重开。";
             return;
         }
 
@@ -191,6 +195,10 @@ public class GameHud : MonoBehaviour
         }
 
         endTitleText.text = "关卡完成";
+        endHintText.text =
+            playerStats.Health == PlayerStats.MaxHealth
+                ? $"满血完成 · 使用 {flow.StepLimit - flow.StepsRemaining} 步"
+                : $"完成但残血 · 生命 {playerStats.Health} / {PlayerStats.MaxHealth}";
         restartButton.gameObject.SetActive(true);
         nextLevelButton.gameObject.SetActive(flow.CanAdvance);
     }

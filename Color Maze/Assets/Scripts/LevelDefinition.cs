@@ -19,9 +19,11 @@ public class LevelDefinition : ScriptableObject
 
     [SerializeField] private LevelDefinition nextLevel;
     [SerializeField] private string[] completionDialogue;
+    [SerializeField, Min(1)] private int stepLimit = 30;
 
     public LevelDefinition NextLevel => nextLevel;
     public string[] CompletionDialogue => completionDialogue;
+    public int StepLimit => stepLimit;
 
     public int Width => rows != null && rows.Length > 0
         ? rows[0].Length

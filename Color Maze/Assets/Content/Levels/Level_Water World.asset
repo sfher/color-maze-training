@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d56df6da890dae54fa1059256e1a3658, type: 3}
   m_Name: Level_Water World
   m_EditorClassIdentifier: Assembly-CSharp::LevelDefinition
+  stepLimit: 70
   rows:
   - '###############'
   - '#CBBBCBBBMSMBE#'

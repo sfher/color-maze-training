@@ -68,6 +68,17 @@ public class PlayerStats : MonoBehaviour
         StatsChanged?.Invoke();
     }
 
+    public void TakeDamage(int amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        LoseHealth(amount);
+        StatsChanged?.Invoke();
+    }
+
     private void LoseHealth(int amount)
     {
         Health = Mathf.Max(0, Health - amount);

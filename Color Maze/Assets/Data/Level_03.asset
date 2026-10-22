@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d56df6da890dae54fa1059256e1a3658, type: 3}
-  m_Name: Level_05 Lava & Stone
+  m_Name: Level_03
   m_EditorClassIdentifier: Assembly-CSharp::LevelDefinition
   rows:
   - '#################'
   - '#.....RRR....RE.#'
-  - '#...#.....#....R#'
+  - '#...#.....#..SSR#'
   - '#.C.#.RRR.#..C..#'
   - '#...#.RRR.#.....#'
   - '#.#S#.....S.#...#'
@@ -24,11 +24,14 @@ MonoBehaviour:
   - '#.###.SMS.###...#'
   - '#.....###.......#'
   - '#.RRR..S.RRR....#'
-  - '#.RRR.S..RRR....#'
-  - '#....###.RRR....#'
+  - '#SRRR.S..RRR....#'
+  - '#....###.RRRSSSS#'
   - '#...C.###.....C.#'
   - '#################'
-  nextLevel: {fileID: 0}
+  nextLevel: {fileID: 11400000, guid: 9abb544d2492eb74ca0bb6bf5f67c45f, type: 2}
   completionDialogue:
-  - "\u6211\u4EEC\u7A7F\u8FC7\u4E86\u7194\u5CA9\u533A\u3002"
-  - "\u8FD9\u6B21\u6CA1\u6709\u65B0\u7684\u5730\u70B9\u53EF\u53BB\uFF0C\u4F46\u8FD9\u53EA\u662F\u65C5\u7A0B\u7684\u505C\u987F\u3002"
+  - "\u6211\u4EEC\u7A7F\u8FC7\u4E86\u706B\u5C71"
+  - "\u63A5\u4E0B\u6765\u8981\u53BB\u7684\u5730\u65B9\uFF0C\u53EF\u80FD\u6BD4\u8F83\u4EE4\u4EBA\u6655\u5934\u8F6C\u5411"
+  - "\u5982\u679C\u4F60\u613F\u610F\uFF0C\u6700\u597D\u8BB0\u5F55\u4E0B\u4F60\u6BCF\u6B21\u7684\u4F4D\u7F6E"
+  - "\u4E00\u8DEF\u987A\u98CE~"
+  stepLimit: 72

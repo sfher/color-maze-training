@@ -72,6 +72,18 @@ public class GameFeedback : MonoBehaviour
         Flash(damageColor, 0.1f);
     }
 
+    public void BombPlaced()
+    {
+        audio.PlayUiConfirm();
+        Flash(portalColor, 0.08f);
+    }
+
+    public void BombExploded()
+    {
+        audio.PlayStoneBreak();
+        Flash(damageColor, 0.14f);
+    }
+
     private void Flash(Color color, float duration)
     {
         if (screenFlash == null)
