@@ -47,10 +47,12 @@ public class LevelFlowController : MonoBehaviour
 
         if (hasMaterial)
         {
-            SetState(LevelState.Completed);
+            // 先播音效再改状态，避免 Completed 触发的逻辑打断 AudioSource
             audio.PlayLevelComplete();
+            SetState(LevelState.Completed);
             return;
         }
+
 
         audio.PlayUiError();
         HintShown?.Invoke("还需要找到材料。");

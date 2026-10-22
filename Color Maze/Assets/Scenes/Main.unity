@@ -1835,7 +1835,7 @@ MonoBehaviour:
   stoneBreak: {fileID: 8300000, guid: 12e1c264a6848e742aed80dd4dbb9925, type: 3}
   portalEnter: {fileID: 8300000, guid: 05b93fac022cf9743ba1f3037252781b, type: 3}
   uiConfirm: {fileID: 8300000, guid: c78794b2668b33845bcb7f863f8fab4b, type: 3}
-  levelComplete: {fileID: 0}
+  levelComplete: {fileID: 8300000, guid: f2f8ab333cc255f42aac68cbc9fcde24, type: 3}
   uiError: {fileID: 8300000, guid: ed13673ddb3704440ab9048d8e4cb5ea, type: 3}
   damage: {fileID: 8300000, guid: 981d39a52ce99574a9dd139974a68127, type: 3}
 --- !u!82 &1552829967
