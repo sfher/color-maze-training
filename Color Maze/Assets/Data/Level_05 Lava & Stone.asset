@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d56df6da890dae54fa1059256e1a3658, type: 3}
   m_Name: Level_05 Lava & Stone
   m_EditorClassIdentifier: Assembly-CSharp::LevelDefinition
-  nextLevel: {fileID: 0}
   rows:
   - '#################'
   - '#.....RRR....RE.#'
@@ -29,3 +28,7 @@ MonoBehaviour:
   - '#....###.RRR....#'
   - '#...C.###.....C.#'
   - '#################'
+  nextLevel: {fileID: 0}
+  completionDialogue:
+  - "\u6211\u4EEC\u7A7F\u8FC7\u4E86\u7194\u5CA9\u533A\u3002"
+  - "\u8FD9\u6B21\u6CA1\u6709\u65B0\u7684\u5730\u70B9\u53EF\u53BB\uFF0C\u4F46\u8FD9\u53EA\u662F\u65C5\u7A0B\u7684\u505C\u987F\u3002"

@@ -18,8 +18,10 @@ public class LevelDefinition : ScriptableObject
     };
 
     [SerializeField] private LevelDefinition nextLevel;
+    [SerializeField] private string[] completionDialogue;
 
     public LevelDefinition NextLevel => nextLevel;
+    public string[] CompletionDialogue => completionDialogue;
 
     public int Width => rows != null && rows.Length > 0
         ? rows[0].Length
@@ -42,11 +44,12 @@ public class LevelDefinition : ScriptableObject
     public TileType GetTileType(Vector2Int cell)
     {
         char tile = GetTile(cell);
-        if('1' <= tile && tile <= '9')
+        if ('1' <= tile && tile <= '9')
         {
-            return TileType.Portal; //数字对应传送门的编号
+            return TileType.Portal;
         }
-        switch (GetTile(cell))
+
+        switch (tile)
         {
             case '.': return TileType.Floor;
             case '#': return TileType.Wall;
@@ -60,7 +63,6 @@ public class LevelDefinition : ScriptableObject
         }
     }
 
-
     public int GetPortalId(Vector2Int cell)
     {
         char tile = GetTile(cell);
@@ -69,11 +71,14 @@ public class LevelDefinition : ScriptableObject
             ? tile - '0'
             : 0;
     }
+
     private void OnValidate()
     {
         if (rows == null || rows.Length == 0)
         {
-            Debug.LogWarning("LevelDefinition: 地图至少需要一行。", this);
+            Debug.LogWarning(
+                "LevelDefinition: 地图至少需要一行。",
+                this);
             return;
         }
 

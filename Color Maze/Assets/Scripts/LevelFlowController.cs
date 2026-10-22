@@ -17,11 +17,13 @@ public class LevelFlowController : MonoBehaviour
     public bool IsPlaying =>
         State == LevelState.Playing;
 
+    public LevelDefinition CurrentLevel =>
+        maze != null ? maze.CurrentLevel : null;
+
     public bool CanAdvance =>
         State == LevelState.Completed &&
-        maze != null &&
-        maze.CurrentLevel != null &&
-        maze.CurrentLevel.NextLevel != null;
+        CurrentLevel != null &&
+        CurrentLevel.NextLevel != null;
 
     private void Start()
     {
@@ -112,7 +114,7 @@ public class LevelFlowController : MonoBehaviour
             return;
         }
 
-        LevelDefinition next = maze.CurrentLevel.NextLevel;
+        LevelDefinition next = CurrentLevel.NextLevel;
         audio.PlayUiConfirm();
         GameSession.CurrentLevel = next;
         Time.timeScale = 1f;
