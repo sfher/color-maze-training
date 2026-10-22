@@ -18,6 +18,8 @@ public class LevelFlowController : MonoBehaviour
 
     private void Start()
     {
+        Time.timeScale = 1f;
+
         if (playerStats == null || audio == null)
         {
             Debug.LogError(
@@ -36,6 +38,11 @@ public class LevelFlowController : MonoBehaviour
         {
             playerStats.Died -= HandlePlayerDied;
         }
+
+        if (Time.timeScale == 0f)
+        {
+            Time.timeScale = 1f;
+        }
     }
 
     public void ReachExit(bool hasMaterial)
@@ -47,19 +54,46 @@ public class LevelFlowController : MonoBehaviour
 
         if (hasMaterial)
         {
-            // 先播音效再改状态，避免 Completed 触发的逻辑打断 AudioSource
             audio.PlayLevelComplete();
             SetState(LevelState.Completed);
             return;
         }
 
-
         audio.PlayUiError();
         HintShown?.Invoke("还需要找到材料。");
     }
 
+    public void TogglePause()
+    {
+        if (State == LevelState.Playing)
+        {
+            audio.PlayUiConfirm();
+            SetState(LevelState.Paused);
+            Time.timeScale = 0f;
+            return;
+        }
+
+        if (State == LevelState.Paused)
+        {
+            Resume();
+        }
+    }
+
+    public void Resume()
+    {
+        if (State != LevelState.Paused)
+        {
+            return;
+        }
+
+        audio.PlayUiConfirm();
+        SetState(LevelState.Playing);
+        Time.timeScale = 1f;
+    }
+
     public void Restart()
     {
+        Time.timeScale = 1f;
         SceneManager.LoadScene(
             SceneManager.GetActiveScene().buildIndex);
     }
@@ -83,12 +117,22 @@ public class LevelFlowController : MonoBehaviour
 
     private void Update()
     {
-        if (State == LevelState.Playing)
+        Keyboard keyboard = Keyboard.current;
+
+        if (keyboard != null &&
+            keyboard.escapeKey.wasPressedThisFrame &&
+            (State == LevelState.Playing ||
+             State == LevelState.Paused))
         {
+            TogglePause();
             return;
         }
 
-        Keyboard keyboard = Keyboard.current;
+        if (State != LevelState.Completed &&
+            State != LevelState.Failed)
+        {
+            return;
+        }
 
         if (keyboard != null &&
             keyboard.rKey.wasPressedThisFrame)

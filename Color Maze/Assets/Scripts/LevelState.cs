@@ -2,5 +2,6 @@ public enum LevelState
 {
     Playing,
     Completed,
-    Failed
+    Failed,
+    Paused
 }

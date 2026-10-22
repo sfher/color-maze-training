@@ -13,6 +13,9 @@ public class GameHud : MonoBehaviour
     [SerializeField] private TMP_Text endTitleText;
     [SerializeField] private TMP_Text endHintText;
     [SerializeField] private Button restartButton;
+    [SerializeField] private GameObject pausePanel;
+    [SerializeField] private Button resumeButton;
+    [SerializeField] private Button pauseRestartButton;
 
     private Coroutine _hintRoutine;
 
@@ -27,9 +30,13 @@ public class GameHud : MonoBehaviour
         playerStats.StatsChanged += RefreshStats;
         flow.StateChanged += HandleStateChanged;
         flow.HintShown += ShowHint;
+
         restartButton.onClick.AddListener(flow.Restart);
+        resumeButton.onClick.AddListener(flow.Resume);
+        pauseRestartButton.onClick.AddListener(flow.Restart);
 
         endPanel.SetActive(false);
+        pausePanel.SetActive(false);
         hintText.gameObject.SetActive(false);
 
         RefreshStats();
@@ -53,6 +60,16 @@ public class GameHud : MonoBehaviour
         {
             restartButton.onClick.RemoveListener(flow.Restart);
         }
+
+        if (resumeButton != null && flow != null)
+        {
+            resumeButton.onClick.RemoveListener(flow.Resume);
+        }
+
+        if (pauseRestartButton != null && flow != null)
+        {
+            pauseRestartButton.onClick.RemoveListener(flow.Restart);
+        }
     }
 
     private bool ValidateReferences()
@@ -60,7 +77,9 @@ public class GameHud : MonoBehaviour
         if (playerStats == null || flow == null ||
             statsText == null || hintText == null ||
             endPanel == null || endTitleText == null ||
-            endHintText == null || restartButton == null)
+            endHintText == null || restartButton == null ||
+            pausePanel == null || resumeButton == null ||
+            pauseRestartButton == null)
         {
             Debug.LogError(
                 "GameHud: 有引用没有绑定，请检查 Inspector。",
@@ -86,8 +105,10 @@ public class GameHud : MonoBehaviour
         bool ended =
             flow.State == LevelState.Completed ||
             flow.State == LevelState.Failed;
+        bool paused = flow.State == LevelState.Paused;
 
         endPanel.SetActive(ended);
+        pausePanel.SetActive(paused);
 
         if (!ended)
         {
