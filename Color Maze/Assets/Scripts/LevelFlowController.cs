@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 public class LevelFlowController : MonoBehaviour
 {
     [SerializeField] private PlayerStats playerStats;
+    [SerializeField] private AudioManager audio;
 
     public event System.Action StateChanged;
     public event System.Action<string> HintShown;
@@ -17,10 +18,10 @@ public class LevelFlowController : MonoBehaviour
 
     private void Start()
     {
-        if (playerStats == null)
+        if (playerStats == null || audio == null)
         {
             Debug.LogError(
-                "LevelFlowController: 请指定 PlayerStats。",
+                "LevelFlowController: 请指定 PlayerStats 和 Audio。",
                 this);
             enabled = false;
             return;
@@ -47,9 +48,11 @@ public class LevelFlowController : MonoBehaviour
         if (hasMaterial)
         {
             SetState(LevelState.Completed);
+            audio.PlayLevelComplete();
             return;
         }
 
+        audio.PlayUiError();
         HintShown?.Invoke("还需要找到材料。");
     }
 
@@ -62,6 +65,7 @@ public class LevelFlowController : MonoBehaviour
     private void HandlePlayerDied()
     {
         SetState(LevelState.Failed);
+        audio.PlayDamage();
     }
 
     private void SetState(LevelState nextState)
