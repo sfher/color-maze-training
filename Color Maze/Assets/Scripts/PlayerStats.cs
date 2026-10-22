@@ -10,7 +10,7 @@ public class PlayerStats : MonoBehaviour
 
     public int Health { get; private set; } = MaxHealth;
     public int Oxygen { get; private set; } = MaxOxygen;
-    public int Bombs { get; private set; } = 1;
+    public int Bombs { get; private set; }
     public int Coins { get; private set; }
     public int Materials { get; private set; }
 

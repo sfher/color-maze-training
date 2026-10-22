@@ -163,7 +163,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15dfd5abaaebbb54cb1362f7f71789be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MazeBootstrapper
-  level: {fileID: 11400000, guid: 6f494dbc2382fea4cadf551f962f23ec, type: 2}
+  level: {fileID: 11400000, guid: bab972ef24c231944a7398f08441635b, type: 2}
 --- !u!1 &124644421
 GameObject:
   m_ObjectHideFlags: 0
@@ -1903,7 +1903,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: New Text
+  m_text: 
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d125b496cfe9a264698da15ca2c76b66, type: 2}
   m_sharedMaterial: {fileID: 4495857800509459696, guid: d125b496cfe9a264698da15ca2c76b66, type: 2}
