@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d56df6da890dae54fa1059256e1a3658, type: 3}
+  m_Name: Level_06
+  m_EditorClassIdentifier: Assembly-CSharp::LevelDefinition
+  rows:
+  - 3#M#.B.SC3CSM6MS
+  - B#B#B#.BSCSBSMSC
+  - B.B.BS.#.SBBBSCC
+  - '#####MRRRSB.BSCC'
+  - RRR2RRCRCB.B.BCC
+  - .BB.SSS3B#BBB#CC
+  - BRCSB2BS#R#4#R#C
+  - .B#BRBB#RRR#RRR#
+  - '#BBB1RB#RRRCRRR#'
+  - B.BBB#..SRC4CRS.
+  - .BBB#CBB#5RCR6..
+  - BB#BBR..#.#R#...
+  - B..RBBBB#..#....
+  - BB#.BBBS#.......
+  - BB.#R.S.SS......
+  - ..1..S.SSS....5E
+  - RRRRRCSCRRRRRRRR
+  nextLevel: {fileID: 0}
+  completionDialogue: []
+  stepLimit: 140

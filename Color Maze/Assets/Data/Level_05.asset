@@ -30,6 +30,7 @@ MonoBehaviour:
   - '#.###.#####.#.##B'
   - '#..S...S.M1#####B'
   - '###########BR..SB'
-  nextLevel: {fileID: 0}
-  completionDialogue: []
-  stepLimit: 30
+  nextLevel: {fileID: 11400000, guid: 7a86fc4c952b0254eb3cae8e1e466fe3, type: 2}
+  completionDialogue:
+  - "\u2026\u2026\u3010\u770B\u8D77\u6765\u7761\u7740\u4E86\u3011"
+  stepLimit: 35
