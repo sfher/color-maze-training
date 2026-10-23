@@ -11,6 +11,7 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip levelComplete;
     [SerializeField] private AudioClip uiError;
     [SerializeField] private AudioClip damage;
+    [SerializeField] private AudioClip drown;
 
     private void Awake()
     {
@@ -36,6 +37,7 @@ public class AudioManager : MonoBehaviour
     public void PlayLevelComplete() => Play(levelComplete);
     public void PlayUiError() => Play(uiError);
     public void PlayDamage() => Play(damage);
+    public void PlayDrown() => Play(drown);
 
     private void Play(AudioClip clip)
     {

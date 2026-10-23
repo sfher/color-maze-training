@@ -7,6 +7,7 @@ public class PlayerStats : MonoBehaviour
 
     public event System.Action Died;
     public event System.Action StatsChanged;
+    public event System.Action<DamageCause, int> Damaged;
 
     public int Health { get; private set; } = MaxHealth;
     public int Oxygen { get; private set; } = MaxOxygen;
@@ -24,11 +25,11 @@ public class PlayerStats : MonoBehaviour
         switch (tile)
         {
             case TileType.Lava:
-                LoseHealth(1);
+                LoseHealth(1, DamageCause.Lava);
                 RecoverOxygen();
                 break;
             case TileType.Water:
-                ConsumeOxygen();
+                ConsumeOxygen(DamageCause.Drowning);
                 break;
             default:
                 RecoverOxygen();
@@ -68,20 +69,31 @@ public class PlayerStats : MonoBehaviour
         StatsChanged?.Invoke();
     }
 
-    public void TakeDamage(int amount)
+    public void TakeDamage(
+        int amount,
+        DamageCause cause)
     {
         if (amount <= 0)
         {
             return;
         }
 
-        LoseHealth(amount);
+        LoseHealth(amount, cause);
         StatsChanged?.Invoke();
     }
 
-    private void LoseHealth(int amount)
+    private void LoseHealth(
+        int amount,
+        DamageCause cause)
     {
+        int healthBefore = Health;
         Health = Mathf.Max(0, Health - amount);
+        int damageTaken = healthBefore - Health;
+
+        if (damageTaken > 0)
+        {
+            Damaged?.Invoke(cause, damageTaken);
+        }
 
         if (Health == 0 && !_deathAnnounced)
         {
@@ -90,7 +102,7 @@ public class PlayerStats : MonoBehaviour
         }
     }
 
-    private void ConsumeOxygen()
+    private void ConsumeOxygen(DamageCause cause)
     {
         if (Oxygen > 0)
         {
@@ -98,7 +110,7 @@ public class PlayerStats : MonoBehaviour
             return;
         }
 
-        LoseHealth(1);
+        LoseHealth(1, cause);
     }
 
     private void RecoverOxygen()

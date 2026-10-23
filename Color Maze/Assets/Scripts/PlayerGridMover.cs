@@ -38,8 +38,17 @@ public class PlayerGridMover : MonoBehaviour
             return;
         }
 
+        stats.Damaged += HandleDamaged;
         currentCell = startCell;
         transform.position = maze.CellToWorld(currentCell);
+    }
+
+    private void OnDestroy()
+    {
+        if (stats != null)
+        {
+            stats.Damaged -= HandleDamaged;
+        }
     }
 
     private void Update()
@@ -199,10 +208,6 @@ public class PlayerGridMover : MonoBehaviour
         {
             stats.ApplyTile(tile);
 
-            if (tile == TileType.Lava && stats.IsAlive)
-            {
-                feedback.Damage();
-            }
         }
 
         flow.NotifyMoveResolved();
@@ -276,12 +281,7 @@ public class PlayerGridMover : MonoBehaviour
 
         if (hitPlayer)
         {
-            stats.TakeDamage(1);
-
-            if (stats.IsAlive)
-            {
-                feedback.Damage();
-            }
+            stats.TakeDamage(1, DamageCause.Bomb);
         }
 
         Debug.Log(
@@ -297,5 +297,12 @@ public class PlayerGridMover : MonoBehaviour
             case 2: return new Color(0.95f, 0.52f, 0.1f);
             default: return new Color(0.95f, 0.82f, 0.18f);
         }
+    }
+
+    private void HandleDamaged(
+        DamageCause cause,
+        int amount)
+    {
+        feedback.Damage(cause);
     }
 }

@@ -179,7 +179,6 @@ public class LevelFlowController : MonoBehaviour
     {
         FailureReason = "生命耗尽。";
         SetState(LevelState.Failed);
-        audio.PlayDamage();
     }
 
     public void Fail(string reason)

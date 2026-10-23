@@ -10,6 +10,9 @@ public class GameFeedback : MonoBehaviour
     private Color damageColor =
         new Color(0.75f, 0.12f, 0.10f, 0.22f);
     [SerializeField]
+    private Color drownColor =
+        new Color(0.10f, 0.40f, 0.90f, 0.20f);
+    [SerializeField]
     private Color gainColor =
         new Color(1f, 0.78f, 0.18f, 0.12f);
     [SerializeField]
@@ -36,10 +39,19 @@ public class GameFeedback : MonoBehaviour
         }
     }
 
-    public void Damage()
+    public void Damage(DamageCause cause)
     {
-        audio.PlayDamage();
-        Flash(damageColor, 0.2f);
+        switch (cause)
+        {
+            case DamageCause.Drowning:
+                audio.PlayDrown();
+                Flash(drownColor, 0.22f);
+                break;
+            default:
+                audio.PlayDamage();
+                Flash(damageColor, 0.2f);
+                break;
+        }
     }
 
     public void Pickup()
@@ -81,7 +93,6 @@ public class GameFeedback : MonoBehaviour
     public void BombExploded()
     {
         audio.PlayStoneBreak();
-        Flash(damageColor, 0.14f);
     }
 
     private void Flash(Color color, float duration)

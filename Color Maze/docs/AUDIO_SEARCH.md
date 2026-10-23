@@ -1,6 +1,6 @@
 # Audio Search Brief
 
-Updated: 2026-10-21
+Updated: 2026-10-23
 
 ## Goal
 
@@ -22,13 +22,13 @@ source packs are CC0 1.0 and their original `License-*.txt` files are kept.
 | `level_complete.ogg` | Interface Sounds | `confirmation_003.ogg` | 0.32s |
 | `ui_error.ogg` | Interface Sounds | `error_001.ogg` | 0.16s |
 | `damage.ogg` | Interface Sounds | `error_003.ogg` | 0.53s |
+| `657930__lilmati__cartoon-drowning-02.wav` | Freesound 657930 | `657930__lilmati__cartoon-drowning-02.wav` | source file |
 
 Preview the files before wiring them. Filenames describe intended use, not a
 final mix decision.
 
-Two older files in `Assets/ThirdParty/Sounds/` (`Pick up Coin.wav` and
-`Pickup.aiff`) still need source/license verification; see the
-`THIRD_PARTY_NOTICES.md` "Needs Review" section before using them.
+The drowning sound is CC0 by LilMati and is recorded in
+`THIRD_PARTY_NOTICES.md`.
 
 ## Sound Brief
 

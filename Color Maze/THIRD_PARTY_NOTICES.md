@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-Last updated: 2026-10-21
+Last updated: 2026-10-23
 
 This file records the provenance and license of external assets used in the
 Color Maze Unity project. It is an inventory, not a replacement for the
@@ -15,6 +15,7 @@ original license texts.
 | kenney-interface-sounds | Interface Sounds (1.0) | Kenney (Kenney Vleugels) | [Interface Sounds](https://kenney.nl/assets/interface-sounds) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-21 | Selected UI confirm, complete, error, damage sounds; renamed | Not required; credit appreciated |
 | kenney-rpg-audio | RPG Audio | Kenney (Kenney Vleugels) | [RPG Audio](https://kenney.nl/assets/rpg-audio) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-21 | Selected pickup, chest latch, stone impact; renamed | Not required; credit appreciated |
 | kenney-digital-audio | Digital Audio | Kenney (Kenney Vleugels) | [Digital Audio](https://kenney.nl/assets/digital-audio) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-21 | Selected portal/phaser sound; renamed | Not required; credit appreciated |
+| freesound-drowning-02 | Cartoon Drowning 02.wav | LilMati | [Freesound 657930](https://freesound.org/s/657930/) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-23 | Imported original WAV for drowning damage | Not required; credit appreciated |
 
 ## Local Files
 
@@ -22,21 +23,15 @@ original license texts.
 - Font license copy: `Assets/ThirdParty/Fonts/FusionPixel/LICENSE-OFL.txt`
 - Icons: `Assets/ThirdParty/Icons/`
 - Audio: `Assets/ThirdParty/Audio/Kenney/`
+- Additional audio: `Assets/ThirdParty/Sounds/`
 - Original Kenney license copies:
   `License-InterfaceSounds.txt`, `License-RPGAudio.txt`,
   `License-DigitalAudio.txt`
 
 ## Needs Review
 
-The following files existed before the curated Kenney audio set was added.
-They are not cleared for release until their author, source, and license are
-recorded:
-
-- `Assets/ThirdParty/Sounds/Pick up Coin.wav`
-- `Assets/ThirdParty/Sounds/Pickup.aiff`
-
-Do not ship these two files until the missing license record is filled in or
-they are replaced by the Kenney CC0 set.
+No outstanding unverified files were found in
+`Assets/ThirdParty/Sounds/` on 2026-10-23.
 
 ## License Texts
 
@@ -61,6 +56,7 @@ they are replaced by the Kenney CC0 set.
 | `level_complete.ogg` | Interface Sounds | `confirmation_003.ogg` | Level complete |
 | `ui_error.ogg` | Interface Sounds | `error_001.ogg` | Invalid action |
 | `damage.ogg` | Interface Sounds | `error_003.ogg` | Damage/failure feedback |
+| `657930__lilmati__cartoon-drowning-02.wav` | Freesound 657930 | `657930__lilmati__cartoon-drowning-02.wav` | Drowning health damage |
 
 ## Suggested Credits
 
@@ -70,6 +66,7 @@ These credits are optional for CC0, but useful for transparency:
 1-bit Pixel Icons by Nikoichu (CC0 1.0)
 Fusion Pixel Font by TakWolf (SIL OFL 1.1)
 Kenney audio packs by Kenney (CC0 1.0)
+LilMati on Freesound for Cartoon Drowning 02 (CC0 1.0)
 ```
 
 ## Asset Checklist

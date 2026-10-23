@@ -4707,6 +4707,7 @@ MonoBehaviour:
   levelComplete: {fileID: 8300000, guid: f2f8ab333cc255f42aac68cbc9fcde24, type: 3}
   uiError: {fileID: 8300000, guid: ed13673ddb3704440ab9048d8e4cb5ea, type: 3}
   damage: {fileID: 8300000, guid: 981d39a52ce99574a9dd139974a68127, type: 3}
+  drown: {fileID: 8300000, guid: a08b3c171cb60534b9d344d4f45e3182, type: 3}
 --- !u!82 &1552829967
 AudioSource:
   m_ObjectHideFlags: 0
