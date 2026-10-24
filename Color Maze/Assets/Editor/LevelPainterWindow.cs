@@ -545,7 +545,8 @@ public class LevelPainterWindow : EditorWindow
                 ? new List<string>()
                 : LevelValidator.ValidateRows(
                     BuildRows(),
-                    level.StepLimit);
+                    level.StepLimit,
+                    level.RequiredMaterials);
     }
 
     private string[] BuildRows()

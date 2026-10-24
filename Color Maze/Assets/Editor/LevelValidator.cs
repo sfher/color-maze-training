@@ -75,16 +75,21 @@ public static class LevelValidator
                 .stringValue;
         }
 
-        return ValidateRows(rows, level.StepLimit);
+        return ValidateRows(
+            rows,
+            level.StepLimit,
+            level.RequiredMaterials);
     }
 
     /// <summary>
     /// 校验一段行数组（行序为上到下）。资产校验与编辑器窗口的
     /// 内存缓冲共用这一条规则，保证两处报错完全一致。
+    /// 材料规则：地图中的 M 数量不少于 requiredMaterials，允许更多。
     /// </summary>
     public static List<string> ValidateRows(
         string[] rows,
-        int stepLimit)
+        int stepLimit,
+        int requiredMaterials)
     {
         List<string> errors = new List<string>();
 
@@ -97,6 +102,11 @@ public static class LevelValidator
         if (stepLimit <= 0)
         {
             errors.Add("步数限制必须大于 0。");
+        }
+
+        if (requiredMaterials < 1)
+        {
+            errors.Add("所需材料数必须至少为 1。");
         }
 
         int width = -1;
@@ -178,9 +188,11 @@ public static class LevelValidator
             }
         }
 
-        if (materials != 1)
+        if (materials < requiredMaterials)
         {
-            errors.Add($"材料数量应为 1，当前为 {materials}。");
+            errors.Add(
+                $"材料数量应不少于 {requiredMaterials}，" +
+                $"当前为 {materials}。");
         }
 
         if (exits != 1)
