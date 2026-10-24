@@ -4,9 +4,6 @@ using UnityEngine;
 
 public static class LevelValidator
 {
-    private const string AllowedTiles =
-        ".#SRBCME123456789";
-
     [MenuItem("Color Maze/Levels/Validate All")]
     private static void ValidateAllLevels()
     {
@@ -70,23 +67,44 @@ public static class LevelValidator
             return errors;
         }
 
-        if (level.StepLimit <= 0)
+        string[] rows = new string[rowsProperty.arraySize];
+        for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++)
+        {
+            rows[rowIndex] = rowsProperty
+                .GetArrayElementAtIndex(rowIndex)
+                .stringValue;
+        }
+
+        return ValidateRows(rows, level.StepLimit);
+    }
+
+    /// <summary>
+    /// 校验一段行数组（行序为上到下）。资产校验与编辑器窗口的
+    /// 内存缓冲共用这一条规则，保证两处报错完全一致。
+    /// </summary>
+    public static List<string> ValidateRows(
+        string[] rows,
+        int stepLimit)
+    {
+        List<string> errors = new List<string>();
+
+        if (rows == null || rows.Length == 0)
+        {
+            errors.Add("地图为空。");
+            return errors;
+        }
+
+        if (stepLimit <= 0)
         {
             errors.Add("步数限制必须大于 0。");
         }
 
-        string[] rows = new string[rowsProperty.arraySize];
         int width = -1;
         bool structureValid = true;
 
-        for (int rowIndex = 0;
-             rowIndex < rowsProperty.arraySize;
-             rowIndex++)
+        for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++)
         {
-            string row = rowsProperty
-                .GetArrayElementAtIndex(rowIndex)
-                .stringValue;
-            rows[rowIndex] = row;
+            string row = rows[rowIndex];
 
             if (string.IsNullOrEmpty(row))
             {
@@ -111,7 +129,7 @@ public static class LevelValidator
                  column < row.Length;
                  column++)
             {
-                if (AllowedTiles.IndexOf(row[column]) < 0)
+                if (!LevelMapCodec.IsAllowedTile(row[column]))
                 {
                     errors.Add(
                         $"第 {rowIndex + 1} 行第 {column + 1} 列" +
