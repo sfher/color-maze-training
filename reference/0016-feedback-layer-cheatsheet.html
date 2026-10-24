@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 16 · 反馈层与界面动画速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 16</div>
+    <h1>反馈层与界面动画</h1>
+    <p class="lede">游戏事件描述“发生了什么”，反馈层决定“玩家看到和听到什么”。声音、颜色、时长可以调整，调用方的语义不该跟着散开。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>Facade</span>
+      <span>UI Feedback</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>职责分工</h2>
+      <pre><code>PlayerGridMover
+  → Damage / Pickup
+
+GameFeedback
+  → 声音 + 画面组合
+
+AudioManager
+  → 播放哪个 AudioClip
+
+FeedbackFlash
+  → 屏幕遮罩</code></pre>
+      <p>调用方表达游戏事件，反馈层组合表现，低层音频继续只负责播放。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>事件入口</h2>
+      <pre><code>feedback.Damage()
+feedback.Pickup()
+feedback.ChestOpened()
+feedback.StoneBroken()
+feedback.PortalUsed()
+feedback.Error()</code></pre>
+      <p>方法名使用事件语义，不叫 <code>PlayRedFlash</code>。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>受击闪光</h2>
+      <pre><code>public void Damage()
+{
+    audio.PlayDamage();
+    Flash(damageColor, 0.2f);
+}</code></pre>
+      <p>时长控制在 0.1–0.25 秒之间；它不是过场动画。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>淡出协程</h2>
+      <pre><code>elapsed += Time.unscaledDeltaTime;
+float progress =
+    Mathf.Clamp01(elapsed / duration);
+
+color.a = Mathf.Lerp(
+    color.a, 0f, progress);</code></pre>
+      <p>使用 unscaled 时间，UI 反馈不随 <code>Time.timeScale</code> 冻结。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>连续触发</h2>
+      <pre><code>if (_flashRoutine != null)
+{
+    StopCoroutine(_flashRoutine);
+}
+
+_flashRoutine =
+    StartCoroutine(FlashRoutine(...));</code></pre>
+      <p>同一张遮罩只能有一个写入者，避免 alpha 闪烁和颜色残留。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>全屏 Image</h2>
+      <ul>
+        <li>四边 Anchor 拉伸。</li>
+        <li>Left/Top/Right/Bottom 为 0。</li>
+        <li>初始 Alpha 为 0。</li>
+        <li>Raycast Target 关闭。</li>
+        <li>位于 HUD 下方、游戏画面上方。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>可访问性</h2>
+      <ul>
+        <li>颜色不是唯一信息。</li>
+        <li>生命和氧气数字仍然更新。</li>
+        <li>声音提供同方向反馈。</li>
+        <li>关闭 Screen Flash 仍可继续游戏。</li>
+        <li>避免高频、长时、全屏强闪。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>验收清单</h2>
+      <ul>
+        <li>拾取与受击都有声音。</li>
+        <li>两者使用不同颜色与时长。</li>
+        <li>闪光结束回到透明。</li>
+        <li>全屏遮罩不挡鼠标点击。</li>
+        <li>连续反馈不叠加旧颜色。</li>
+        <li>暂停不影响 UI 淡出。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>只剩声音</dt>
+        <dd>Screen Flash 未绑定，或遮罩 Alpha 一直为 0。</dd>
+      </dl>
+      <dl class="term">
+        <dt>颜色不消失</dt>
+        <dd>协程结束后没有 ClearFlash。</dd>
+      </dl>
+      <dl class="term">
+        <dt>点击失效</dt>
+        <dd>全屏 Image 的 Raycast Target 仍然开启。</dd>
+      </dl>
+      <dl class="term">
+        <dt>颜色闪烁</dt>
+        <dd>多个协程同时写同一个 Graphic。</dd>
+      </dl>
+      <dl class="term">
+        <dt>暂停冻结</dt>
+        <dd>动画误用了 scaled delta time。</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程与资料</h2>
+    <p><a href="../lessons/0011-feedback-layer.html">课程 11 · 让每次操作都有回音</a></p>
+    <p><a href="https://docs.unity3d.com/6000.0/Documentation/Manual/Coroutines.html">Unity Manual: Coroutines</a> · <a href="https://docs.unity3d.com/Packages/com.unity.ugui@2.0/api/UnityEngine.UI.Graphic.html">Unity UI: Graphic</a> · <a href="https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Time-unscaledDeltaTime.html">Time.unscaledDeltaTime</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0011-feedback-layer.html">回到课程 11</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

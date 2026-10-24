@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 14d · 把编辑器变成工作流 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 14d</div>
+    <h1>把编辑器<br>变成工作流</h1>
+    <p class="lede">基础画笔完成后，补上新建关卡、尺寸调整、未保存保护和校验面板。目标是让策划不碰 YAML，也能独立完成一张关卡。</p>
+    <div class="meta"><span>60–90 分钟</span><span>AssetDatabase · Undo · Workflow</span><span>产出：完整制作闭环</span></div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0014d">
+      <li><label><input type="checkbox"><span>窗口内能新建一张 9×9 关卡资产。</span></label></li>
+      <li><label><input type="checkbox"><span>调整宽高时保留左上区域，新增格使用当前画笔。</span></label></li>
+      <li><label><input type="checkbox"><span>Apply、Undo、Redo、Revert 与未保存提示全部正常。</span></label></li>
+      <li><label><input type="checkbox"><span>校验错误显示在窗口中，并能定位到行列。</span></label></li>
+      <li><label><input type="checkbox"><span>从新建到验证为止不需要手动编辑 YAML。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>新建关卡资产</h2></div>
+    <p>顶部增加 <code>New Level</code>：选择保存路径与文件名，默认创建 9×9：</p>
+    <pre><code>#########
+#.......#
+#.......#
+#.......#
+#...M...#
+#.......#
+#.......#
+#......E#
+#########</code></pre>
+    <p>默认 <code>StepLimit = 30</code>，侧关卡 <code>Next Level = None</code>。创建后立即交给窗口编辑，不要求先手填一张占位图。</p>
+    <p>示例使用一圈墙作为视觉脚手架，但这不是硬性格式。地图的行列范围本身已经形成边界；省略外圈 `#` 仍是合法关卡。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>调整尺寸</h2></div>
+    <p>显示 Width / Height，并允许 Resize。规则固定：</p>
+    <ul>
+      <li>保留左上区域，也就是现有 rows 和列号尽量不变。</li>
+      <li>新增格使用当前画笔填充；默认画笔建议为墙 <code>#</code>，便于画局部隔墙或房间边界。</li>
+      <li>缩小造成地图丢失前弹出确认。</li>
+      <li>Resize 先改窗口缓冲，点击 Apply 后才写资产。</li>
+    </ul>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>补完编辑状态</h2></div>
+    <p>关闭、切换关卡、重新载入时必须检查 <code>isDirty</code>：</p>
+    <pre><code>Save / Discard / Cancel</code></pre>
+    <p>Apply 后清除 dirty，并保存资产。Undo/Redo 尽量通过 Unity 原生历史完成；如果窗口自身无法覆盖所有判断，至少保证 Apply 的整张地图变更可以撤销。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>用校验结果指导绘制</h2></div>
+    <p>窗口下方显示错误列表，至少覆盖：</p>
+    <ul>
+      <li>行宽不一致与未知字符所在行列；</li>
+      <li>起点 `(1,1)` 不可走；</li>
+      <li>材料数少于所需数量，或出口不是恰好一个；</li>
+      <li>传送门编号不是恰好两个；</li>
+      <li>步数上限小于等于 0。</li>
+    </ul>
+    <p>校验失败时仍可保存 draft，但状态必须明确显示“未通过”；不要用静默自动修正掩盖地图错误。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>最终验收</h2></div>
+    <ol>
+      <li>不使用文本编辑器，新建一张关卡。</li>
+      <li>画出所需材料、出口和一个成对传送门；目标规则允许多余材料，但迁移前校验器仍要求材料恰好一个。</li>
+      <li>故意画错一行，确认错误能定位到行列。</li>
+      <li>修复、Apply、关闭窗口并重新打开，内容仍然存在。</li>
+      <li>在 Play 中加载该关卡，确认能正常移动并显示地图。</li>
+    </ol>
+    <p>卡住时把“哪一步操作、预期、实际、Console”发我。先自己尝试，不要求一次就写对。</p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="0014c-level-painter.html">上一课：基础画笔</a>
+    <a href="../reference/0020-level-editor-tools-cheatsheet.html">参考卡：关卡编辑器</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

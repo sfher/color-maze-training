@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 14 · 关卡流与下一关速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 14</div>
+    <h1>关卡流与下一关</h1>
+    <p class="lede">场景重载重建对象；关卡选择要跨载入保留。GameSession 只保存本次运行的当前关卡，不是正式存档。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>ScriptableObject</span>
+      <span>Scene Flow</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>数据流</h2>
+      <pre><code>LevelDefinition.NextLevel
+        ↓
+GameSession.CurrentLevel
+        ↓
+SceneManager.LoadScene
+        ↓
+MazeBootstrapper.Awake
+        ↓
+build new grid</code></pre>
+      <p>不要把下一关名字写死在代码里；把引用放到关卡资产。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>GameSession</h2>
+      <pre><code>public static class GameSession
+{
+    public static LevelDefinition CurrentLevel;
+
+    [RuntimeInitializeOnLoadMethod(
+        SubsystemRegistration)]
+    static void ResetOnPlay()
+    {
+        CurrentLevel = null;
+    }
+}</code></pre>
+      <p>游戏启动时清空；场景重载时保留。真正的玩家进度仍需存档系统。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>Maze 的选择</h2>
+      <pre><code>private void Awake()
+{
+    if (GameSession.CurrentLevel != null)
+        level = GameSession.CurrentLevel;
+    else
+        GameSession.CurrentLevel = level;
+}</code></pre>
+      <p>首次进入使用 Inspector 初始关卡；后续场景载入使用 GameSession 当前关卡。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>CanAdvance</h2>
+      <pre><code>State == Completed
+&amp;&amp; maze != null
+&amp;&amp; maze.CurrentLevel != null
+&amp;&amp; maze.CurrentLevel.NextLevel != null</code></pre>
+      <p>失败、暂停、未完成、没有下一关时都不能显示下一关入口。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>Advance</h2>
+      <pre><code>GameSession.CurrentLevel = next;
+Time.timeScale = 1f;
+SceneManager.LoadScene(
+    activeScene.buildIndex);</code></pre>
+      <p>切换前恢复 timeScale；加载后由 Maze.Awake 读取新关卡。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>UI</h2>
+      <ul>
+        <li>完成 + 有下一关：显示“下一关”。</li>
+        <li>完成 + 无下一关：隐藏按钮，显示 MAYA 收束台词。</li>
+        <li>失败：隐藏下一关，保留重开。</li>
+        <li>暂停：下一关不显示。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>不同尺寸的关卡</h2>
+      <pre><code>sizeForHeight =
+    level.Height * 0.5f + padding;
+sizeForWidth =
+    (level.Width * 0.5f + padding)
+    / camera.aspect;
+
+camera.orthographicSize =
+    Mathf.Max(minimumSize,
+        sizeForHeight,
+        sizeForWidth);</code></pre>
+      <p>正交相机要同时容纳地图的宽和高。关卡变尺寸后由 MazeCameraFitter 重新取景。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>测试清单</h2>
+      <ul>
+        <li>完成 FlowTest 后进入 Level_05。</li>
+        <li>Level_05 与顶部出口完整进入镜头。</li>
+        <li>Level_05 重开仍留在 Level_05。</li>
+        <li>Level_05 完成没有下一关按钮。</li>
+        <li>失败不显示下一关。</li>
+        <li>停止 Play 后恢复初始 Inspector 关卡。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>按钮不出现</dt>
+        <dd>NextLevel 未绑定，或 State 不是 Completed。</dd>
+      </dl>
+      <dl class="term">
+        <dt>回到旧关</dt>
+        <dd>GameSession.CurrentLevel 没有在 reload 前更新。</dd>
+      </dl>
+      <dl class="term">
+        <dt>重开跳错关</dt>
+        <dd>GameSession 没保存当前关，或 Maze.Awake 没读。</dd>
+      </dl>
+      <dl class="term">
+        <dt>停止 Play 还保留</dt>
+        <dd>缺少 SubsystemRegistration 重置。</dd>
+      </dl>
+      <dl class="term">
+        <dt>最后一关仍有按钮</dt>
+        <dd>CanAdvance 没检查 NextLevel。</dd>
+      </dl>
+      <dl class="term">
+        <dt>新关卡显示不全</dt>
+        <dd>Camera 仍用固定正交尺寸；挂并绑定 MazeCameraFitter。</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0010-maya-and-next-level.html">课程 10 · 通关之后，故事继续</a></p>
+    <p>官方查证：<a href="https://docs.unity3d.com/ScriptReference/SceneManagement.SceneManager.LoadScene.html">SceneManager.LoadScene</a> · <a href="https://docs.unity3d.com/ScriptReference/Camera-orthographicSize.html">Camera.orthographicSize</a> · <a href="https://docs.unity3d.com/ScriptReference/Camera-aspect.html">Camera.aspect</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0010-maya-and-next-level.html">回到课程 10</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

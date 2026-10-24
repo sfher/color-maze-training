@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab 01 · 闭卷重写网格移动 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / Lab 01</div>
+    <h1>闭卷重写<br>网格移动</h1>
+    <p class="lede">这不是新功能课。今天不看课程代码，凭规格和官方文档重建移动核心；写完再对照参考实现，看看你真正掌握了什么、还缺什么。</p>
+    <div class="meta">
+      <span>30–40 分钟</span>
+      <span>闭卷 · 不复制</span>
+      <span>产出：独立写出的移动逻辑</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>Lab 规则</h2>
+    <ul class="checklist" data-key="lab-01-grid-movement">
+      <li><label><input type="checkbox"><span>新建临时脚本 <code>GridMovementLab.cs</code>，不修改正式工程脚本。</span></label></li>
+      <li><label><input type="checkbox"><span>不打开 <code>PlayerGridMover.cs</code> 或 <code>solutions/0002</code>，直到四个任务都写完。</span></label></li>
+      <li><label><input type="checkbox"><span>允许查 Unity/C# 官方文档；不允许让 AI 直接生成整段答案。</span></label></li>
+      <li><label><input type="checkbox"><span>完成后跑验收用例，再对照参考实现记录三类差异。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <div class="callout">
+    <span class="label">脚本放在哪</span>
+    <p>放在 <code>Assets/Scripts/Labs/GridMovementLab.cs</code>。在 Unity 的 Project 窗口里新建 <code>Labs</code> 文件夹和脚本，让 Unity 生成 <code>.meta</code>；不要把它塞进正式脚本目录的顶层，也不要改正式的 <code>PlayerGridMover.cs</code>。</p>
+  </div>
+
+  <div class="callout warn">
+    <span class="label">关于自动补全</span>
+    <p>先写方法签名和返回类型，再让 IDE 补全 API。不要为了消掉红波浪线写“占位代码”；补全可以帮你打 <code>wasPressedThisFrame</code>，但不能替你决定为什么返回 <code>Vector3</code> 而不是 <code>Vector2Int</code>。</p>
+  </div>
+
+  <section>
+    <h2>你要重建的数据流</h2>
+    <figure class="stack-figure">
+      <div class="stack-row root"><span class="type">Input</span><span>W/A/S/D 或方向键</span></div>
+      <div class="stack-row child"><span class="type">ReadDirection</span><span>返回 Vector2Int，没按键返回 zero</span></div>
+      <div class="stack-row child"><span class="type">TryMove</span><span>目标格 = 当前格 + 方向</span></div>
+      <div class="stack-row child"><span class="type">IsWalkable</span><span>越界或墙 → false</span></div>
+      <div class="stack-row child"><span class="type">CellToWorld</span><span>格子坐标 → 世界位置</span></div>
+      <figcaption>顺序是重点：先读输入，再算目标，再验证；验证通过后才提交新状态。</figcaption>
+    </figure>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>IsWalkable</h2></div>
+    <p>写出这个方法，接受一个格子坐标，回答“玩家能不能进入”。</p>
+    <div class="code">
+      <div class="code-head"><span>签名</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public bool IsWalkable(Vector2Int cell)</code></pre>
+    </div>
+    <ul>
+      <li>坐标越界：返回 <code>false</code>。</li>
+      <li>目标是墙：返回 <code>false</code>。</li>
+      <li>其他类型：返回 <code>true</code>。</li>
+      <li>不修改任何状态，不打印日志。</li>
+    </ul>
+    <details class="callout">
+      <summary>卡住超过 10 分钟？点开提示</summary>
+      <p>先比较 <code>cell.x</code> 与 Width、<code>cell.y</code> 与 Height 的上下界；边界安全后，再向关卡查询格子类型。</p>
+    </details>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>CellToWorld</h2></div>
+    <p>写出这个方法，把格子坐标变成玩家应该站的世界位置。</p>
+    <div class="code">
+      <div class="code-head"><span>签名</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public Vector3 CellToWorld(Vector2Int cell)</code></pre>
+    </div>
+    <ul>
+      <li>格子要居中；7×7 地图的中心格是 <code>(3,3)</code>，世界位置是 <code>(0,0,0)</code>。</li>
+      <li>如果 Maze 根对象移动或缩放，玩家仍要对齐格子。</li>
+      <li>不要在每个调用处重复写偏移公式。</li>
+    </ul>
+    <details class="callout">
+      <summary>卡住超过 10 分钟？点开提示</summary>
+      <p>先算出“相对于 Maze 的局部坐标”，再用 Transform 的 <code>TransformPoint</code> 转成世界坐标。</p>
+    </details>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>ReadDirection</h2></div>
+    <p>写出这个方法，读取这一帧的移动意图。</p>
+    <div class="code">
+      <div class="code-head"><span>签名</span><button class="copy" type="button">复制</button></div>
+      <pre><code>private Vector2Int ReadDirection()</code></pre>
+    </div>
+    <ul>
+      <li>W / ↑ → <code>Vector2Int.up</code>；S / ↓ → down；A / ← → left；D / → → right。</li>
+      <li>没有按键 → <code>Vector2Int.zero</code>。</li>
+      <li>按住不放时，每次按键只应产生一步；不要用“持续按下”判断。</li>
+      <li>键盘对象不存在时安全返回 zero，不抛异常。</li>
+    </ul>
+    <details class="callout">
+      <summary>卡住超过 10 分钟？点开提示</summary>
+      <p>新 Input System 里先拿 <code>Keyboard.current</code>，再看具体按键的“这一帧刚按下”状态；不要用旧版 <code>Input.GetKeyDown</code>。</p>
+    </details>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>TryMove</h2></div>
+    <p>写出这个方法，把“想走的方向”变成一次合法的状态更新。</p>
+    <div class="code">
+      <div class="code-head"><span>签名</span><button class="copy" type="button">复制</button></div>
+      <pre><code>private void TryMove(Vector2Int direction)</code></pre>
+    </div>
+    <ul>
+      <li>先算目标格，不要直接改 <code>currentCell</code>。</li>
+      <li>目标不可走时直接返回，位置和当前格都不变。</li>
+      <li>可走时按顺序更新当前格、世界位置，最后应用格子效果。</li>
+      <li>不要在这里直接写“如果是岩浆就扣血”的规则；规则由 <code>PlayerStats</code> 负责。</li>
+    </ul>
+    <details class="callout">
+      <summary>卡住超过 10 分钟？点开提示</summary>
+      <p>把方法拆成三步：算目标、验证、提交。最后一行应该是把当前格交给 <code>stats.ApplyTile(...)</code>，而不是自己改生命值。</p>
+    </details>
+  </section>
+
+  <section>
+    <h2>验收用例</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>场景</th><th>输入</th><th>预期</th></tr></thead>
+        <tbody>
+          <tr><td>正常移动</td><td>从 (1,1) 按 W</td><td>当前格 (1,2)，玩家在格子中心</td></tr>
+          <tr><td>撞墙</td><td>从 (1,1) 按 A 到墙</td><td>当前格和位置都不变</td></tr>
+          <tr><td>越界</td><td>从 (0,0) 继续向左</td><td>不抛异常，不移动</td></tr>
+          <tr><td>按住</td><td>按住 W 一秒</td><td>只移动一格，松开再按才继续</td></tr>
+          <tr><td>根对象移动</td><td>Maze 移到 (5,5) 后移动</td><td>玩家仍然落在格子中心</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>自检问题</h2>
+    <p>写完后先回答，再打开参考实现：</p>
+    <ol>
+      <li>为什么 <code>currentCell</code> 要在验证成功之后才更新？</li>
+      <li>如果 <code>wasPressedThisFrame</code> 改成 <code>isPressed</code>，手感会怎样？</li>
+      <li><code>index % Width</code> 和 <code>index / Width</code> 分别代表什么？</li>
+      <li>如果 <code>CellToWorld</code> 不使用 <code>TransformPoint</code>，Maze 移动后会怎样？</li>
+      <li>哪一行是读取输入，哪一行是提交状态？</li>
+    </ol>
+  </section>
+
+  <section class="source">
+    <h2>完成后对照</h2>
+    <p>先跑验收用例，再看 <a href="../solutions/0002/PlayerGridMover.cs">PlayerGridMover 参考实现</a> 和 <a href="../solutions/0004/MazeBootstrapper.cs">MazeBootstrapper 参考实现</a>。</p>
+    <p>只记录三类差异：</p>
+    <ul>
+      <li>你漏掉的边界情况；</li>
+      <li>你写出来但说不清原因的代码；</li>
+      <li>参考实现里可以当模板、不需要背的 API。</li>
+    </ul>
+    <p>把这三类差异发给我，我帮你写进学习记录。不要逐字比对；目标是能预测、能改、能调试。</p>
+  </section>
+
+  <p class="ask">卡住时先看提示，不要直接搜整段答案。真的写不下去，再回来问我；我会只给下一步，不直接给完整代码。</p>
+
+  <nav class="footer-nav">
+    <a href="0005-death-and-restart.html">上一课：失败与重开</a>
+    <a href="../practice/LAB-01-grid-movement.md">文字版任务书</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

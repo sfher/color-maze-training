@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 04 · 生命与氧气规则速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 04</div>
+    <h1>生命与氧气规则</h1>
+    <p class="lede">规则属于数据与状态，不属于颜色。颜色只是把格子类型画出来；真正的“踩上去会发生什么”由 TileType 和 PlayerStats 决定。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>枚举 · 状态</span>
+      <span>临时 HUD</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+
+    <section class="ref-block">
+      <h2>规则表</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>格子</th><th>符号</th><th>效果</th></tr></thead>
+          <tbody>
+            <tr><td>地板</td><td><code>.</code></td><td>氧气 +1（上限 3）</td></tr>
+            <tr><td>墙</td><td><code>#</code></td><td>不可进入</td></tr>
+            <tr><td>岩浆</td><td><code>R</code></td><td>生命 -1；氧气 +1（上限 3）</td></tr>
+            <tr><td>水</td><td><code>B</code></td><td>氧气 -1；为 0 时生命 -1</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="ref-block">
+      <h2>TileType</h2>
+      <pre><code>public enum TileType
+{
+    Floor,
+    Wall,
+    Lava,
+    Water
+}</code></pre>
+      <p>枚举把“裸字符”变成有名字的规则类型。扩展灰石、宝箱、传送门时，先加枚举值，再补映射。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>字符 → 类型</h2>
+      <pre><code>public TileType GetTileType(Vector2Int cell)
+{
+    switch (GetTile(cell))
+    {
+        case '.': return TileType.Floor;
+        case '#': return TileType.Wall;
+        case 'R': return TileType.Lava;
+        case 'B': return TileType.Water;
+        default: return TileType.Wall;
+    }
+}</code></pre>
+      <p>未知字符默认按墙处理：地图写错时玩家会被挡住，而不是穿进未知区域。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>PlayerStats 状态</h2>
+      <pre><code>Health: 3 → 2 → 1 → 0
+Oxygen: 3 → 2 → 1 → 0
+
+Lava      → Health -1, Oxygen +1
+Water     → Oxygen -1
+Oxygen 0  → Water 改为 Health -1
+Floor     → Oxygen +1（上限 3）</code></pre>
+      <p>状态字段用 <code>{ get; private set; }</code>：外部可读，只有 PlayerStats 自己能改。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>应用顺序</h2>
+      <pre><code>1. target = current + direction
+2. if (!maze.IsWalkable(target)) return
+3. current = target
+4. transform.position = maze.CellToWorld(current)
+5. stats.ApplyTile(maze.GetTileType(current))</code></pre>
+      <p>先验证再提交，最后才应用效果。这样撞墙不会扣血，也不会出现“没移动却消耗资源”。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>临时 HUD</h2>
+      <pre><code>private void OnGUI()
+{
+    GUI.Box(new Rect(12, 12, 260, 96), "");
+    GUI.Label(new Rect(24, 22, 236, 30),
+        $"生命: {Health} / {MaxHealth}");
+    GUI.Label(new Rect(24, 58, 236, 30),
+        $"氧气: {Oxygen} / {MaxOxygen}");
+}</code></pre>
+      <p><code>OnGUI</code> 适合原型和调试，不是最终 UI。正式 HUD 后面用 Canvas/TextMeshPro。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>测试清单</h2>
+      <ul>
+        <li>踩 R：生命 -1，氧气 +1（上限 3）。</li>
+        <li>踩 B：氧气 -1，生命不变。</li>
+        <li>连续踩水四次：氧气 0 后生命 -1。</li>
+        <li>离开水到地板：氧气 +1。</li>
+        <li>生命 0：玩家不能再移动。</li>
+        <li>撞墙：不扣任何资源。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>HUD 不显示</dt>
+        <dd>Player 上没有 PlayerStats，或组件被禁用。</dd>
+      </dl>
+      <dl class="term">
+        <dt>数值不变</dt>
+        <dd>TryMove 没有调用 ApplyTile，或 stats 为空。</dd>
+      </dl>
+      <dl class="term">
+        <dt>水不耗氧</dt>
+        <dd>当前关卡没有 B；切到 Level_01 或给数据加 B。</dd>
+      </dl>
+      <dl class="term">
+        <dt>氧气不尽</dt>
+        <dd>水格太少；临时把水行改成连续四格测试。</dd>
+      </dl>
+      <dl class="term">
+        <dt>死后还能走</dt>
+        <dd>Update 没有检查 <code>stats.IsAlive</code>。</dd>
+      </dl>
+    </section>
+
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0004-resource-rules.html">课程 04 · 颜色开始有代价</a></p>
+    <p>官方查证：<a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/enum">C# enum</a> · <a href="https://docs.unity3d.com/ScriptReference/MonoBehaviour.OnGUI.html">OnGUI</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0004-resource-rules.html">回到课程 04</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

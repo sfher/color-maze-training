@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 15a · 找到并接住像素素材 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 15a</div>
+    <h1>找到并接住<br>像素素材</h1>
+    <p class="lede">玩法已经用纯色方块验证完了。今天开始换皮：先把一批许可证干净的像素地块导入工程、切好、登记，不写一行代码。</p>
+    <div class="meta"><span>45–60 分钟</span><span>Sourcing · Import · Notices</span><span>产出：可用地块素材库</span></div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0015a">
+      <li><label><input type="checkbox"><span>有一张素材需求清单：每个 TileType 对应几张图、什么尺寸。</span></label></li>
+      <li><label><input type="checkbox"><span>每个素材包的许可证可判定（CC0 / CC-BY / OFL），来源与作者已记录。</span></label></li>
+      <li><label><input type="checkbox"><span>素材位于 <code>Assets/ThirdParty/Art/&lt;来源&gt;/&lt;包名&gt;/</code>，原许可证文件随包保留。</span></label></li>
+      <li><label><input type="checkbox"><span>导入设置统一：Sprite (2D and UI)、PPU = 贴图边长、Filter Mode = Point、Compression = None。</span></label></li>
+      <li><label><input type="checkbox"><span>雪图按格子切分完成，每个地块是 Project 里的独立 Sprite。</span></label></li>
+      <li><label><input type="checkbox"><span><code>THIRD_PARTY_NOTICES.md</code> 新增条目，含日期与修改说明。</span></label></li>
+      <li><label><input type="checkbox"><span>临时场景冒烟：一个 sprite 恰好占一格，放大后像素锐利不糊。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>本课在管线里的位置</h2>
+    <p>这节课不碰 <code>MazeBootstrapper</code>——它现在给每个格子挂 <code>SpriteRenderer</code>，用运行时生成的白色方块上色（<code>CreateSquareSprite</code>）。15b 才把这些白色方块换成今天的素材。所以本课全部动作都在<strong>导入侧</strong>：</p>
+    <div class="code">
+      <div class="code-head"><span>素材管线</span><button class="copy" type="button">复制</button></div>
+      <pre><code>需求清单 → 搜索(三轮关键词) → 许可证判定 → 下载进 ThirdParty
+    → 导入设置(PPU/Point/None) → Sprite Editor 切图
+    → THIRD_PARTY_NOTICES 登记 → 临时场景冒烟 → 提交</code></pre>
+    </div>
+    <p>顺序不能倒：先定"要什么"，再看"哪里有"；许可证不明的不下载，下载了的必须登记。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>先写需求清单</h2></div>
+    <p>对着 <code>TileType</code> 数一遍，别多别少：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>图</th><th>对应</th><th>数量</th></tr></thead>
+        <tbody>
+          <tr><td>地板 / 墙 / 灰石 / 岩浆 / 水</td><td><code>. # S R B</code></td><td>各 1 起步</td></tr>
+          <tr><td>宝箱 / 材料 / 出口</td><td><code>C M E</code></td><td>各 1 起步</td></tr>
+          <tr><td>传送门</td><td><code>1</code>–<code>9</code></td><td>1 张底图（15b 用颜色区分编号）</td></tr>
+          <tr><td>玩家</td><td>Player 方块</td><td>1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>两个一旦定下就全项目统一的决定：</p>
+    <ul>
+      <li><strong>分辨率</strong>：16×16 或 32×32。当前迷宫 1 格 = 1 世界单位，所以 <strong>PPU = 贴图边长</strong>，一个 sprite 正好一格。</li>
+      <li><strong>风格</strong>：优先<strong>同一个包</strong>吃下全部地块。混包必须同分辨率、同色板，否则 15b 换上去会像两款游戏。</li>
+    </ul>
+    <div class="callout tip">
+      <span class="label">提示</span>
+      <p>12a 的商店内容目录还在等主题图和关卡预览。今天选包时就留意：这个包的背景/装饰图之后能不能顺手供给商店，一次搜索喂两条管线。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>搜索与许可证判定</h2></div>
+    <p>首选 <a href="https://kenney.nl/assets">Kenney</a>：项目已经用它的 CC0 音频，像素包多、风格统一、许可干净。检索方法沿用 <a href="0009c-asset-sourcing.html">09c 的三轮关键词法</a>：直译 → 同义（pixel tileset / dungeon tiles）→ 场景描述（top-down 16x16 tileset CC0）。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>许可证</th><th>结论</th><th>要做什么</th></tr></thead>
+        <tbody>
+          <tr><td>CC0 1.0</td><td>✅ 最省心</td><td>notices 记录来源即可</td></tr>
+          <tr><td>CC-BY 4.0</td><td>⚠️ 可用</td><td>notices 记署名；发布物里保留 credit</td></tr>
+          <tr><td>OFL</td><td>✅ 字体专用</td><td>保留 LICENSE-OFL（照 09b 先例）</td></tr>
+          <tr><td>没写 / "free to use"</td><td>❌ 不用</td><td>换素材，不猜许可</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>itch.io 的包以<strong>随包 license 文件或作者页明示</strong>为准，页面没写就是没有。OpenGameArt 逐素材核对，不按站点整体判断。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>放进工程并设置导入</h2></div>
+    <p>目录沿用现有约定（参照 Audio 的先例）：</p>
+    <div class="code">
+      <div class="code-head"><span>目录结构</span><button class="copy" type="button">复制</button></div>
+      <pre><code>Assets/ThirdParty/Art/
+  Kenney/
+    &lt;pack-name&gt;/
+      tileset_*.png
+      License.txt          ← 原包许可必须一起进仓库</code></pre>
+    </div>
+    <p>选中纹理，在 Inspector 按这张表设置（逐项对照 <a href="https://docs.unity3d.com/6000.0/Documentation/Manual/class-TextureImporter.html">Unity 官方 Import Settings 文档</a>）：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>设置</th><th>值</th><th>为什么</th></tr></thead>
+        <tbody>
+          <tr><td>Texture Type</td><td>Sprite (2D and UI)</td><td>作为 Sprite 使用并启用 Sprite Editor</td></tr>
+          <tr><td>Sprite Mode</td><td>Multiple（雪图）/ Single（单图）</td><td>一张图多地块必须切分</td></tr>
+          <tr><td>Pixels Per Unit</td><td>16（或 32）= 贴图边长</td><td>1 sprite = 1 世界单位 = 迷宫 1 格</td></tr>
+          <tr><td>Filter Mode</td><td>Point (no filter)</td><td>像素画放大不清边缘</td></tr>
+          <tr><td>Compression</td><td>None</td><td>有损压缩会让像素色块渗色</td></tr>
+          <tr><td>Max Size</td><td>≥ 原图边长</td><td>别让 Unity 缩图</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>然后 Sprite Editor → Slice → <strong>Grid By Cell Size</strong>，填贴图边长（16×16 或 32×32）→ Slice → Apply。Project 里展开纹理，每个地块变成一个子 Sprite。</p>
+    <div class="callout warn">
+      <span class="label">常见错误</span>
+      <p>PPU 留默认 100：16×16 的 sprite 只占 0.16 格，小到看不见。Filter 留 Bilinear：像素边缘发糊。混用 16 和 32 两个包：格子大小不一。三种都是本课冒烟步骤能当场抓住的错。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>登记授权清单</h2></div>
+    <p>在 <code>Color Maze/THIRD_PARTY_NOTICES.md</code> 照现有格式加一行，并更新 Local Files 与 License Texts：</p>
+    <div class="code">
+      <div class="code-head"><span>inventory 新行示例</span><button class="copy" type="button">复制</button></div>
+      <pre><code>| kenney-pixel-tiles | Pixel Pack 名称 | Kenney | [下载页 URL] | CC0 1.0 | 2026-10-24 | 选用地块切片，未修改原图 | Not required; credit appreciated |</code></pre>
+    </div>
+    <p>日期必须有——notices 自己的 Notes 写着"a link without a date becomes hard to audit later"。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>冒烟验证（不弄脏 Main 场景）</h2></div>
+    <ol>
+      <li><code>File → New Scene</code>（之后<strong>不保存</strong>）。</li>
+      <li>从 Project 拖一个地板 Sprite 到 Scene 视图。</li>
+      <li>检查三点：Transform 的 scale 为 1 时 sprite 约占 1×1 世界单位；放大后像素边缘锐利；没有半透明的渗色边。</li>
+      <li>故意把 Filter 改成 Bilinear 看一次模糊的样子，再改回 Point——以后一眼就能认出这个病。</li>
+      <li>关闭场景，不保存。</li>
+    </ol>
+    <p>主场景 <code>Main.unity</code> 一个字节都不要动，15b 才动它。</p>
+  </section>
+
+  <section>
+    <h2>验收与提交</h2>
+    <ul>
+      <li>胜利条件全部勾选。</li>
+      <li>提交内容：<code>Assets/ThirdParty/Art/</code> 全部 png + <code>.meta</code> + 许可文件 + <code>THIRD_PARTY_NOTICES.md</code>。png 不带 <code>.meta</code> 提交，下次打开工程引用全断。</li>
+      <li>提交信息建议：<code>assets(art): import pixel tile pack with licenses</code>。</li>
+      <li>开发日志 3 行：选了哪个包、为什么（许可证/风格/数量）、PPU 定了多少。</li>
+    </ul>
+    <p>做完把"选了哪个包、notices 新行截图"发我，我帮你复核许可记录。卡住时先说卡在哪一步：找不到合适的包、许可证拿不准、还是切图切歪了。下一课 15b 才把这些 sprite 接进 <code>MazeBootstrapper</code>。</p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="0014d-level-editor-polish.html">上一课：工作流补全</a>
+    <a href="../reference/0021-pixel-art-import-cheatsheet.html">参考卡：像素素材导入</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

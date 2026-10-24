@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 08 · 找到材料，才算走出迷宫 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 08</div>
+    <h1>找到材料<br>才算走出迷宫</h1>
+    <p class="lede">现在出口只是一个终点，玩家还不知道自己为什么来这里。今天加入材料、出口和关卡状态：没材料只能得到提示，有材料才算完成。</p>
+    <div class="meta">
+      <span>60–80 分钟</span>
+      <span>状态机 · 目标 · 关卡流程</span>
+      <span>产出：完整的过关/失败循环</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0008">
+      <li><label><input type="checkbox"><span>新增 <code>Material</code> 与 <code>Exit</code> 格子类型和 <code>M</code> / <code>E</code> 符号。</span></label></li>
+      <li><label><input type="checkbox"><span>玩家拾取材料后，材料变地板，并在 HUD 显示。</span></label></li>
+      <li><label><input type="checkbox"><span>进入出口时检查是否持有材料。</span></label></li>
+      <li><label><input type="checkbox"><span>没材料时提示“还需要找到材料”，玩家可以继续探索。</span></label></li>
+      <li><label><input type="checkbox"><span>有材料时进入完成状态，玩家停止移动，显示关卡完成。</span></label></li>
+      <li><label><input type="checkbox"><span>生命耗尽和关卡完成都能按 R 重开。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码与日志，测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>关卡现在有了三种状态</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>状态</th><th>进入条件</th><th>玩家能做什么</th></tr></thead>
+        <tbody>
+          <tr><td>Playing</td><td>关卡开始</td><td>移动、拾取、使用炸弹、去出口</td></tr>
+          <tr><td>Completed</td><td>持有材料并进入出口</td><td>不能继续移动；按 R 重开</td></tr>
+          <tr><td>Failed</td><td>生命归零</td><td>不能继续移动；按 R 重开</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>这三件事不要散落在各个脚本里：PlayerStats 负责资源，MazeBootstrapper 负责地块，PlayerGridMover 负责移动，<strong>LevelFlowController 负责当前关卡状态</strong>。</p>
+    <div class="callout tip">
+      <span class="label">为什么先做流程，再做正式 UI</span>
+      <p>先让“进行中 → 完成/失败 → 重开”跑通，UI 只是在观察状态。否则先做漂亮界面，规则一变就要重做。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">00</span><h2>做一个流程测试关卡</h2></div>
+    <p>不要破坏现有的 Level_01。选中 <code>Level_01</code>，按 <code>Ctrl + D</code> 复制，命名为 <code>Level_FlowTest</code>，把 Rows 改成：</p>
+    <pre><code>#######
+#.M..E#
+#.###.#
+#.....#
+#..R..#
+#.....#
+#######</code></pre>
+    <p>把 <code>Level_FlowTest</code> 拖到 Maze 的 Level 字段。测试结束后切回 <code>Level_01</code>。</p>
+    <p>这张图可以测试两种情况：从起点向右再向上，可以绕过材料直接到达出口；从起点向上，可以拿到材料再回到出口。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>增加 Material 与 Exit</h2></div>
+    <p><code>TileType.cs</code>：</p>
+    <div class="code">
+      <div class="code-head"><span>TileType.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public enum TileType
+{
+    Floor,
+    Wall,
+    Lava,
+    Water,
+    Stone,
+    Chest,
+    Portal,
+    Material,
+    Exit
+}</code></pre>
+    </div>
+    <p><code>LevelDefinition.GetTileType</code> 加入两个分支：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelDefinition.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>case 'M': return TileType.Material;
+case 'E': return TileType.Exit;</code></pre>
+    </div>
+    <p><code>MazeBootstrapper.ColorFor</code> 加入颜色：</p>
+    <div class="code">
+      <div class="code-head"><span>MazeBootstrapper.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>case TileType.Material:
+    return new Color(0.20f, 0.95f, 0.75f);
+case TileType.Exit:
+    return new Color(0.18f, 0.65f, 0.35f);</code></pre>
+    </div>
+    <p>材料是醒目的青绿色，出口是深绿色；两者都可通行。视觉上要能一眼区分“目标”和“出口”。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>拾取材料与出口查询</h2></div>
+    <p>在 <code>MazeBootstrapper</code> 里增加一个和开宝箱类似的方法：</p>
+    <div class="code">
+      <div class="code-head"><span>MazeBootstrapper.cs · 材料</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public bool TryCollectMaterial(Vector2Int cell)
+{
+    return TryReplace(
+        cell,
+        TileType.Material,
+        TileType.Floor);
+}</code></pre>
+    </div>
+    <p>材料拾取后变地板，所以不会重复拾取；出口不替换，玩家可以站在出口上继续尝试。现有的 <code>TryReplace</code> 已经处理了“逻辑格子 + 渲染器颜色”的同步。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>给 PlayerStats 加材料</h2></div>
+    <p>在金币属性下面加入：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerStats.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public int Materials { get; private set; }
+public bool HasMaterial =&gt; Materials &gt; 0;
+
+public void AddMaterial()
+{
+    Materials += 1;
+}</code></pre>
+    </div>
+    <p>HUD 盒子高度改成 <code>204</code>，加入材料行：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerStats.cs · HUD</span><button class="copy" type="button">复制</button></div>
+      <pre><code>GUI.Box(new Rect(12f, 12f, 260f, 204f), "");
+
+GUI.Label(
+    new Rect(24f, 166f, 236f, 30f),
+    $"材料: {Materials} / 1",
+    _labelStyle);</code></pre>
+    </div>
+    <p>材料是玩家的关卡资源，和金币、炸弹一样归 PlayerStats；但“是否过关”不归 PlayerStats，而归 LevelFlowController。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>把关卡状态抽成 LevelFlowController</h2></div>
+    <p>新建 <code>LevelState.cs</code>：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelState.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public enum LevelState
+{
+    Playing,
+    Completed,
+    Failed
+}</code></pre>
+    </div>
+    <p>新建 <code>LevelFlowController.cs</code>。它取代原来的 GameOverController：死亡与完成共用同一个状态机和覆盖层。</p>
+    <div class="code">
+      <div class="code-head"><span>LevelFlowController.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+
+public class LevelFlowController : MonoBehaviour
+{
+    [SerializeField] private PlayerStats playerStats;
+
+    public LevelState State { get; private set; }
+        = LevelState.Playing;
+
+    public bool IsPlaying =&gt;
+        State == LevelState.Playing;
+
+    private string _hint;
+    private float _hintUntil;
+    private GUIStyle _titleStyle;
+    private GUIStyle _hintStyle;
+
+    private void Start()
+    {
+        if (playerStats == null)
+        {
+            Debug.LogError(
+                "LevelFlowController: 请指定 PlayerStats。",
+                this);
+            enabled = false;
+            return;
+        }
+
+        playerStats.Died += HandlePlayerDied;
+    }
+
+    private void OnDestroy()
+    {
+        if (playerStats != null)
+        {
+            playerStats.Died -= HandlePlayerDied;
+        }
+    }
+
+    public void ReachExit(bool hasMaterial)
+    {
+        if (State != LevelState.Playing)
+        {
+            return;
+        }
+
+        if (hasMaterial)
+        {
+            State = LevelState.Completed;
+            return;
+        }
+
+        ShowHint("还需要找到材料。");
+    }
+
+    private void ShowHint(string message)
+    {
+        _hint = message;
+        _hintUntil = Time.time + 2f;
+    }
+
+    private void HandlePlayerDied()
+    {
+        State = LevelState.Failed;
+    }
+
+    private void Update()
+    {
+        if (State == LevelState.Playing)
+        {
+            return;
+        }
+
+        Keyboard keyboard = Keyboard.current;
+
+        if (keyboard != null &amp;&amp;
+            keyboard.rKey.wasPressedThisFrame)
+        {
+            SceneManager.LoadScene(
+                SceneManager.GetActiveScene().buildIndex);
+        }
+    }
+
+    private void OnGUI()
+    {
+        EnsureStyles();
+
+        if (State == LevelState.Playing)
+        {
+            DrawHint();
+            return;
+        }
+
+        GUI.depth = -10;
+        GUI.color = new Color(0f, 0f, 0f, 0.68f);
+        GUI.DrawTexture(
+            new Rect(0f, 0f, Screen.width, Screen.height),
+            Texture2D.whiteTexture);
+        GUI.color = Color.white;
+
+        string title = State == LevelState.Completed
+            ? "关卡完成"
+            : "生命耗尽";
+        string hint = "按 R 重开";
+
+        GUI.Label(
+            new Rect(0f, Screen.height * 0.5f - 70f,
+                Screen.width, 60f),
+            title,
+            _titleStyle);
+        GUI.Label(
+            new Rect(0f, Screen.height * 0.5f + 10f,
+                Screen.width, 40f),
+            hint,
+            _hintStyle);
+    }
+
+    private void DrawHint()
+    {
+        if (string.IsNullOrEmpty(_hint) ||
+            Time.time &gt;= _hintUntil)
+        {
+            return;
+        }
+
+        GUI.Box(
+            new Rect(Screen.width * 0.5f - 180f,
+                Screen.height - 80f, 360f, 52f),
+            "");
+        GUI.Label(
+            new Rect(Screen.width * 0.5f - 160f,
+                Screen.height - 68f, 320f, 30f),
+            _hint,
+            _hintStyle);
+    }
+
+    private void EnsureStyles()
+    {
+        if (_titleStyle != null)
+        {
+            return;
+        }
+
+        _titleStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 42,
+            alignment = TextAnchor.MiddleCenter,
+            fontStyle = FontStyle.Bold
+        };
+        _titleStyle.normal.textColor = Color.white;
+
+        _hintStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 24,
+            alignment = TextAnchor.MiddleCenter
+        };
+        _hintStyle.normal.textColor =
+            new Color(1f, 0.85f, 0.45f);
+    }
+}</code></pre>
+    </div>
+    <p>然后选中 GameManager，移除原来的 <code>GameOverController</code>，添加 <code>LevelFlowController</code>，把 Player 拖到 Player Stats 字段。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>让移动脚本接入材料与出口</h2></div>
+    <p>给 <code>PlayerGridMover</code> 增加 Flow 引用，并在 Start 里检查：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerGridMover.cs · 引用</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[SerializeField] private LevelFlowController flow;
+
+if (maze == null || flow == null)
+{
+    Debug.LogError(
+        "PlayerGridMover: 请指定 Maze 和 Flow。",
+        this);
+    enabled = false;
+    return;
+}</code></pre>
+    </div>
+    <p>在 Update 开头阻止已结束的关卡继续移动：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerGridMover.cs · Update</span><button class="copy" type="button">复制</button></div>
+      <pre><code>if (!stats.IsAlive || !flow.IsPlaying)
+{
+    return;
+}</code></pre>
+    </div>
+    <p>在 TryMove 里，处理完传送门和宝箱之后加入材料与出口：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerGridMover.cs · 材料与出口</span><button class="copy" type="button">复制</button></div>
+      <pre><code>if (tile == TileType.Material)
+{
+    if (maze.TryCollectMaterial(currentCell))
+    {
+        stats.AddMaterial();
+        Debug.Log("找到材料。");
+    }
+
+    stats.ApplyTile(TileType.Floor);
+    return;
+}
+
+if (tile == TileType.Exit)
+{
+    stats.ApplyTile(TileType.Floor);
+    flow.ReachExit(stats.HasMaterial);
+    return;
+}</code></pre>
+    </div>
+    <p>在 Inspector 里把 <code>PlayerGridMover</code> 的 Flow 字段拖成 GameManager。Flow 为空会直接报错并禁用移动，避免一半功能悄悄失效。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>测试两条完整路径</h2></div>
+    <p>使用 <code>Level_FlowTest</code>：</p>
+    <ol>
+      <li><strong>没材料到出口：</strong>从起点向右到 (5,1)，再向上到 (5,5) 出口。预期出现“还需要找到材料”，玩家仍可移动。</li>
+      <li><strong>拿材料再出口：</strong>按 R 重开，从起点向上到 (1,5)，向右拿到 (2,5) 材料，再向右到 (5,5) 出口。预期显示“关卡完成”，玩家停止移动。</li>
+      <li><strong>失败：</strong>按 R 重开，踩岩浆把生命降到 0。预期显示“生命耗尽”。</li>
+      <li>在完成或失败状态按 R，场景重载，HUD 重置，玩家回到起点。</li>
+    </ol>
+    <div class="callout warn">
+      <span class="label">先移除旧组件</span>
+      <p>如果 GameManager 上还挂着 GameOverController，它和 LevelFlowController 会各自画覆盖层。选中 GameManager，移除 GameOverController 组件，只保留 LevelFlowController。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">07</span><h2>提交与日志</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "feat: add material exit and level flow"</code></pre>
+    </div>
+    <p>新建 <code>docs/devlog/2026-10-21-level-flow.md</code>：</p>
+    <pre><code># 2026-10-21 · 关卡流程
+
+## 今天做了什么
+- 找到材料后到出口才算完成。
+- 没材料、完成和失败都有明确状态。
+
+## 卡在哪里 / 怎么解决
+- ...
+
+## 下次先做什么
+- 正式 HUD、暂停菜单，或 MAYA 场景流。</code></pre>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>git add .
+git commit -m "docs: add lesson 08 devlog"</code></pre>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习：合上资料再答</h2>
+    <p>先不要往上翻。答错没关系，努力回忆本身就在加固记忆。</p>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">1. 没拿材料就进入出口，应该怎样？</p>
+      <div class="options">
+        <button class="option" type="button">立刻扣除生命值</button>
+        <button class="option" type="button">直接进入下一关</button>
+        <button class="option" type="button">提示并继续探索</button>
+        <button class="option" type="button">删除当前关卡资产</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>出口反馈目标未满足，但玩家还应能继续找材料。</p>
+    </div>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">2. 为什么把关卡状态放进 LevelFlowController？</p>
+      <div class="options">
+        <button class="option" type="button">让玩家移动更快</button>
+        <button class="option" type="button">统一管理胜负状态</button>
+        <button class="option" type="button">减少关卡资产数量</button>
+        <button class="option" type="button">自动生成美术素材</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>移动、资源和地块各自负责自己的事；胜负与重开由流程控制器统一管理。</p>
+    </div>
+
+    <div class="quiz" data-answer="0">
+      <p class="q">3. 材料拾取后为什么要变成地板？</p>
+      <div class="options">
+        <button class="option" type="button">防止重复拾取</button>
+        <button class="option" type="button">让画面更漂亮</button>
+        <button class="option" type="button">增加氧气上限</button>
+        <button class="option" type="button">自动打开宝箱</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>运行时格子变成 Floor 后，再次进入不再满足拾取条件。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">4. 关卡完成后靠什么阻止玩家继续移动？</p>
+      <div class="options">
+        <button class="option" type="button">删除玩家对象</button>
+        <button class="option" type="button">关闭整个场景</button>
+        <button class="option" type="button">把地图全部变墙</button>
+        <button class="option" type="button">检查 flow.IsPlaying</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>LevelFlowController 状态不再是 Playing，移动脚本提前返回，玩家不能继续操作。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>最可能原因</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>材料是洋红色</td><td>ColorFor 没加 Material</td><td>加入青绿色，并确认 M 映射。</td></tr>
+          <tr><td>材料拾取后不变</td><td>没有调用 TryCollectMaterial</td><td>检查 TryMove 的 Material 分支。</td></tr>
+          <tr><td>拿材料到出口仍提示</td><td>Flow 没绑定，或 HasMaterial 为 false</td><td>检查 PlayerStats 的 Materials 与 Flow 引用。</td></tr>
+          <tr><td>完成后还能移动</td><td>Update 没检查 flow.IsPlaying</td><td>在 Update 开头加入状态判断。</td></tr>
+          <tr><td>出现两层覆盖</td><td>GameOverController 还在 GameManager 上</td><td>移除旧组件，只保留 LevelFlowController。</td></tr>
+          <tr><td>按 R 不重开</td><td>Main 不在构建场景列表，或 Game 视图没焦点</td><td>检查 Build Profiles 的 Scene List。</td></tr>
+          <tr><td>Next Level 不存在</td><td>本课只做重开，下一关在场景流课</td><td>先完成本关循环，别提前做持久化。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料（课后 15 分钟）</h2>
+    <p><a href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions">Microsoft Learn: C# coding conventions</a>——复习状态、控制器和资源类为什么需要清楚命名。</p>
+    <p>补充：<a href="https://docs.unity3d.com/ScriptReference/SceneManagement.SceneManager.LoadScene.html">SceneManager.LoadScene</a> 与 <a href="https://docs.unity3d.com/ScriptReference/MonoBehaviour.Update.html">Update</a>。</p>
+    <p>参考实现：<a href="../solutions/0009/LevelFlowController.cs">LevelFlowController.cs</a> · <a href="../solutions/0009/PlayerGridMover.cs">PlayerGridMover.cs</a></p>
+  </section>
+
+  <p class="ask">如果没材料进了出口也直接完成、完成后还能动，或者两个覆盖层叠在一起，把 Console 和 GameManager 的 Inspector 发我。下一课做正式 HUD、暂停菜单，把这套临时提示换成 Canvas/TextMeshPro。</p>
+
+  <nav class="footer-nav">
+    <a href="0007b-portals-and-fairness.html">上一课：传送门与公平性</a>
+    <a href="0009-formal-hud.html">下一课：正式 HUD</a>
+    <a href="../reference/0008-level-flow-cheatsheet.html">参考卡：关卡流程与状态</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

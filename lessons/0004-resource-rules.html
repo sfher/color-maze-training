@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 04 · 颜色开始有代价 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 04</div>
+    <h1>颜色开始有代价</h1>
+    <p class="lede">现在踩上红蓝格只是换颜色。今天让岩浆扣生命、水耗氧气，并用一个临时 HUD 看见资源变化。</p>
+    <div class="meta">
+      <span>50–70 分钟</span>
+      <span>枚举 · 状态 · HUD</span>
+      <span>产出：可消耗的生命与氧气</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0004">
+      <li><label><input type="checkbox"><span>创建 <code>TileType.cs</code>，让关卡能返回格子类型。</span></label></li>
+      <li><label><input type="checkbox"><span><code>MazeBootstrapper</code> 暴露 <code>GetTileType</code>，<code>IsWalkable</code> 只拦墙。</span></label></li>
+      <li><label><input type="checkbox"><span>创建 <code>PlayerStats</code>：3 生命、3 氧气，踩 R 扣血、踩 B 耗氧。</span></label></li>
+      <li><label><input type="checkbox"><span>氧气为 0 时踩水扣血；离开水每走一格恢复 1 氧气。</span></label></li>
+      <li><label><input type="checkbox"><span>HUD 显示生命与氧气，并能验证四种状态变化。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码与日志，测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>先看规则表</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>格子</th><th>符号</th><th>走上这一格后</th></tr></thead>
+        <tbody>
+          <tr><td>地板</td><td><code>.</code></td><td>氧气 +1（不超过 3）</td></tr>
+          <tr><td>墙</td><td><code>#</code></td><td>不能进入</td></tr>
+          <tr><td>岩浆</td><td><code>R</code></td><td>生命 -1；不在水中，氧气 +1（上限 3）</td></tr>
+          <tr><td>水</td><td><code>B</code></td><td>氧气 -1；氧气为 0 时改为生命 -1</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>这些规则来自你的项目预设：生命与氧气共同限制探索路线，让“最短路径”不一定是“最安全路径”。今天先把两条最核心的规则跑通。</p>
+    <div class="callout">
+      <span class="label">一个容易忽略的预设细节</span>
+      <p>预设写的是“不在水中时，每走过一格自动恢复氧气”，所以岩浆格也会恢复 1 点氧气。这不是代码 bug，而是当前规则的字面结果；如果你觉得不合理，把它记成待平衡项，下一轮再改，不要悄悄改掉。</p>
+    </div>
+    <div class="callout">
+      <span class="label">测试前先看当前关卡</span>
+      <p>你的场景当前绑定的是 <code>Level_02</code>，里面只有岩浆，没有水。测试水规则时，把 Maze 的 Level 字段切到 <code>Level_01</code>，或者给 <code>Level_02</code> 的某一行加一个 <code>B</code>。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>本课的分工</h2>
+    <div class="concept-grid">
+      <article class="concept">
+        <span class="tag">Meaning</span>
+        <h3>TileType</h3>
+        <p>把字符翻译成有名字的格子类型：Floor、Wall、Lava、Water。规则代码不再直接比较 <code>'R'</code> 或 <code>'B'</code>。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">State</span>
+        <h3>PlayerStats</h3>
+        <p>保存当前生命和氧气，并决定踩到某种格子后状态怎么变。它是唯一的“数值真相”。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">orchestration</span>
+        <h3>PlayerGridMover</h3>
+        <p>先确认目标格可走，再移动，最后把“踩到了什么”交给 PlayerStats 处理。</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>创建 TileType.cs</h2></div>
+    <p>在 <code>Assets/Scripts</code> 右键，选择 <strong>Create → C# Script</strong>，命名为 <code>TileType</code>。替换为：</p>
+    <div class="code">
+      <div class="code-head"><span>TileType.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public enum TileType
+{
+    Floor,
+    Wall,
+    Lava,
+    Water
+}</code></pre>
+    </div>
+    <p><code>enum</code> 是一组有名字的固定选项。它比直接传字符更安全：编译器能检查拼写，Inspector 和调试器里也能读懂 <code>Lava</code>，而不是只看到一个 <code>'R'</code>。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>让 LevelDefinition 返回格子类型</h2></div>
+    <p>打开 <code>LevelDefinition.cs</code>，在 <code>GetTile</code> 后面加入：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelDefinition.cs · 新增方法</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public TileType GetTileType(Vector2Int cell)
+{
+    switch (GetTile(cell))
+    {
+        case '.': return TileType.Floor;
+        case '#': return TileType.Wall;
+        case 'R': return TileType.Lava;
+        case 'B': return TileType.Water;
+        default: return TileType.Wall;
+    }
+}</code></pre>
+    </div>
+    <p>未知字符默认按墙处理，避免地图写错时玩家能穿过一个“洋红色未知格”。这也是“失败要安全”的一个小例子。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>让 MazeBootstrapper 暴露格子类型</h2></div>
+    <p>打开 <code>MazeBootstrapper.cs</code>，按下面几处修改。核心是：<code>IsWalkable</code> 只判断是不是墙，其他格子类型交给 PlayerStats 决定后果。</p>
+    <div class="code">
+      <div class="code-head"><span>MazeBootstrapper.cs · 改动清单</span><button class="copy" type="button">复制</button></div>
+      <pre><code>// Start 循环里：按类型生成，而不是按字符生成
+TileType tile = level.GetTileType(new Vector2Int(x, y));
+CreateCell(square, x, y, tile);
+
+// 两个方法的参数从 char 改成 TileType
+private void CreateCell(Sprite square, int x, int y, TileType tile)
+private Color ColorFor(TileType tile)
+
+// IsWalkable 只拦墙
+public bool IsWalkable(Vector2Int cell)
+{
+    return GetTileType(cell) != TileType.Wall;
+}
+
+// 新增：给 PlayerGridMover 查询当前格子
+public TileType GetTileType(Vector2Int cell)
+{
+    if (level == null || !level.Contains(cell))
+    {
+        return TileType.Wall;
+    }
+
+    return level.GetTileType(cell);
+}
+
+// ColorFor 的分支改用 TileType
+private Color ColorFor(TileType tile)
+{
+    switch (tile)
+    {
+        case TileType.Wall: return new Color(0.10f, 0.10f, 0.12f);
+        case TileType.Floor: return new Color(0.93f, 0.92f, 0.88f);
+        case TileType.Lava: return new Color(0.82f, 0.22f, 0.20f);
+        case TileType.Water: return new Color(0.16f, 0.45f, 0.86f);
+        default: return Color.magenta;
+    }
+}</code></pre>
+    </div>
+    <p>如果不想逐段改，可以直接用参考实现整份替换：<a href="../solutions/0004/MazeBootstrapper.cs">solutions/0004/MazeBootstrapper.cs</a>。这样也会修掉你当前文件里那处乱码的中文报错。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>创建 PlayerStats.cs</h2></div>
+    <p>在 <code>Assets/Scripts</code> 新建 C# 脚本 <code>PlayerStats</code>，替换为：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerStats.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using UnityEngine;
+
+public class PlayerStats : MonoBehaviour
+{
+    public const int MaxHealth = 3;
+    public const int MaxOxygen = 3;
+
+    public int Health { get; private set; } = MaxHealth;
+    public int Oxygen { get; private set; } = MaxOxygen;
+
+    public bool IsAlive =&gt; Health &gt; 0;
+
+    private GUIStyle _labelStyle;
+
+    public void ApplyTile(TileType tile)
+    {
+        switch (tile)
+        {
+            case TileType.Lava:
+                LoseHealth(1);
+                RecoverOxygen();
+                break;
+            case TileType.Water:
+                ConsumeOxygen();
+                break;
+            default:
+                RecoverOxygen();
+                break;
+        }
+    }
+
+    private void LoseHealth(int amount)
+    {
+        Health = Mathf.Max(0, Health - amount);
+        Debug.Log($"生命 -{amount}，剩余 {Health}");
+    }
+
+    private void ConsumeOxygen()
+    {
+        if (Oxygen &gt; 0)
+        {
+            Oxygen -= 1;
+            Debug.Log($"氧气 -1，剩余 {Oxygen}");
+            return;
+        }
+
+        LoseHealth(1);
+    }
+
+    private void RecoverOxygen()
+    {
+        Oxygen = Mathf.Min(MaxOxygen, Oxygen + 1);
+    }
+
+    private void OnGUI()
+    {
+        if (_labelStyle == null)
+        {
+            _labelStyle = new GUIStyle(GUI.skin.label);
+            _labelStyle.fontSize = 22;
+            _labelStyle.normal.textColor = Color.black;
+        }
+
+        GUI.Box(new Rect(12f, 12f, 260f, 96f), "");
+        GUI.Label(
+            new Rect(24f, 22f, 236f, 30f),
+            $"生命: {Health} / {MaxHealth}",
+            _labelStyle);
+        GUI.Label(
+            new Rect(24f, 58f, 236f, 30f),
+            $"氧气: {Oxygen} / {MaxOxygen}",
+            _labelStyle);
+    }
+}</code></pre>
+    </div>
+    <p><code>Health { get; private set; }</code> 表示其他脚本可以读取生命值，但不能随便写入；只有 PlayerStats 自己能改。这就是“状态归所有者管理”。</p>
+    <div class="callout">
+      <span class="label">这是临时调试 HUD</span>
+      <p><code>OnGUI</code> 是 Unity 的即时模式 GUI，适合原型阶段快速看数值，不适合作为最终界面。正式 HUD 会在后面的 UI 课用 Canvas/TextMeshPro 重做；现在先把规则验证清楚。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>让移动脚本调用规则</h2></div>
+    <p>打开 <code>PlayerGridMover.cs</code>，做四处小改动：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerGridMover.cs · 改动清单</span><button class="copy" type="button">复制</button></div>
+      <pre><code>// 1. 字段
+private PlayerStats stats;
+
+// 2. Start 里，maze 检查之后
+stats = GetComponent&lt;PlayerStats&gt;();
+
+if (stats == null)
+{
+    Debug.LogError(
+        "PlayerGridMover: Player 上缺少 PlayerStats 组件。",
+        this);
+    enabled = false;
+    return;
+}
+
+// 3. Update 开头
+if (!stats.IsAlive)
+{
+    return;
+}
+
+// 4. TryMove 末尾，位置更新之后
+stats.ApplyTile(maze.GetTileType(currentCell));</code></pre>
+    </div>
+    <p>然后在 Unity 里选中 <code>Player</code>，点 <strong>Add Component</strong>，搜索并添加 <code>PlayerStats</code>。它必须和 <code>PlayerGridMover</code> 在同一个 GameObject 上，因为脚本用 <code>GetComponent</code> 查找它。</p>
+    <p>执行顺序很重要：<strong>先验证目标格 → 再移动 → 最后应用格子效果</strong>。如果先扣血再判断墙，玩家会为一次没走成的移动付出代价。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>按四条路径验证状态</h2></div>
+    <p>把 Maze 的 Level 字段切到 <code>Level_01</code>，点击 Game 视图，按下面顺序测试：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>要验证的规则</th><th>从起点 (1,1) 的走法</th><th>预期</th></tr></thead>
+        <tbody>
+          <tr><td>岩浆扣血</td><td>W, W, W, D（到 (2,4)）</td><td>生命 3 → 2；氧气已满，仍为 3</td></tr>
+          <tr><td>继续踩岩浆</td><td>D（到 (3,4)）</td><td>生命 2 → 1；氧气仍为 3</td></tr>
+          <tr><td>水耗氧</td><td>重新 Play，D, D, W（到 (3,2)）</td><td>氧气 3 → 2</td></tr>
+          <tr><td>离开水恢复</td><td>继续 D, D（经过 (4,2)，到 (5,2) 地板）</td><td>氧气先 2 → 1，再恢复到 2</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>要验证“氧气为 0 时踩水扣血”，Level_01 的两格水不够。停止 Play，把 Level_01 的水行临时改成 <code>#.BBBB#</code>，保存后再 Play：从起点按 W，然后连续按四次 D，第四次进入水格时生命会 -1。测完把这一行改回 <code>#..BB.#</code>。</p>
+    <div class="callout tip">
+      <span class="label">HUD 应该显示什么</span>
+      <p>左上角显示 <code>生命: 3 / 3</code> 与 <code>氧气: 3 / 3</code>。如果数值不变，先看 Console 有没有 <code>PlayerStats</code> 缺失或引用错误。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">07</span><h2>提交与日志</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "feat: add health and oxygen tile effects"</code></pre>
+    </div>
+    <p>新建 <code>docs/devlog/2026-10-20-resources.md</code>，不要覆盖之前的日志：</p>
+    <pre><code># 2026-10-20 · 生命与氧气
+
+## 今天做了什么
+- 岩浆扣生命，水消耗氧气，离开水恢复氧气。
+- 加了临时调试 HUD，能直接看到两种资源。
+
+## 卡在哪里 / 怎么解决
+- ...
+
+## 下次先做什么
+- 生命归零时给出明确的失败反馈，并加入重开。</code></pre>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>git add .
+git commit -m "docs: add lesson 04 devlog"</code></pre>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习：合上资料再答</h2>
+    <p>先不要往上翻。答错没关系，努力回忆本身就在加固记忆。</p>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">1. 踩到红色 <code>R</code> 时应该发生什么？</p>
+      <div class="options">
+        <button class="option" type="button">氧气减少一点</button>
+        <button class="option" type="button">金币增加一点</button>
+        <button class="option" type="button">生命减少一点</button>
+        <button class="option" type="button">什么都不发生</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>岩浆消耗 1 点生命；水才消耗氧气。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">2. 氧气为 0 时踩水，按设计应该怎样？</p>
+      <div class="options">
+        <button class="option" type="button">直接回到起点</button>
+        <button class="option" type="button">恢复全部氧气</button>
+        <button class="option" type="button">游戏立即通关</button>
+        <button class="option" type="button">改为扣除生命</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>氧气耗尽后，水开始扣生命；这就是双资源压力。</p>
+    </div>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">3. 离开水走到地板时，氧气如何变化？</p>
+      <div class="options">
+        <button class="option" type="button">继续减少氧气</button>
+        <button class="option" type="button">恢复一点氧气</button>
+        <button class="option" type="button">立即归零氧气</button>
+        <button class="option" type="button">转换为生命值</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>不在水中时每走一格恢复 1 点氧气，直到最大值 3。</p>
+    </div>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">4. 为什么规则不放在 SpriteRenderer 的颜色里？</p>
+      <div class="options">
+        <button class="option" type="button">这样画面更漂亮些</button>
+        <button class="option" type="button">可以减少内存占用</button>
+        <button class="option" type="button">颜色只是表现层的</button>
+        <button class="option" type="button">让移动速度更快些</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>颜色是表现，TileType 才是规则数据；换美术不应改变玩法。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>最可能原因</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>看不到 HUD</td><td>Player 上没有 PlayerStats</td><td>选中 Player，Add Component 添加 PlayerStats。</td></tr>
+          <tr><td>踩岩浆不扣血</td><td>R 没有映射成 Lava，或 ApplyTile 没调用</td><td>检查 GetTileType 的 R 分支与 TryMove 末尾。</td></tr>
+          <tr><td>踩水不耗氧</td><td>当前关卡没有 B</td><td>切到 Level_01，或给 Level_02 加一格 B。</td></tr>
+          <tr><td>氧气到 0 没扣血</td><td>没有连续踩到足够多的水格</td><td>把水行临时改成 <code>#.BBBB#</code> 再测。</td></tr>
+          <tr><td>生命为 0 还能走</td><td>Update 没有检查 IsAlive</td><td>在 Update 开头加 <code>if (!stats.IsAlive) return;</code>。</td></tr>
+          <tr><td>Console 中文乱码</td><td>脚本编码不是 UTF-8</td><td>用 UTF-8 保存；替换为课程参考实现即可恢复。</td></tr>
+          <tr><td>TileType 找不到</td><td>脚本没编译或文件名不一致</td><td>确认 <code>TileType.cs</code> 在 Assets/Scripts 下，类名一致。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料（课后 15 分钟）</h2>
+    <p><a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/enum">Microsoft Learn: C# enum</a>——理解枚举为什么比裸字符串/字符更适合表达固定规则。</p>
+    <p>补充：<a href="https://docs.unity3d.com/ScriptReference/MonoBehaviour.OnGUI.html">MonoBehaviour.OnGUI</a>，知道它为什么适合临时调试、不适合正式 UI。</p>
+    <p>参考实现：<a href="../solutions/0004/PlayerStats.cs">PlayerStats.cs</a> · <a href="../solutions/0004/PlayerGridMover.cs">PlayerGridMover.cs</a></p>
+  </section>
+
+  <p class="ask">如果 HUD 不显示、踩格子数值不对，或者氧气耗尽规则没有触发，把 Console 内容和 Player 的 Inspector 状态发我。下一课会把临时 HUD 换成正式界面，并补上生命归零后的失败反馈。</p>
+
+  <nav class="footer-nav">
+    <a href="0003-level-data-asset.html">上一课：关卡数据资产</a>
+    <a href="0005-death-and-restart.html">下一课：失败与重开</a>
+    <a href="../reference/0004-resource-rules-cheatsheet.html">参考卡：生命与氧气规则</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

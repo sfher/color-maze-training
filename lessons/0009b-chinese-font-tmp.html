@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 09b · 让中文 HUD 真正显示 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 09b</div>
+    <h1>让中文 HUD<br>真正显示</h1>
+    <p class="lede">默认 TMP 字体没有中文字形，所以中文变成方框。今天找一款许可明确的像素中文字体，生成 TMP Font Asset，并把它接入现有 HUD。</p>
+    <div class="meta">
+      <span>45–60 分钟</span>
+      <span>字体 · OFL · TMP Font Asset</span>
+      <span>产出：可显示中文的 HUD</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0009b">
+      <li><label><input type="checkbox"><span>下载 Fusion Pixel Font 的简体中文、比例模式 TTF。</span></label></li>
+      <li><label><input type="checkbox"><span>把 TTF 与原始 OFL 许可放在 <code>Assets/ThirdParty/Fonts/</code>。</span></label></li>
+      <li><label><input type="checkbox"><span>生成 TMP Font Asset，并确认使用动态字形生成。</span></label></li>
+      <li><label><input type="checkbox"><span>把字体资产分配给 HUD，或设为 TMP 的全局 fallback。</span></label></li>
+      <li><label><input type="checkbox"><span>HUD 中文、标点和数字都正常显示；字号使用像素字体的整数倍。</span></label></li>
+      <li><label><input type="checkbox"><span>在 <code>THIRD_PARTY_NOTICES.md</code> 记录字体、作者、版本、许可与修改。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>为什么会出现方框</h2>
+    <p>TextMeshPro 并不是直接使用 Windows 系统字体。它使用一个 <strong>Font Asset</strong>，里面包含字形、图集和渲染参数。TMP Essentials 默认字体主要是拉丁字符，中文字形不在里面，所以显示成方框或空白。</p>
+    <blockquote class="callout warn">
+      <span class="label">不是 UI 布局的问题</span>
+      <p>面板大小、Anchor 和 Canvas Scaler 都可能正确；问题只是当前字体资产没有“生”“命”“氧”这些字形。</p>
+    </blockquote>
+    <p>解决路径是：找一款允许嵌入、覆盖简体中文的字体 → 导入 TTF/OTF → 生成 TMP Font Asset → 分配给文本或设为 fallback。</p>
+  </section>
+
+  <section>
+    <h2>字体选择</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字体</th><th>特点</th><th>许可/注意</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Fusion Pixel Font</strong></td><td>泛中日韩像素字体，支持简体中文，提供 8/10/12px 等尺寸</td><td>字体 OFL 1.1；仓库代码 MIT；适合本课</td></tr>
+          <tr><td>Noto Sans SC</td><td>非像素、中文覆盖稳定</td><td>OFL；适合作为备用方案</td></tr>
+          <tr><td>Zpix</td><td>中文像素字体</td><td>个人/教育免费，商业产品需付费；不要默认当免费商用</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>本课使用 <a href="https://github.com/TakWolf/fusion-pixel-font">Fusion Pixel Font</a>。如果 Windows 的解压窗口要求密码，直接留空并继续即可；不需要去第三方网站找密码。</p>
+    <p>推荐先用较小的 10px 包：</p>
+    <pre><code>fusion-pixel-font-10px-proportional-ttf-v2026.10.16.zip
+官方大小：28,578,692 bytes
+
+https://github.com/TakWolf/fusion-pixel-font/releases/download/2026.10.16/fusion-pixel-font-10px-proportional-ttf-v2026.10.16.zip</code></pre>
+    <p>解压后使用：</p>
+    <pre><code>fusion-pixel-10px-proportional-zh_hans.ttf
+OFL.txt
+LICENSES/ark-pixel/OFL.txt
+LICENSES/boutique-bitmap-9x9/OFL.txt
+LICENSES/galmuri/LICENSE.txt</code></pre>
+    <p>10px 字体使用 20/30/40 等整数倍字号。想要更清晰的中文，也可以改用 12px 包（官方 zip 约 50MB），字号使用 24/36/48。字体使用 OFL 1.1；请保留 `OFL.txt` 和整个 `LICENSES/` 目录，不要只留下生成的 TMP 资产。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>导入字体与许可</h2></div>
+    <ol>
+      <li>在 Unity 的 Project 窗口创建 <code>Assets/ThirdParty/Fonts/FusionPixel/</code>。</li>
+      <li>把选中的 TTF 拖进去。</li>
+      <li>把原始 <code>OFL.txt</code> 和整个 <code>LICENSES/</code> 目录原样放进去，不要删改。</li>
+      <li>在项目根目录创建或更新 <code>THIRD_PARTY_NOTICES.md</code>，记录字体名称、作者、版本、来源、许可、修改和日期。</li>
+    </ol>
+    <div class="code">
+      <div class="code-head"><span>THIRD_PARTY_NOTICES.md · 字体记录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>| Font-01 | Fusion Pixel Font | TakWolf | GitHub release 2026.10.16 | OFL 1.1 (font), MIT (repo code) | 2026-10-21 | Converted to TMP Font Asset (dynamic) | Preserve OFL.txt and LICENSES/ |</code></pre>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>生成 TMP Font Asset</h2></div>
+    <ol>
+      <li>选中 TTF，在 Inspector 确认它是 Font 资源，并且能正常导入。</li>
+      <li>打开 <strong>Window → TextMeshPro → Font Asset Creator</strong>。</li>
+      <li>Source Font File 选择刚导入的 TTF。</li>
+      <li>Atlas Resolution 先用 <code>1024 × 1024</code>；Padding 设为 <code>5</code>。</li>
+      <li>Atlas Population Mode 选 <strong>Dynamic</strong>。如果当前 TMP 版本的 Creator 没有这个选项，生成后在字体资产 Inspector 里把 Atlas Population Mode 改成 Dynamic。</li>
+      <li>Character Set 可以先选 Custom Characters，填入 HUD 当前用到的中文、数字和标点；以后要扩展文本，Dynamic 会按需生成缺失字形。</li>
+      <li>点击 Generate Font Atlas，保存为 <code>FusionPixel SDF.asset</code>，放在同一个字体目录。</li>
+    </ol>
+    <div class="callout">
+      <span class="label">Dynamic 与 Static 的取舍</span>
+      <p>Dynamic 会按需把新字加入图集，适合持续增加中文文本；Static 只包含你指定的字符，图集更小但以后出现新字会缺字。原型阶段先用 Dynamic，项目稳定后再做字符集裁剪。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>把字体接到 HUD</h2></div>
+    <p>有两种接法，推荐先做全局 fallback：</p>
+    <h3>方式 A：TMP 全局 fallback</h3>
+    <ol>
+      <li>打开 <strong>Project Settings → TextMesh Pro → Settings</strong>。</li>
+      <li>在 Fallback Font Assets 列表中加入 <code>FusionPixel SDF</code>。</li>
+      <li>当前 HUD 文本仍然使用默认字体的拉丁字形；遇到中文时自动 fallback 到中文字体。</li>
+    </ol>
+    <h3>方式 B：直接分配给每个 Text</h3>
+    <p>选中 StatsText、EndTitleText、EndHintText、HintText 和按钮文字，把 Font Asset 直接设为 <code>FusionPixel SDF</code>。这种方式更直观，但每个文本都要绑定，容易漏。</p>
+    <p>把 HUD 字号设置为像素字体的整数倍：10px 字体建议使用 <code>20</code>、<code>30</code>、<code>40</code>；12px 字体建议使用 <code>24</code>、<code>36</code>、<code>48</code>。原来的 28/44 会经过插值，可能不够锐利。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>验证字形和布局</h2></div>
+    <ol>
+      <li>Play，HUD 应显示“生命”“氧气”“炸弹”“金币”“材料”，不再出现方框。</li>
+      <li>检查数字、中文标点和空格；缺字时查看字体资产的 Glyph Table。</li>
+      <li>把 Game 视图切换到不同分辨率，确认文字没有裁切。</li>
+      <li>确认字体许可证、字体资产、Atlas/Material 和 <code>.meta</code> 都在项目中。</li>
+    </ol>
+    <div class="callout tip">
+      <span class="label">如果仍然有方框</span>
+      <p>先确认文本的 Font Asset 是否真的指向中文字体资产；再确认该字体的 Atlas Population Mode 是 Dynamic，且 Glyph Table 中有对应汉字。Canvas 布局正常但字形缺失，问题仍然在字体资产，不在 RectTransform。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>提交字体与来源记录</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "assets: add OFL Chinese pixel font and TMP asset"</code></pre>
+    </div>
+    <p>提交前确认：<code>OFL.txt</code> 和 <code>LICENSES/</code> 存在；<code>THIRD_PARTY_NOTICES.md</code> 记录完整；字体资产被 HUD 引用；没有把系统字体直接打包成未授权资源。</p>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习</h2>
+    <p>先不要往上翻。</p>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">1. TMP 中文显示方框，最可能是什么？</p>
+      <div class="options">
+        <button class="option" type="button">Canvas 尺寸太小</button>
+        <button class="option" type="button">字体资产缺字形</button>
+        <button class="option" type="button">按钮没有绑定</button>
+        <button class="option" type="button">场景没有光照</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>默认字体资产没有中文 Glyph；布局与字形覆盖是两件事。</p>
+    </div>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">2. Fusion Pixel Font 的字体文件使用什么许可？</p>
+      <div class="options">
+        <button class="option" type="button">私有商业授权</button>
+        <button class="option" type="button">GPL 强制开源</button>
+        <button class="option" type="button">OFL 字体许可</button>
+        <button class="option" type="button">无需任何许可</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>字体使用 OFL 1.1；保留版权/许可文本，并记录修改与来源。</p>
+    </div>
+
+    <div class="quiz" data-answer="0">
+      <p class="q">3. Dynamic Font Asset 的主要特点是什么？</p>
+      <div class="options">
+        <button class="option" type="button">按需生成缺失字形</button>
+        <button class="option" type="button">自动修改 UI 布局</button>
+        <button class="option" type="button">不需要字体许可证</button>
+        <button class="option" type="button">只会显示英文字母</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>Dynamic 会把运行时出现的字形加入图集，适合持续增加的中文文本。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">4. 字体来源与许可应该记录在哪里？</p>
+      <div class="options">
+        <button class="option" type="button">只写在 Console 里</button>
+        <button class="option" type="button">只保存在浏览器里</button>
+        <button class="option" type="button">不需要记录来源</button>
+        <button class="option" type="button">项目来源记录文件</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>把作者、版本、链接、许可和修改写进 THIRD_PARTY_NOTICES.md，并保留许可原文。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>故障复盘：状态栏正常，结算却方框</h2>
+    <p>这是本项目真实踩过的坑，留给一个月后的你：</p>
+    <div class="callout warn">
+      <span class="label">症状</span>
+      <p>状态栏“生命/氧气/炸弹/金币/材料”正常，进入结算界面后“关卡完成 / 找到了材料了”出现方框。Console 警告类似：</p>
+      <pre><code>The character with Unicode value \u627E was not found in [FusionPixel12SDF]...
+The character with Unicode value \u5173 was not found in [FusionPixel12SDF]...</code></pre>
+    </div>
+    <p>这次实际上是<strong>两层问题叠加</strong>：</p>
+    <ol>
+      <li><strong>Material 不匹配：</strong>结算文本的 Font Asset 指向 Fusion 字体，但 Material 仍是默认 LiberationSans 的材质。只换 Font Asset、不换材质，字形仍然查错图集。</li>
+      <li><strong>Atlas 已满：</strong>1024×1024 图集已经用到约 1013×1013，并且 Multi Atlas Textures 关闭。Dynamic 没有空间生成新字形，于是报警并显示方框。</li>
+    </ol>
+    <p>修复顺序：</p>
+    <ol>
+      <li>把同一个 TMP Font Asset 的 <strong>Font Asset + Material</strong> 一起应用到所有 HUD 文本。</li>
+      <li>在字体资产上开启 <strong>Multi Atlas Textures</strong>。</li>
+      <li>确认 Atlas Population Mode 是 Dynamic，Source Font File 存在。</li>
+      <li>让字体资产重新导入/保存后，停止 Play 再重新 Play；正在运行的 Play 会话可能还持有旧图集。</li>
+      <li>必要时用 <code>TryAddCharacters</code> 或 Font Asset Creator 预先把 HUD 实际用到的字符加入图集。</li>
+    </ol>
+    <div class="callout tip">
+      <span class="label">一个月后的检查清单</span>
+      <p>看到“部分文本正常、部分文本方框”，先查 Material；看到“字体文件明明有字但 Dynamic 不补”，查 Atlas 容量和 Multi Atlas。Dynamic 不是无限容量，也不是自动修复所有引用。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>仍有方框</td><td>确认 Font Asset 是 FusionPixel，且 Material 也是该字体的材质。</td></tr>
+          <tr><td>只有部分字缺失</td><td>检查 Atlas 是否已满、Multi Atlas 是否开启；再查源 TTF 和 Glyph Table。</td></tr>
+          <tr><td>状态栏正常、结算方框</td><td>结算 Text 的 Font Asset 或 Material 没有统一。</td></tr>
+          <tr><td>Atlas 用到接近 1024</td><td>图集已满；开启 Multi Atlas，或降低 sampling point size 重新生成。</td></tr>
+          <tr><td>字体很糊</td><td>使用所选字体尺寸的整数倍（10px: 20/30/40；12px: 24/36/48），检查 Canvas 缩放。</td></tr>
+          <tr><td>字体资产没生成</td><td>确认 TTF 已导入、Creator 的 Source Font 正确、图集分辨率足够。</td></tr>
+          <tr><td>Inspector 找不到 fallback</td><td>先在 Text 的 Font Asset 直接指定中文字体，再处理全局设置。</td></tr>
+          <tr><td>许可页打不开</td><td>从 release 原始包中保留 OFL.txt 和 LICENSES/；不要删除许可文件。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料</h2>
+    <p><a href="https://github.com/TakWolf/fusion-pixel-font">Fusion Pixel Font</a> · <a href="https://github.com/TakWolf/fusion-pixel-font/releases">Releases</a> · <a href="https://openfontlicense.org/">OFL 说明</a></p>
+    <p>备用方案：<a href="https://fonts.google.com/noto/specimen/Noto+Sans+SC">Noto Sans SC</a>（OFL，非像素）。</p>
+    <p>素材工作流参考卡：<a href="../reference/0010-asset-sourcing-and-licensing.html">素材来源与许可</a></p>
+  </section>
+
+  <p class="ask">如果字体导入后仍然有方框，把字体资产的 Atlas Population Mode、Glyph Table 和 HUD 使用的 Font Asset 截图/描述发我。下一节回到 09c：用同一套来源记录找图标和音效，再继续暂停菜单。</p>
+
+  <nav class="footer-nav">
+    <a href="0009-formal-hud.html">上一课：正式 HUD</a>
+    <a href="0009c-asset-sourcing.html">下一课：素材搜索与授权</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

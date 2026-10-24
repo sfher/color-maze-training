@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 05 · 事件、失败与重开速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 05</div>
+    <h1>事件、失败与重开</h1>
+    <p class="lede">状态变化由所有者宣布，界面和音效订阅。订阅要成对取消，重开要让整个场景回到初始状态。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>C# event</span>
+      <span>场景重载</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+
+    <section class="ref-block">
+      <h2>发布 / 订阅</h2>
+      <pre><code>// PlayerStats：发布者
+public event System.Action Died;
+
+if (Health == 0 &amp;&amp; !_deathAnnounced)
+{
+    _deathAnnounced = true;
+    Died?.Invoke();
+}
+
+// GameOverController：订阅者
+playerStats.Died += HandlePlayerDied;</code></pre>
+      <p><code>Died?.Invoke()</code> 在没有订阅者时安全地什么也不做。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>订阅生命周期</h2>
+      <pre><code>private void Start()
+{
+    playerStats.Died += HandlePlayerDied;
+}
+
+private void OnDestroy()
+{
+    if (playerStats != null)
+        playerStats.Died -= HandlePlayerDied;
+}</code></pre>
+      <p>加号和减号必须成对。对象销毁后仍留在事件列表里，会形成悬空引用，也可能让回调重复执行。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>一次性状态</h2>
+      <pre><code>private bool _deathAnnounced;
+
+if (Health == 0 &amp;&amp; !_deathAnnounced)
+{
+    _deathAnnounced = true;
+    Died?.Invoke();
+}</code></pre>
+      <p>生命已经为 0 时再次扣血，不应该重复弹出“死亡”提示。用一个布尔值把一次性事件锁住。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>场景重载</h2>
+      <pre><code>using UnityEngine.SceneManagement;
+
+SceneManager.LoadScene(
+    SceneManager.GetActiveScene().buildIndex);</code></pre>
+      <p>场景必须在 <strong>File → Build Profiles → Scene List</strong> 中启用；编辑器里打开过不等于可加载。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>失败覆盖层</h2>
+      <pre><code>GUI.depth = -10;
+GUI.color = new Color(0, 0, 0, 0.68f);
+GUI.DrawTexture(
+    new Rect(0, 0, Screen.width, Screen.height),
+    Texture2D.whiteTexture);
+GUI.color = Color.white;</code></pre>
+      <p>更小的 <code>GUI.depth</code> 画在更上层；临时覆盖层能盖住生命/氧气 HUD。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>测试清单</h2>
+      <ul>
+        <li>生命 3 → 0 时只弹一次失败提示。</li>
+        <li>死亡后 WASD 不再移动。</li>
+        <li>按 R 后 HUD 回到 3 / 3。</li>
+        <li>按 R 后玩家回到起点。</li>
+        <li>重开后再次死亡仍能触发提示。</li>
+        <li>Console 没有场景加载错误。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>没有提示</dt>
+        <dd>GameOverController 的 PlayerStats 引用为空，或没有订阅。</dd>
+      </dl>
+      <dl class="term">
+        <dt>重复提示</dt>
+        <dd>缺少 <code>_deathAnnounced</code> 一次性保护。</dd>
+      </dl>
+      <dl class="term">
+        <dt>R 无效</dt>
+        <dd>没有进入死亡状态，或 Game 视图没有焦点。</dd>
+      </dl>
+      <dl class="term">
+        <dt>加载失败</dt>
+        <dd>Main 没有加入构建场景列表。</dd>
+      </dl>
+      <dl class="term">
+        <dt>引用异常</dt>
+        <dd>订阅了已销毁对象；检查 OnDestroy 是否取消订阅。</dd>
+      </dl>
+    </section>
+
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0005-death-and-restart.html">课程 05 · 死亡不是卡住，是一个状态</a></p>
+    <p>官方查证：<a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/events/">C# Events</a> · <a href="https://docs.unity3d.com/ScriptReference/SceneManagement.SceneManager.LoadScene.html">SceneManager.LoadScene</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0005-death-and-restart.html">回到课程 05</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

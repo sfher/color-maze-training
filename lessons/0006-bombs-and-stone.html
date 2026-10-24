@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 06 · 让关卡可以被改变 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 06</div>
+    <h1>让关卡可以<br>被改变</h1>
+    <p class="lede">灰色石头挡路，炸弹是第一种能改变地图的资源。今天加石头、炸弹和一份运行时地图副本，让“炸开一条路”真正发生。</p>
+    <div class="meta">
+      <span>60–75 分钟</span>
+      <span>枚举 · 二维数组 · 运行时状态</span>
+      <span>产出：可炸开的石头</span>
+    </div>
+  </header>
+
+  <section class="callout warn">
+    <span class="label">规则已更新</span>
+    <p>2026-10-22 起，炸弹改为按 E 在脚下放置、三次有效移动后十字爆炸。本文保留历史步骤；当前设计规范以 <code>Color Maze/docs/LEVEL_DESIGN_GUIDE.md</code> 为准。</p>
+  </section>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0006">
+      <li><label><input type="checkbox"><span>给 <code>TileType</code> 增加 <code>Stone</code>，给 <code>LevelDefinition</code> 增加 <code>S</code> 映射。</span></label></li>
+      <li><label><input type="checkbox"><span>让 <code>MazeBootstrapper</code> 持有一份运行时地图副本和渲染器引用。</span></label></li>
+      <li><label><input type="checkbox"><span><code>PlayerStats</code> 有炸弹数量，HUD 显示炸弹。</span></label></li>
+      <li><label><input type="checkbox"><span><code>PlayerGridMover</code> 记住面朝方向，按 E / 空格炸开相邻石头。</span></label></li>
+      <li><label><input type="checkbox"><span>炸开后石头变地板，玩家可以走进去；没有石头时不扣炸弹。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码与日志，测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>为什么不能直接改 LevelDefinition</h2>
+    <p>最直接的做法是：炸石头时把 <code>LevelDefinition</code> 里的 <code>S</code> 改成 <code>.</code>。但这会带来一个严重问题：ScriptableObject 是磁盘上的资产，编辑器里运行时修改它，停止 Play 后改动可能仍然保留，下一局石头就永远消失了。</p>
+    <blockquote class="callout warn">
+      <span class="label">资产是模板，不是运行时状态</span>
+      <p><strong>LevelDefinition 保存“关卡本来长什么样”；MazeBootstrapper 保存“这一局现在长什么样”。</strong>炸石头改的是后者。</p>
+    </blockquote>
+    <div class="concept-grid">
+      <article class="concept">
+        <span class="tag">Template</span>
+        <h3>LevelDefinition</h3>
+        <p>只读的关卡模板。里面有多少石头、水、岩浆，由内容决定。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">Runtime</span>
+        <h3>MazeBootstrapper</h3>
+        <p>Start 时复制一份 <code>TileType[,]</code>，这一局的破坏只改副本。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">Input</span>
+        <h3>PlayerGridMover</h3>
+        <p>记住面朝方向，按 E 把前方石头交给 Maze 处理。</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">00</span><h2>先在 Level_01 放一块石头</h2></div>
+    <p>选中 <code>Level_01</code>，把最后第二行从 <code>#.....#</code> 改成 <code>#.S...#</code>。完整的测试地图应该是：</p>
+    <pre><code>#######
+#.....#
+#.RR..#
+#.....#
+#..BB.#
+#.S...#
+#######</code></pre>
+    <p><code>S</code> 在 (2,1)，就在起点 (1,1) 右边。玩家先按 D 会撞上它，同时面朝右；再按 E 就能炸开。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>增加 Stone 类型</h2></div>
+    <p>修改 <code>TileType.cs</code>：</p>
+    <div class="code">
+      <div class="code-head"><span>TileType.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public enum TileType
+{
+    Floor,
+    Wall,
+    Lava,
+    Water,
+    Stone
+}</code></pre>
+    </div>
+    <p>在 <code>LevelDefinition.GetTileType</code> 的 switch 里加入：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelDefinition.cs · 新增分支</span><button class="copy" type="button">复制</button></div>
+      <pre><code>case 'S': return TileType.Stone;</code></pre>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>让 Maze 保存运行时副本</h2></div>
+    <p>用下面的版本替换 <code>MazeBootstrapper.cs</code>。关键变化是：Start 时把关卡复制到 <code>_tiles</code>，同时保存每个格子的 <code>SpriteRenderer</code>，这样炸石头时可以同时改数据和画面。</p>
+    <div class="code">
+      <div class="code-head"><span>MazeBootstrapper.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using UnityEngine;
+
+public class MazeBootstrapper : MonoBehaviour
+{
+    [SerializeField] private LevelDefinition level;
+
+    private TileType[,] _tiles;
+    private SpriteRenderer[,] _renderers;
+
+    private int Width =&gt; level != null ? level.Width : 0;
+    private int Height =&gt; level != null ? level.Height : 0;
+
+    private void Start()
+    {
+        if (level == null)
+        {
+            Debug.LogError(
+                "MazeBootstrapper: 请在 Inspector 里指定 Level Definition。",
+                this);
+            enabled = false;
+            return;
+        }
+
+        _tiles = new TileType[Width, Height];
+        _renderers = new SpriteRenderer[Width, Height];
+
+        Sprite square = CreateSquareSprite();
+
+        for (int y = 0; y &lt; Height; y++)
+        {
+            for (int x = 0; x &lt; Width; x++)
+            {
+                TileType tile = level.GetTileType(new Vector2Int(x, y));
+                _tiles[x, y] = tile;
+                _renderers[x, y] = CreateCell(square, x, y, tile);
+            }
+        }
+    }
+
+    public bool IsWalkable(Vector2Int cell)
+    {
+        TileType tile = GetTileType(cell);
+        return tile != TileType.Wall &amp;&amp; tile != TileType.Stone;
+    }
+
+    public TileType GetTileType(Vector2Int cell)
+    {
+        if (level == null || _tiles == null || !level.Contains(cell))
+        {
+            return TileType.Wall;
+        }
+
+        return _tiles[cell.x, cell.y];
+    }
+
+    public bool TryBreakStone(Vector2Int cell)
+    {
+        if (GetTileType(cell) != TileType.Stone)
+        {
+            return false;
+        }
+
+        _tiles[cell.x, cell.y] = TileType.Floor;
+        _renderers[cell.x, cell.y].color = ColorFor(TileType.Floor);
+        return true;
+    }
+
+    public Vector3 CellToWorld(Vector2Int cell)
+    {
+        return transform.TransformPoint(CellToLocal(cell));
+    }
+
+    private Vector3 CellToLocal(Vector2Int cell)
+    {
+        return new Vector3(
+            cell.x - (Width - 1) * 0.5f,
+            cell.y - (Height - 1) * 0.5f,
+            0f);
+    }
+
+    private SpriteRenderer CreateCell(
+        Sprite square,
+        int x,
+        int y,
+        TileType tile)
+    {
+        GameObject cell = new GameObject($"Cell_{x}_{y}");
+        cell.transform.SetParent(transform);
+        cell.transform.localPosition = CellToLocal(new Vector2Int(x, y));
+
+        SpriteRenderer spriteRenderer = cell.AddComponent&lt;SpriteRenderer&gt;();
+        spriteRenderer.sprite = square;
+        spriteRenderer.color = ColorFor(tile);
+        return spriteRenderer;
+    }
+
+    private Color ColorFor(TileType tile)
+    {
+        switch (tile)
+        {
+            case TileType.Wall: return new Color(0.10f, 0.10f, 0.12f);
+            case TileType.Floor: return new Color(0.93f, 0.92f, 0.88f);
+            case TileType.Lava: return new Color(0.82f, 0.22f, 0.20f);
+            case TileType.Water: return new Color(0.16f, 0.45f, 0.86f);
+            case TileType.Stone: return new Color(0.45f, 0.45f, 0.48f);
+            default: return Color.magenta;
+        }
+    }
+
+    private Sprite CreateSquareSprite()
+    {
+        Texture2D texture = new Texture2D(1, 1);
+        texture.SetPixel(0, 0, Color.white);
+        texture.Apply();
+
+        return Sprite.Create(
+            texture,
+            new Rect(0f, 0f, 1f, 1f),
+            new Vector2(0.5f, 0.5f),
+            1f);
+    }
+}</code></pre>
+    </div>
+    <p><code>TileType[,]</code> 是二维数组，第一维 x、第二维 y。它和关卡资产分离，所以炸石头只影响这一局；停止 Play 再开，石头会按模板重新出现。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>给 PlayerStats 和 HUD 加炸弹</h2></div>
+    <p>在 <code>PlayerStats.cs</code> 的氧气属性下面加入：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerStats.cs · 炸弹状态</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public int Bombs { get; private set; } = 1;
+
+public bool TryConsumeBomb()
+{
+    if (Bombs &lt;= 0)
+    {
+        return false;
+    }
+
+    Bombs -= 1;
+    Debug.Log($"炸弹 -1，剩余 {Bombs}");
+    return true;
+}</code></pre>
+    </div>
+    <p>把 HUD 的盒子高度从 96 改成 132，并加一行：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerStats.cs · HUD</span><button class="copy" type="button">复制</button></div>
+      <pre><code>GUI.Box(new Rect(12f, 12f, 260f, 132f), "");
+
+// 在氧气标签后面加：
+GUI.Label(
+    new Rect(24f, 94f, 236f, 30f),
+    $"炸弹: {Bombs}",
+    _labelStyle);</code></pre>
+    </div>
+    <p>炸弹是资源，所以“数量”归 PlayerStats 管；Maze 只负责“这里有没有石头”，两者不要混在一起。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>让玩家记住朝向并放炸弹</h2></div>
+    <p>在 <code>PlayerGridMover.cs</code> 加入朝向、炸弹输入和炸石头逻辑。改动如下：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerGridMover.cs · 改动清单</span><button class="copy" type="button">复制</button></div>
+      <pre><code>// 字段
+private Vector2Int facing = Vector2Int.up;
+
+// Update 开头，读取方向之前
+if (ReadBombPressed())
+{
+    TryUseBomb();
+    return;
+}
+
+// 新方法
+private bool ReadBombPressed()
+{
+    Keyboard keyboard = Keyboard.current;
+
+    if (keyboard == null)
+    {
+        return false;
+    }
+
+    return keyboard.eKey.wasPressedThisFrame ||
+           keyboard.spaceKey.wasPressedThisFrame;
+}
+
+private void TryUseBomb()
+{
+    Vector2Int targetCell = currentCell + facing;
+
+    if (maze.GetTileType(targetCell) != TileType.Stone)
+    {
+        Debug.Log("这里没有灰色石头。");
+        return;
+    }
+
+    if (!stats.TryConsumeBomb())
+    {
+        Debug.Log("没有炸弹了。");
+        return;
+    }
+
+    if (maze.TryBreakStone(targetCell))
+    {
+        Debug.Log("灰色石头被炸开了。");
+    }
+}
+
+// TryMove 最前面记录朝向
+facing = direction;</code></pre>
+    </div>
+    <p>顺序是“先确认前方是石头 → 再确认有炸弹 → 扣炸弹 → 改地图”。如果前方不是石头，炸弹不应该被消耗；这是资源系统最基本的一致性。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>测试炸开一条路</h2></div>
+    <ol>
+      <li>Play，确认 HUD 显示 <code>炸弹: 1</code>，石头在起点右侧。</li>
+      <li>按 D：玩家撞上石头，不会移动，但朝向变成右。</li>
+      <li>按 E：石头变成浅色地板，炸弹从 1 变成 0。</li>
+      <li>再按 D：玩家走进原来的石头格。</li>
+      <li>再按 E：前方没有石头，Console 提示“这里没有灰色石头”，炸弹仍为 0。</li>
+      <li>停止 Play，确认 <code>Level_01</code> 里的 <code>S</code> 还在；再 Play，石头重新出现。</li>
+    </ol>
+    <div class="callout tip">
+      <span class="label">这条验证很重要</span>
+      <p>如果停止 Play 后资产里的 <code>S</code> 消失了，说明你改到了 LevelDefinition 资产，而不是运行时副本。运行时破坏不应该污染内容模板。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>提交与日志</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "feat: add destructible stone and bombs"</code></pre>
+    </div>
+    <p>新建 <code>docs/devlog/2026-10-20-bombs.md</code>：</p>
+    <pre><code># 2026-10-20 · 炸弹与灰石
+
+## 今天做了什么
+- 石头会挡路，炸弹可以炸开相邻石头。
+- 关卡资产保持为模板，破坏只发生在运行时副本。
+
+## 卡在哪里 / 怎么解决
+- ...
+
+## 下次先做什么
+- 宝箱、金币，以及炸弹的正式来源。</code></pre>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>git add .
+git commit -m "docs: add lesson 06 devlog"</code></pre>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习：合上资料再答</h2>
+    <p>先不要往上翻。答错没关系，努力回忆本身就在加固记忆。</p>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">1. 为什么炸石头不直接修改 LevelDefinition？</p>
+      <div class="options">
+        <button class="option" type="button">运行会更快一些</button>
+        <button class="option" type="button">减少脚本的行数</button>
+        <button class="option" type="button">资产会被永久改</button>
+        <button class="option" type="button">自动保存整场景</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>ScriptableObject 是磁盘资产；运行时破坏应写进内存副本，否则会污染关卡模板。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">2. 石头被炸掉后，应该同时更新什么？</p>
+      <div class="options">
+        <button class="option" type="button">玩家生命与氧气值</button>
+        <button class="option" type="button">关卡资产里的数据</button>
+        <button class="option" type="button">摄像机当前的位置</button>
+        <button class="option" type="button">运行时格子和显示</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>逻辑格子和 SpriteRenderer 必须同步，否则会出现“能走但还显示石头”或相反的问题。</p>
+    </div>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">3. 什么时候应该扣炸弹？</p>
+      <div class="options">
+        <button class="option" type="button">按下 E 键之前就扣</button>
+        <button class="option" type="button">确认能炸石头之后</button>
+        <button class="option" type="button">每次移动之后都扣</button>
+        <button class="option" type="button">进入关卡时就扣掉</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>先验证目标和资源，再提交消耗；失败操作不应该扣资源。</p>
+    </div>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">4. <code>facing</code> 的作用是什么？</p>
+      <div class="options">
+        <button class="option" type="button">记录当前生命</button>
+        <button class="option" type="button">保存关卡数据</button>
+        <button class="option" type="button">记住面朝方向</button>
+        <button class="option" type="button">控制相机缩放</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden><code>facing</code> 记录最后一次移动方向，炸弹就作用于前方那一格。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>最可能原因</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>石头是洋红色</td><td>ColorFor 没有 Stone 分支</td><td>加入灰色分支，并确认 LevelDefinition 的 S 映射。</td></tr>
+          <tr><td>按 E 没反应</td><td>朝向不对，或前方不是石头</td><td>先朝石头方向按一次移动键，再按 E。</td></tr>
+          <tr><td>炸弹扣了，石头还在</td><td>TryBreakStone 没有更新副本或渲染器</td><td>检查 <code>_tiles[x,y]</code> 与 <code>_renderers[x,y]</code>。</td></tr>
+          <tr><td>没石头也扣炸弹</td><td>先扣资源后验证</td><td>先检查 <code>TileType.Stone</code>，通过后再消耗。</td></tr>
+          <tr><td>石头永远消失</td><td>改了 LevelDefinition 资产</td><td>只改 <code>_tiles</code> 副本，不要写回资产。</td></tr>
+          <tr><td>炸开后仍走不进去</td><td>IsWalkable 还在查资产或仍排除 Stone</td><td>确认 IsWalkable 读取 <code>_tiles</code>，且 Stone 只在破坏前阻挡。</td></tr>
+          <tr><td>HUD 没有炸弹</td><td>HUD 没加行或 PlayerStats 没更新</td><td>盒子高度改 132，加入 Bombs 标签。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料（课后 15 分钟）</h2>
+    <p><a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/arrays/multidimensional-arrays">Microsoft Learn: Multidimensional arrays</a>——重点看二维数组的 <code>[x, y]</code> 索引。</p>
+    <p>补充：<a href="https://docs.unity3d.com/Manual/class-ScriptableObject.html">Unity Manual: ScriptableObject</a>，特别是“数据资产”和“运行时状态”的区别。</p>
+    <p>参考实现：<a href="../solutions/0006/MazeBootstrapper.cs">MazeBootstrapper.cs</a> · <a href="../solutions/0006/PlayerGridMover.cs">PlayerGridMover.cs</a></p>
+  </section>
+
+  <p class="ask">如果炸石头后画面没变、炸弹扣得不正确，或者石头在停止 Play 后消失，把 Console 和 Level_01 的 Rows 内容发我。下一课做宝箱和金币，让炸弹有正式来源。</p>
+
+  <nav class="footer-nav">
+    <a href="0005-death-and-restart.html">上一课：失败与重开</a>
+    <a href="0007-chests-and-coins.html">下一课：宝箱与金币</a>
+    <a href="../reference/0006-runtime-grid-and-bombs-cheatsheet.html">参考卡：运行时地图与炸弹</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

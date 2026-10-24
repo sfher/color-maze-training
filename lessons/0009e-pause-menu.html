@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 09e · 暂停不是把游戏关掉 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 09e</div>
+    <h1>暂停不是<br>把游戏关掉</h1>
+    <p class="lede">暂停是关卡的一个正式状态：时间停住、玩家不能移动、界面显示，但仍然可以继续或重开。今天把 Esc 和按钮接成完整的暂停流程。</p>
+    <div class="meta">
+      <span>45–60 分钟</span>
+      <span>状态 · timeScale · 暂停 UI</span>
+      <span>产出：可继续/重开的暂停菜单</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0009e">
+      <li><label><input type="checkbox"><span>给 <code>LevelState</code> 增加 <code>Paused</code>。</span></label></li>
+      <li><label><input type="checkbox"><span><code>LevelFlowController</code> 支持 Esc 切换暂停、继续和重开。</span></label></li>
+      <li><label><input type="checkbox"><span>暂停时 <code>Time.timeScale = 0</code>，玩家不能移动。</span></label></li>
+      <li><label><input type="checkbox"><span>Canvas 中加入 PausePanel，包含“继续”和“重开”。</span></label></li>
+      <li><label><input type="checkbox"><span>GameHud 根据状态显示暂停面板，并绑定两个按钮。</span></label></li>
+      <li><label><input type="checkbox"><span>暂停音效使用 <code>ui_confirm.ogg</code>，重开后 timeScale 恢复为 1。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码与日志，测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>暂停到底改变了什么</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>对象</th><th>暂停时</th><th>恢复时</th></tr></thead>
+        <tbody>
+          <tr><td><code>LevelState</code></td><td>Paused</td><td>Playing</td></tr>
+          <tr><td><code>Time.timeScale</code></td><td>0</td><td>1</td></tr>
+          <tr><td>玩家移动</td><td>停止（<code>flow.IsPlaying</code> 为 false）</td><td>恢复</td></tr>
+          <tr><td>暂停面板</td><td>显示</td><td>隐藏</td></tr>
+          <tr><td>AudioListener / 短音效</td><td>本课不暂停</td><td>继续使用</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout warn">
+      <span class="label">timeScale = 0 不会停掉 Update</span>
+      <p>物理和基于时间的动画会停，但 <code>Update</code> 仍会执行。所以 Esc 检测还能工作；同时 PlayerGridMover 必须继续检查 <code>flow.IsPlaying</code>，否则暂停时仍可能移动。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>把 Paused 加入关卡状态</h2></div>
+    <p>修改 <code>LevelState.cs</code>：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelState.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public enum LevelState
+{
+    Playing,
+    Paused,
+    Completed,
+    Failed
+}</code></pre>
+    </div>
+    <p>Paused 不是 Completed 或 Failed；暂停后仍然可以回到 Playing。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>给 LevelFlowController 加暂停</h2></div>
+    <p>用参考实现替换 <code>LevelFlowController.cs</code>，或加入以下方法：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelFlowController.cs · 暂停接口</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public void TogglePause()
+{
+    if (State == LevelState.Playing)
+    {
+        audio.PlayUiConfirm();
+        SetState(LevelState.Paused);
+        Time.timeScale = 0f;
+        return;
+    }
+
+    if (State == LevelState.Paused)
+    {
+        Resume();
+    }
+}
+
+public void Resume()
+{
+    if (State != LevelState.Paused)
+        return;
+
+    audio.PlayUiConfirm();
+    SetState(LevelState.Playing);
+    Time.timeScale = 1f;
+}
+
+public void Restart()
+{
+    Time.timeScale = 1f;
+    SceneManager.LoadScene(
+        SceneManager.GetActiveScene().buildIndex);
+}</code></pre>
+    </div>
+    <p>在 <code>Update</code> 里处理 Esc，但仍只允许 Playing/Paused 切换：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelFlowController.cs · 输入</span><button class="copy" type="button">复制</button></div>
+      <pre><code>if (keyboard != null &amp;&amp;
+    keyboard.escapeKey.wasPressedThisFrame &amp;&amp;
+    (State == LevelState.Playing ||
+     State == LevelState.Paused))
+{
+    TogglePause();
+    return;
+}</code></pre>
+    </div>
+    <p>完整参考：<a href="../solutions/0012/LevelFlowController.cs">solutions/0012/LevelFlowController.cs</a>。注意 <code>Start</code> 和 <code>Restart</code> 都把 timeScale 设为 1，避免暂停后重开仍然冻结。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>创建暂停面板</h2></div>
+    <ol>
+      <li>在 Canvas 下创建 Panel，命名为 <code>PausePanel</code>；居中，大小约 <code>520 × 320</code>。</li>
+      <li>加入标题 TextMeshPro：<code>暂停</code>，约 44 号。</li>
+      <li>加入两个 Button：<code>ResumeButton</code> 文案“继续”，<code>PauseRestartButton</code> 文案“重开”。</li>
+      <li>把 PausePanel 设为未激活；运行时由 GameHud 控制。</li>
+      <li>确保 EventSystem 存在，按钮才能接收点击。</li>
+    </ol>
+    <p>层级建议：</p>
+    <pre><code>GameUI (Canvas)
+├── StatsPanel
+├── EndPanel
+├── PausePanel
+│   ├── PauseTitle
+│   ├── ResumeButton
+│   └── PauseRestartButton
+└── HintText</code></pre>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>让 GameHud 管理暂停面板</h2></div>
+    <p>给 <code>GameHud</code> 增加三个字段：</p>
+    <div class="code">
+      <div class="code-head"><span>GameHud.cs · 字段</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[SerializeField] private GameObject pausePanel;
+[SerializeField] private Button resumeButton;
+[SerializeField] private Button pauseRestartButton;</code></pre>
+    </div>
+    <p>Start 里绑定按钮：</p>
+    <div class="code">
+      <div class="code-head"><span>GameHud.cs · 绑定</span><button class="copy" type="button">复制</button></div>
+      <pre><code>resumeButton.onClick.AddListener(flow.Resume);
+pauseRestartButton.onClick.AddListener(flow.Restart);
+pausePanel.SetActive(false);</code></pre>
+    </div>
+    <p>状态变化时，暂停面板只在 Paused 显示：</p>
+    <div class="code">
+      <div class="code-head"><span>GameHud.cs · 状态显示</span><button class="copy" type="button">复制</button></div>
+      <pre><code>pausePanel.SetActive(flow.State == LevelState.Paused);
+
+bool ended =
+    flow.State == LevelState.Completed ||
+    flow.State == LevelState.Failed;
+endPanel.SetActive(ended);</code></pre>
+    </div>
+    <p>完整参考：<a href="../solutions/0012/GameHud.cs">solutions/0012/GameHud.cs</a>。在 OnDestroy 里也要移除两个按钮的监听，和现有重开按钮一样。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>在 Inspector 绑定</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>GameHud 字段</th><th>拖什么</th></tr></thead>
+        <tbody>
+          <tr><td>Pause Panel</td><td>Canvas 下的 PausePanel</td></tr>
+          <tr><td>Resume Button</td><td>PausePanel/ResumeButton</td></tr>
+          <tr><td>Pause Restart Button</td><td>PausePanel/PauseRestartButton</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>AudioManager 已经绑定 <code>ui_confirm.ogg</code>；暂停和继续都会通过 <code>PlayUiConfirm()</code> 发出确认音。短音效不受 timeScale 影响，仍能播放。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>测试状态转换</h2></div>
+    <ol>
+      <li>Playing 按 Esc：显示暂停面板，timeScale 变为 0，玩家不能移动。</li>
+      <li>再按 Esc 或点“继续”：面板隐藏，timeScale 回到 1，玩家恢复移动。</li>
+      <li>暂停时点“重开”：场景重载，timeScale 为 1，玩家与 HUD 回到初始状态。</li>
+      <li>Completed/Failed 时按 Esc：不应进入暂停；结算面板保持。</li>
+      <li>暂停时确认没有移动、没有炸弹、没有重复计时。</li>
+      <li>每次暂停/继续都能听到同一个确认音，不会叠成爆音。</li>
+    </ol>
+    <div class="callout tip">
+      <span class="label">如果重开后仍冻结</span>
+      <p>检查 <code>Restart()</code> 是否先执行 <code>Time.timeScale = 1f</code>，以及新场景的 <code>LevelFlowController.Start</code> 是否也恢复为 1。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">07</span><h2>提交与日志</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "feat: add pause menu and resume flow"</code></pre>
+    </div>
+    <p>新建 <code>docs/devlog/2026-10-22-pause.md</code>：</p>
+    <pre><code># 2026-10-22 · 暂停菜单
+
+## 今天做了什么
+- Esc 暂停/继续，暂停时停止玩家移动。
+- 暂停面板支持继续和重开，重开后 timeScale 恢复。
+
+## 卡在哪里 / 怎么解决
+- ...
+
+## 下次先做什么
+- MAYA 对话与下一关场景流。</code></pre>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习</h2>
+    <p>先不要往上翻。</p>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">1. 暂停时为什么还要检查 flow.IsPlaying？</p>
+      <div class="options">
+        <button class="option" type="button">让音频自动循环</button>
+        <button class="option" type="button">让画面自动变暗</button>
+        <button class="option" type="button">Update 仍在执行</button>
+        <button class="option" type="button">重建所有场景对象</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>timeScale=0 不会停止 Update；移动脚本必须读取流程状态。</p>
+    </div>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">2. 恢复游戏时 timeScale 应该设为什么？</p>
+      <div class="options">
+        <button class="option" type="button">0</button>
+        <button class="option" type="button">1</button>
+        <button class="option" type="button">-1</button>
+        <button class="option" type="button">不要设置</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>Resume 和 Restart 都必须恢复 Time.timeScale = 1。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">3. 结算状态时按 Esc 应该怎样？</p>
+      <div class="options">
+        <button class="option" type="button">进入暂停并停止音乐</button>
+        <button class="option" type="button">直接开始下一关</button>
+        <button class="option" type="button">重置所有金币</button>
+        <button class="option" type="button">不进入暂停状态</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>只有 Playing/Paused 能切换暂停；Completed/Failed 使用结算面板和 R/重开。</p>
+    </div>
+
+    <div class="quiz" data-answer="0">
+      <p class="q">4. 暂停和继续音效应该调用哪个方法？</p>
+      <div class="options">
+        <button class="option" type="button">PlayUiConfirm()</button>
+        <button class="option" type="button">PlayLevelComplete()</button>
+        <button class="option" type="button">PlayStoneBreak()</button>
+        <button class="option" type="button">PlayPortal()</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>UI 确认音用于暂停/继续；过关音只用于关卡完成。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>Esc 没反应</td><td>Game 视图焦点；Input System 中 Escape 键；Flow 是否启用。</td></tr>
+          <tr><td>暂停后玩家还能动</td><td>PlayerGridMover 是否检查 <code>!flow.IsPlaying</code>。</td></tr>
+          <tr><td>重开后仍冻结</td><td>Restart 和新场景 Start 都把 timeScale 设为 1。</td></tr>
+          <tr><td>按钮没反应</td><td>EventSystem；Button 的 OnClick 由 GameHud 绑定。</td></tr>
+          <tr><td>暂停面板不显示</td><td>PausePanel 是否绑定，HandleStateChanged 是否在 Paused 分支。</td></tr>
+          <tr><td>过关/失败时能暂停</td><td>Esc 状态判断只允许 Playing/Paused。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料</h2>
+    <p><a href="https://docs.unity3d.com/ScriptReference/Time-timeScale.html">Unity: Time.timeScale</a> · <a href="https://docs.unity3d.com/ScriptReference/MonoBehaviour.Update.html">Update</a></p>
+    <p>参考实现：<a href="../solutions/0012/LevelFlowController.cs">LevelFlowController.cs</a> · <a href="../solutions/0012/GameHud.cs">GameHud.cs</a></p>
+  </section>
+
+  <p class="ask">如果暂停面板不显示、重开后仍冻结，或者按钮不工作，把 Console 和 GameHud 的 Inspector 状态发我。下一课做 MAYA 对话与下一关场景流。</p>
+
+  <nav class="footer-nav">
+    <a href="0009d-audio-events.html">上一课：音效事件</a>
+    <a href="0010-maya-and-next-level.html">下一课：MAYA 与下一关</a>
+    <a href="../reference/0013-pause-and-time-scale-cheatsheet.html">参考卡：暂停与 timeScale</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 19 · 关卡校验速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 19</div>
+    <h1>关卡校验</h1>
+    <p class="lede">关卡进入内容目录前先检查起点、材料阈值、出口与传送门。地图矩形边界负责约束范围，外圈墙是可选项。</p>
+    <div class="meta"><span>打印友好</span><span>Editor Tooling</span><span>Content QA</span></div>
+  </header>
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>扫描</h2>
+      <pre><code>AssetDatabase.FindAssets(
+    "t:LevelDefinition");</code></pre>
+      <p>按类型查找，不依赖关卡放在哪个目录。</p>
+    </section>
+    <section class="ref-block">
+      <h2>核心规则</h2>
+      <ul>
+        <li>默认起点 `(1,1)` 可通行。</li>
+        <li>地图 `M` 数量不少于 `requiredMaterials`。</li>
+        <li>多余 `M` 合法，可用于后续辅助机制。</li>
+        <li>出口恰好 1 个。</li>
+        <li>每个传送门 ID 恰好 2 个。</li>
+      </ul>
+      <p>过渡实现：`requiredMaterials` 尚未进入代码；当前 Validator 仍按材料恰好 1 个检查。迁移前，正式关卡不要把多余材料标成已通过。</p>
+    </section>
+    <section class="ref-block">
+      <h2>可定位日志</h2>
+      <pre><code>Debug.LogWarning(
+    $"关卡校验失败：{path}\n" +
+    string.Join("\n", errors),
+    level);</code></pre>
+      <p>包含路径、原因和资产引用。</p>
+    </section>
+    <section class="ref-block">
+      <h2>工具不能保证</h2>
+      <ul>
+        <li>路径是否公平。</li>
+        <li>难度是否合适。</li>
+        <li>摄像机是否正确展示。</li>
+        <li>材料是否真的可以到达。</li>
+      </ul>
+      <p>这些仍要进入 Play 验证。</p>
+    </section>
+    <section class="ref-block">
+      <h2>Editor 边界</h2>
+      <ul>
+        <li>脚本放在 `Assets/Editor`。</li>
+        <li>可以引用 `UnityEditor`。</li>
+        <li>不会进入运行时构建。</li>
+        <li>不要从运行时脚本引用 Editor 类。</li>
+      </ul>
+    </section>
+    <section class="ref-block">
+      <h2>发现错误后</h2>
+      <ol>
+        <li>点击 Console 定位资产。</li>
+        <li>只修一个错误。</li>
+        <li>再次运行校验。</li>
+        <li>最后进入 Play 验证可玩性。</li>
+      </ol>
+    </section>
+  </div>
+  <section class="source">
+    <h2>对应课程与资料</h2>
+    <p><a href="../lessons/0014-level-validation-tool.html">课程 14 · 一键检查关卡</a></p>
+    <p><a href="https://docs.unity3d.com/ScriptReference/MenuItem.html">MenuItem</a> · <a href="https://docs.unity3d.com/ScriptReference/AssetDatabase.html">AssetDatabase</a></p>
+  </section>
+  <nav class="footer-nav"><a href="../lessons/0014-level-validation-tool.html">回到课程 14</a><a href="../CURRICULUM.md">课程路线图</a></nav>
+</main>
+</body>
+</html>

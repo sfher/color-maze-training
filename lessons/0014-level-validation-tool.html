@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 14 · 一键检查关卡 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 14</div>
+    <h1>一键检查关卡</h1>
+    <p class="lede">你已经能制作新关卡，现在给内容生产加一条自动验收线：扫描所有 LevelDefinition，检查材料阈值、出口、起点、地图边界和传送门配对。</p>
+    <div class="meta">
+      <span>30–45 分钟</span>
+      <span>UnityEditor · Validation</span>
+      <span>产出：关卡校验菜单</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0014">
+      <li><label><input type="checkbox"><span><code>Color Maze → Levels</code> 菜单出现 “Validate All”。</span></label></li>
+      <li><label><input type="checkbox"><span>能扫描工程中的所有 LevelDefinition。</span></label></li>
+      <li><label><input type="checkbox"><span>能报告起点、材料、出口和传送门配对错误。</span></label></li>
+      <li><label><input type="checkbox"><span>至少用一个故意破坏的关卡验证工具会报错。</span></label></li>
+      <li><label><input type="checkbox"><span>提交 Editor 脚本与开发日志。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>工具检查“内容合同”</h2>
+    <p>一关要能被游戏可靠加载，至少满足：</p>
+    <div class="concept-grid">
+      <div class="concept"><span class="tag">START</span><h3>起点可通行</h3><p>默认起点 `(1,1)` 不能是墙或灰石。</p></div>
+      <div class="concept"><span class="tag">GOAL</span><h3>目标完整</h3><p>材料数不少于所需数量，且恰好一个出口。</p></div>
+      <div class="concept"><span class="tag">EDGE</span><h3>矩形边界</h3><p>地图行列本身限制范围，不要求外围墙。</p></div>
+      <div class="concept"><span class="tag">PAIR</span><h3>传送门成对</h3><p>每个编号恰好出现两次，避免单向传送。</p></div>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>建立 Editor 脚本</h2></div>
+    <p>创建 <code>Assets/Editor/LevelValidator.cs</code>。Editor 代码不会进入最终玩家构建，适合放资产扫描工具。</p>
+    <pre><code>Assets/
+  Editor/
+    LevelValidator.cs
+  Scripts/
+    LevelDefinition.cs</code></pre>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>扫描所有关卡资产</h2></div>
+    <div class="code">
+      <div class="code-head"><span>LevelValidator.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[MenuItem("Color Maze/Levels/Validate All")]
+private static void ValidateAllLevels()
+{
+    string[] guids =
+        AssetDatabase.FindAssets("t:LevelDefinition");
+
+    foreach (string guid in guids)
+    {
+        string path =
+            AssetDatabase.GUIDToAssetPath(guid);
+        LevelDefinition level =
+            AssetDatabase.LoadAssetAtPath&lt;
+                LevelDefinition&gt;(path);
+
+        // 检查这个关卡
+    }
+}</code></pre>
+    </div>
+    <p>按类型查找比遍历固定文件夹更可靠：关卡以后放在 <code>Data</code>、<code>Content/Levels</code> 或其他目录，都能被发现。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>统计关键格子</h2></div>
+    <p>使用 LevelDefinition 已有的公开方法，不直接读取私有 <code>rows</code>：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelValidator.cs · 核心检查</span><button class="copy" type="button">复制</button></div>
+      <pre><code>TileType tile =
+    level.GetTileType(new Vector2Int(x, y));
+
+if (tile == TileType.Material)
+    materials++;
+else if (tile == TileType.Exit)
+    exits++;
+else if (tile == TileType.Portal)
+{
+    int id = level.GetPortalId(cell);
+    portals.TryGetValue(id, out int count);
+    portals[id] = count + 1;
+}
+
+int requiredMaterials = 1;
+// 过渡实现使用 1；接口落地后读取
+// level.RequiredMaterials。
+
+if (materials &lt; requiredMaterials)
+{ /* 报警 */ }
+
+if (exits != 1) { /* 报警 */ }</code></pre>
+    </div>
+    <p>最后遍历传送门字典，要求每个 ID 的计数恰好为 2。目标规则允许地图中的 `M` 多于所需数量；只有少于阈值才是错误。当前尚未实现 `requiredMaterials`，所以本课暂时仍用 1，而现有关卡要等迁移后才应放入多余材料。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>让失败信息能定位</h2></div>
+    <p>不要只打印“关卡错误”。警告应包含资产路径和具体原因：</p>
+    <pre><code>Debug.LogWarning(
+    $"关卡校验失败：{path}\n" +
+    string.Join("\n", errors),
+    level);</code></pre>
+    <p>点击 Console 时，context 会自动定位到对应的 LevelDefinition。完成参考：<a href="../solutions/0018/LevelValidator.cs">LevelValidator.cs</a>.</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>用一个坏关卡证明工具有效</h2></div>
+    <ol>
+      <li>运行 <code>Color Maze → Levels → Validate All</code>，现有关卡应通过。</li>
+      <li>复制一个关卡资产，删掉出口、让材料数少于所需数量，或把某个传送门改成不同编号。</li>
+      <li>再次运行校验，确认 Console 指出具体资产和问题。</li>
+      <li>修复后把它加入你的内容目录。</li>
+    </ol>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>提交</h2></div>
+    <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add Assets/Editor docs/devlog
+git commit -m "feat(level): add level validation tool"</code></pre>
+  </section>
+
+  <section class="source">
+    <h2>主资料</h2>
+    <p><a href="https://docs.unity3d.com/ScriptReference/MenuItem.html">MenuItem</a> · <a href="https://docs.unity3d.com/ScriptReference/AssetDatabase.html">AssetDatabase</a></p>
+    <p>参考卡：<a href="../reference/0019-level-validation-cheatsheet.html">关卡校验速查</a></p>
+  </section>
+
+  <p class="ask">先不要扩展成复杂的关卡编辑器。目标是让新关卡在进入商店前有一个可靠的自动检查入口；遇到菜单不出现或扫描错目录，再把 Console 发我。</p>
+
+  <nav class="footer-nav">
+    <a href="0013-save-and-settings.html">上一课：存档与设置</a>
+    <a href="../reference/0019-level-validation-cheatsheet.html">参考卡：关卡校验</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 01 · 把策划案变成第一屏彩色迷宫 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 01</div>
+    <h1>把策划案变成<br>第一屏彩色迷宫</h1>
+    <p class="lede">这一课不先学完 C#。我们先把《色彩迷宫》最重要的视觉承诺——“颜色即规则”——变成一个真的能按 Play 看见的 7×7 网格。</p>
+    <div class="meta">
+      <span>45–60 分钟</span>
+      <span>C# · Unity · Git</span>
+      <span>产出：可运行的颜色网格</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0001">
+      <li><label><input type="checkbox"><span>用 Unity 6000.6.4f1 创建 <code>Color Maze</code> 工程，并在 Project 窗口里建立 <code>Assets/Scripts</code> 目录。</span></label></li>
+      <li><label><input type="checkbox"><span>用 Git 完成第一次提交，<code>git status</code> 干净。</span></label></li>
+      <li><label><input type="checkbox"><span>创建并挂载 <code>MazeBootstrapper.cs</code>，Play 后看见 7×7 迷宫。</span></label></li>
+      <li><label><input type="checkbox"><span>完成第二次提交，并写下第一条开发日志。</span></label></li>
+      <li><label><input type="checkbox"><span>测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>为什么先做“这一屏”</h2>
+    <p>策划案里已经有生命、氧气、传送门、商店和叙事。如果一次全做，你很快会同时面对十几个互相纠缠的问题：画面不对、输入没反应、数值扣错、关卡读不出来。到那时，你很难判断到底是哪一层坏了。</p>
+    <p>行业里常用的做法是先做一个 <strong>vertical slice</strong>（垂直切片）：只取一条最窄的完整路径，从数据到画面全部打通，证明“这个方向能跑”。本课的切片只有一件事：</p>
+    <blockquote class="callout tip">
+      <span class="label">本课的最小闭环</span>
+      <p><strong>一张用字符写成的关卡地图 → C# 读取每个格子 → 在场景里生成对应颜色的方块。</strong></p>
+    </blockquote>
+    <p>这条路径打通后，后面所有规则——岩浆扣血、水耗氧、炸弹破石——都只是往这个循环里加判断，而不是重新搭一遍地基。</p>
+  </section>
+
+  <section>
+    <h2>三个概念，够用了</h2>
+    <div class="concept-grid">
+      <article class="concept">
+        <span class="tag">GameObject</span>
+        <h3>游戏对象</h3>
+        <p>场景里的“东西”。它本身几乎是个空壳，靠组件获得能力。我们的每个格子、玩家、相机都是 GameObject。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">Component</span>
+        <h3>组件</h3>
+        <p>挂在对象上的能力模块：Transform 给位置，SpriteRenderer 给图像，脚本给行为。一个对象可以挂很多组件。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">Script</span>
+        <h3>脚本</h3>
+        <p>一段继承 <code>MonoBehaviour</code> 的 C# 类。挂到对象上后，Unity 会在特定时机调用它的 <code>Start</code>、<code>Update</code> 等方法。</p>
+      </article>
+    </div>
+
+    <figure class="stack-figure">
+      <div class="stack-row root"><span class="type">GameObject</span><span>Maze</span></div>
+      <div class="stack-row child"><span class="type">Transform</span><span>位置 / 旋转 / 缩放</span></div>
+      <div class="stack-row child"><span class="type">MazeBootstrapper</span><span>本课要写的脚本</span></div>
+      <div class="stack-row child"><span class="type">Children</span><span>49 个格子：Cell_0_0 … Cell_6_6</span></div>
+      <figcaption>Unity 的思考方式：先在场景里放一个对象，再给它加组件；脚本也是组件的一种。格子由脚本在运行时生成，所以现在场景里还看不到它们。</figcaption>
+    </figure>
+
+    <p>记住一句话就够了：<strong>GameObject 是“谁”，Component 是“会什么”，Script 是“怎么动”。</strong></p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>创建工程</h2></div>
+    <p>打开 Unity Hub，进入 <strong>Projects → New project</strong>，按下面设置：</p>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          <tr><th>Editor version</th><td><code>6000.6.4f1</code>（你机器上已安装的版本）</td></tr>
+          <tr><th>Template</th><td><strong>Universal 2D</strong>。这是本机已安装的 2D 模板；如果列表只显示 “2D”，选它。</td></tr>
+          <tr><th>Project name</th><td><code>Color Maze</code></td></tr>
+          <tr><th>Location</th><td><code>D:\WorkSpace\学习\AI课程\Unity项目实训</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>创建后等待 Unity 第一次导入资源。第一次会慢一些，属于正常现象。进入编辑器后，确认顶部标题栏显示的是 <code>Color Maze</code>。</p>
+    <div class="callout">
+      <span class="label">行业习惯</span>
+      <p>模板只是起点。真正属于你的资产会放进一个独立目录，第三方插件和模板示例留在外面。这样项目变大后，你仍然知道哪些文件可以改、哪些最好不要碰。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>建立目录与主场景</h2></div>
+    <p>在 Unity 的 Project 窗口里，确认模板已经带了 <code>Assets/Scenes</code> 和 <code>Assets/Settings</code>。现在只额外建一个 <code>Scripts</code> 文件夹：右键 <code>Assets</code>，选择 <strong>Create → Folder</strong>，命名为 <code>Scripts</code>。</p>
+    <pre><code>Assets/
+├── Scenes/       # Main.unity
+├── Scripts/      # 我们的 C# 脚本
+├── Settings/     # URP 2D 与 Input Actions（模板自带，保留）
+└── ...           # Art / Audio / Data / Prefabs 等到需要时再建
+</code></pre>
+    <p>小项目用顶层文件夹完全够用。等以后导入第三方素材，再把“自己的内容”集中到 <code>Assets/_Project</code> 也不迟；不要为了目录好看提前建一堆空文件夹。关键是整个项目只用一种结构。</p>
+    <p>然后按 <code>Ctrl + Shift + S</code>，确认场景保存为 <code>Assets/Scenes/Main.unity</code>。模板自带的 <code>SampleScene</code> 可以保留；我们只使用 <code>Main</code>。</p>
+    <div class="callout warn">
+      <span class="label">不要忽略 .meta</span>
+      <p>Unity 会为每个资产生成同名的 <code>.meta</code> 文件，里面记录 GUID 与导入设置。它们必须和资产一起提交到 Git，否则换一台电脑后，场景里的引用会全部丢失。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>用 Git 留下第一个可回退点</h2></div>
+    <p>先进入 <code>Color Maze</code> 工程目录；注意是包含 <code>Assets</code>、<code>Packages</code>、<code>ProjectSettings</code> 的那一层，不是外面的课程工作区。</p>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git status --short
+git add .
+git commit -m "chore: create Unity project"
+git status --short</code></pre>
+    </div>
+    <p>你现在已经有仓库和 <code>Color Maze/.gitignore</code>，所以不需要再执行 <code>git init</code>。从 <code>Color Maze</code> 里执行 <code>git add .</code> 只会暂存这个子目录，不会碰外面的课程文档和另一个 Unity 工程。最后一条 <code>git status --short</code> 没有输出，说明工作区干净。</p>
+    <p>如果看到 <code>LF will be replaced by CRLF</code>，那是 Windows 的行尾提示，不是错误。真正要避免的是把 <code>Library/</code> 加进去；<code>.gitignore</code> 已经处理了。</p>
+    <div class="callout">
+      <span class="label">如果是全新工程</span>
+      <p>先在 <code>Color Maze</code> 目录执行 <code>git init</code>，再加入官方 <code>Unity.gitignore</code>。你当前已经有仓库，跳过这两步。</p>
+    </div>
+    <div class="callout">
+      <span class="label">提交信息怎么写</span>
+      <p>用“类型: 做了什么”的格式，例如 <code>chore: create Unity project</code>、<code>feat: render first maze grid</code>。一次提交只做一件事，未来出问题时才能精确回退。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>写第一个脚本：从字符到方块</h2></div>
+    <p>在 <code>Assets/Scripts</code> 上右键，选择 <strong>Create → C# Script</strong>，命名为 <code>MazeBootstrapper</code>。文件名必须和类名一致，否则 Unity 不会把它挂到对象上。双击打开，替换为：</p>
+    <div class="code">
+      <div class="code-head"><span>MazeBootstrapper.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using UnityEngine;
+
+public class MazeBootstrapper : MonoBehaviour
+{
+    private const int Width = 7;
+    private const int Height = 7;
+
+    private const string MazeMap =
+        "#######" +
+        "#.....#" +
+        "#.RR..#" +
+        "#.....#" +
+        "#..BB.#" +
+        "#.....#" +
+        "#######";
+
+    private void Start()
+    {
+        Sprite square = CreateSquareSprite();
+
+        for (int index = 0; index &lt; MazeMap.Length; index++)
+        {
+            int x = index % Width;
+            int y = Height - 1 - (index / Width);
+
+            CreateCell(square, x, y, MazeMap[index]);
+        }
+    }
+
+    private void CreateCell(Sprite square, int x, int y, char tile)
+    {
+        GameObject cell = new GameObject($"Cell_{x}_{y}");
+        cell.transform.SetParent(transform);
+        cell.transform.position = new Vector3(
+            x - (Width - 1) * 0.5f,
+            y - (Height - 1) * 0.5f,
+            0f);
+
+        SpriteRenderer spriteRenderer = cell.AddComponent&lt;SpriteRenderer&gt;();
+        spriteRenderer.sprite = square;
+        spriteRenderer.color = ColorFor(tile);
+    }
+
+    private Color ColorFor(char tile)
+    {
+        switch (tile)
+        {
+            case '#': return new Color(0.10f, 0.10f, 0.12f);
+            case '.': return new Color(0.93f, 0.92f, 0.88f);
+            case 'R': return new Color(0.82f, 0.22f, 0.20f);
+            case 'B': return new Color(0.16f, 0.45f, 0.86f);
+            default:  return Color.magenta;
+        }
+    }
+
+    private Sprite CreateSquareSprite()
+    {
+        Texture2D texture = new Texture2D(1, 1);
+        texture.SetPixel(0, 0, Color.white);
+        texture.Apply();
+
+        return Sprite.Create(
+            texture,
+            new Rect(0f, 0f, 1f, 1f),
+            new Vector2(0.5f, 0.5f),
+            1f);
+    }
+}</code></pre>
+    </div>
+
+    <p>保存文件，回到 Unity，等右下角的编译转圈结束。如果 Console 出现红字，先不要继续，按本课最后的“报错急救”处理。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>把它挂进场景，按下 Play</h2></div>
+    <ol>
+      <li>菜单 <strong>GameObject → Create Empty</strong>，把新对象命名为 <code>Maze</code>。</li>
+      <li>在 Inspector 里确认它的 Transform 是 <code>Position (0,0,0)</code>、<code>Rotation (0,0,0)</code>、<code>Scale (1,1,1)</code>。</li>
+      <li>把 <code>MazeBootstrapper.cs</code> 从 Project 窗口拖到 <code>Maze</code> 的 Inspector 上，或点 <strong>Add Component</strong> 搜索脚本名。</li>
+      <li>按 <strong>Play</strong>（<code>Ctrl + P</code>）。</li>
+    </ol>
+    <p>你应该看到一块居中的 7×7 迷宫：黑色边框、浅色地板、两块红色岩浆、两块蓝色水。</p>
+
+    <div class="maze-preview" aria-label="7×7 迷宫预览：黑色外墙，中间有两格红色岩浆和两格蓝色水">
+      <span class="wall"></span><span class="wall"></span><span class="wall"></span><span class="wall"></span><span class="wall"></span><span class="wall"></span><span class="wall"></span>
+      <span class="wall"></span><span></span><span></span><span></span><span></span><span></span><span class="wall"></span>
+      <span class="wall"></span><span></span><span class="lava"></span><span class="lava"></span><span></span><span></span><span class="wall"></span>
+      <span class="wall"></span><span></span><span></span><span></span><span></span><span></span><span class="wall"></span>
+      <span class="wall"></span><span></span><span></span><span class="water"></span><span class="water"></span><span></span><span class="wall"></span>
+      <span class="wall"></span><span></span><span></span><span></span><span></span><span></span><span class="wall"></span>
+      <span class="wall"></span><span class="wall"></span><span class="wall"></span><span class="wall"></span><span class="wall"></span><span class="wall"></span><span class="wall"></span>
+    </div>
+    <p style="font-size:0.82rem;color:#6a675f;margin-top:0.2rem;">预期画面（颜色为近似值）。方块之间出现的细线是 Sprite 边缘，不是逻辑错误。</p>
+
+    <div class="callout warn">
+      <span class="label">Play 模式里的修改会消失</span>
+      <p>在 Play 模式中拖动对象、改数值，停止后会恢复。把 Play 模式当成“试运行”，不要在里面积累正式修改；要改就停下来改。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>读懂这 50 行</h2></div>
+    <p>现在不需要背语法，但要知道每一层在做什么：</p>
+    <ul>
+      <li><code>Start()</code> 在对象启用后的第一帧前执行一次。我们在这里生成整张地图。</li>
+      <li><code>MazeMap</code> 是一个 49 个字符的字符串，每 7 个字符代表一行。字符就是数据：<code>#</code> 墙、<code>.</code> 地板、<code>R</code> 岩浆、<code>B</code> 水。</li>
+      <li><code>index % Width</code> 取余数，得到列号；<code>index / Width</code> 取整数商，得到行号。这是网格编程里最常用的两个运算。</li>
+      <li><code>Height - 1 - (index / Width)</code> 把“字符串从上往下读”翻成“世界坐标从下往上长”，所以第一行会出现在顶部。</li>
+      <li><code>new GameObject(...)</code> 创建对象，<code>AddComponent&lt;SpriteRenderer&gt;()</code> 给它加渲染能力，<code>SetParent(transform)</code> 让 49 个格子都归 <code>Maze</code> 管理。</li>
+      <li><code>CreateSquareSprite()</code> 在运行时生成一张 1×1 的白色贴图，这样第一课不需要任何美术资源。颜色由 <code>SpriteRenderer.color</code> 染上去。</li>
+      <li><code>ColorFor</code> 用 <code>switch</code> 把字符翻译成颜色。出现洋红色，说明地图里有一个没被识别的字符——这是故意的调试信号。</li>
+    </ul>
+    <div class="callout">
+      <span class="label">诚实的技术债</span>
+      <p>这段代码把尺寸写了两遍，把地图和颜色写死在脚本里。它适合验证第一屏，不适合做十个关卡。第 03 课会把关卡搬到 ScriptableObject 数据资产里。先承认技术债，再计划偿还，是工程判断的一部分。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">07</span><h2>提交，并写下第一条开发日志</h2></div>
+    <p>仍然在 <code>Color Maze</code> 工程根目录，提交这次功能：</p>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "feat: render first color maze grid"</code></pre>
+    </div>
+    <p>然后创建 <code>docs/devlog/2026-10-19.md</code>，写三行就够：</p>
+    <pre><code># 2026-10-19 · 第一屏
+
+## 今天做了什么
+- 创建 Color Maze 工程，跑通 7×7 颜色网格。
+
+## 卡在哪里 / 怎么解决
+- ...
+
+## 下次先做什么
+- 让玩家方块可以用键盘移动，并且撞墙停下。</code></pre>
+    <p>再提交一次：</p>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "docs: add lesson 01 devlog"</code></pre>
+    </div>
+    <p>开发日志不是流水账。它记录“做了什么、为什么这样做、下一步是什么”，让三天后的你还能接上，也让未来的协作者知道当前状态。</p>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习：合上资料再答</h2>
+    <p>先不要往上翻。答错没关系，努力回忆本身就在加固记忆。</p>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">1. 在 Unity 里，挂载脚本、拥有位置和旋转的最小场景单位是什么？</p>
+      <div class="options">
+        <button class="option" type="button">脚本文件</button>
+        <button class="option" type="button">游戏对象</button>
+        <button class="option" type="button">场景资源</button>
+        <button class="option" type="button">材质球体</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>GameObject 是容器；Transform 组件给它位置与旋转，脚本只是挂在它上面的组件之一。</p>
+    </div>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">2. <code>Start()</code> 在什么时候执行？</p>
+      <div class="options">
+        <button class="option" type="button">每一帧都会执行</button>
+        <button class="option" type="button">点击按钮的时候</button>
+        <button class="option" type="button">启用后的第一帧</button>
+        <button class="option" type="button">场景加载完成时</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden><code>Start</code> 只在对象启用后、第一帧更新前执行一次；每帧执行的是 <code>Update</code>。</p>
+    </div>
+
+    <div class="quiz" data-answer="0">
+      <p class="q">3. <code>index % 7</code> 用来算方块在网格里的什么？</p>
+      <div class="options">
+        <button class="option" type="button">横向的列号</button>
+        <button class="option" type="button">纵向的行号</button>
+        <button class="option" type="button">方块的颜色</button>
+        <button class="option" type="button">随机的编号</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>取余得到列号，整数除法得到行号。两者合起来，就把一维字符位置映射成了二维网格坐标。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">4. 先用字符串写地图，最大的工程收益是什么？</p>
+      <div class="options">
+        <button class="option" type="button">让画面更加好看</button>
+        <button class="option" type="button">减少脚本的数量</button>
+        <button class="option" type="button">提高电脑的帧率</button>
+        <button class="option" type="button">数据与表现分离</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>地图数据独立于生成逻辑，易读、易改、易比较；以后换成 ScriptableObject 时，渲染循环可以保持不变。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>最可能原因</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>Console 红字，无法进入 Play</td><td>脚本有编译错误</td><td>双击第一条红字，看行号；先修第一条，后面的错误常常会一起消失。</td></tr>
+          <tr><td>Game 视图什么都没有</td><td>脚本没挂上，或对象被禁用</td><td>选中 <code>Maze</code>，确认 Inspector 里有 <code>MazeBootstrapper</code> 组件；检查对象名称是否变灰。</td></tr>
+          <tr><td>方块是洋红色</td><td><code>MazeMap</code> 里有未识别字符，或字符总数不是 49</td><td>检查每个字符只能是 <code># . R B</code>；每行必须正好 7 个。</td></tr>
+          <tr><td>只看到一部分，或完全偏出画面</td><td>相机位置/正交尺寸不匹配</td><td>选中 Main Camera，把 Position 设为 <code>(0,0,-10)</code>，Orthographic Size 设为 <code>5</code>。</td></tr>
+          <tr><td>改了代码没反应</td><td>文件没保存，或还在 Play 模式</td><td>保存脚本，等编译结束；停止 Play 后再改场景。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料（课后 10–15 分钟）</h2>
+    <p><a href="https://docs.unity3d.com/Manual/GameObjects.html">Unity Manual: GameObjects</a>——把“对象是容器、组件给能力”这件事读一遍，再回来看你的 <code>Maze</code> 对象。</p>
+    <p>补充：<a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/arrays">Microsoft Learn: C# arrays</a>，重点看索引从 0 开始、<code>Length</code> 的含义。读完后做一个小挑战：把地图改成 9×9，需要同时改哪几个地方？</p>
+    <p>卡住时再对照参考实现：<a href="../solutions/0001/MazeBootstrapper.cs">solutions/0001/MazeBootstrapper.cs</a>（先自己试，报错信息比答案更有价值）。</p>
+  </section>
+
+  <p class="ask">卡住、报错、或者想改颜色规则？直接回来问我。把 Console 的红字和你当前的代码贴给我，我们一起定位。这个工作区里的课程会接着你的实际进度走。</p>
+
+  <nav class="footer-nav">
+    <a href="0002-grid-movement.html">下一课：让方块在网格上走一步</a>
+    <a href="../reference/0001-unity-csharp-glossary.html">参考卡：Unity × C# 术语与速查</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+    <a href="../MISSION.md">学习使命</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

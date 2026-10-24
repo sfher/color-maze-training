@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 05 · 死亡不是卡住，是一个状态 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 05</div>
+    <h1>死亡不是卡住<br>是一个状态</h1>
+    <p class="lede">生命归零后，玩家现在只是“不能动了”，但游戏没有告诉他发生了什么，也没有回来的路。今天补上失败状态、提示和按 R 重开。</p>
+    <div class="meta">
+      <span>45–60 分钟</span>
+      <span>事件 · 场景 · 失败流程</span>
+      <span>产出：可重开的失败循环</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0005">
+      <li><label><input type="checkbox"><span>给 <code>PlayerStats</code> 增加 <code>Died</code> 事件，生命首次归零时只触发一次。</span></label></li>
+      <li><label><input type="checkbox"><span>创建 <code>GameOverController</code>，订阅并在销毁时取消订阅。</span></label></li>
+      <li><label><input type="checkbox"><span>生命归零后显示全屏“生命耗尽 / 按 R 重开”。</span></label></li>
+      <li><label><input type="checkbox"><span>按 R 重载当前场景，生命与氧气恢复 3 / 3。</span></label></li>
+      <li><label><input type="checkbox"><span>确认 Main 场景在构建场景列表中。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码与日志，测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>为什么用事件，而不是每帧检查</h2>
+    <p>失败提示需要知道“生命刚刚变成 0”。最直接的做法是让 GameOverController 每帧读 <code>playerStats.Health</code>，但这样会让 UI 和数值系统一直互相盯着。更清晰的方式是让 PlayerStats 在死亡时发一个通知：</p>
+    <blockquote class="callout tip">
+      <span class="label">发布 / 订阅</span>
+      <p><strong>PlayerStats 负责宣布“我死了”；GameOverController 负责决定“死了以后显示什么”。</strong>双方不需要知道对方的内部细节。</p>
+    </blockquote>
+    <p>这就是 C# 的 <code>event</code>：发布者只在状态变化时触发，订阅者决定要做什么。注意，事件适合“一次性状态变化”，不适合代替所有方法调用。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>让 PlayerStats 宣布死亡</h2></div>
+    <p>打开 <code>PlayerStats.cs</code>，加入事件字段和一次性保护：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerStats.cs · 新增字段</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public event System.Action Died;
+
+private bool _deathAnnounced;</code></pre>
+    </div>
+    <p>然后修改 <code>LoseHealth</code>，在生命归零时通知订阅者：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerStats.cs · LoseHealth</span><button class="copy" type="button">复制</button></div>
+      <pre><code>private void LoseHealth(int amount)
+{
+    Health = Mathf.Max(0, Health - amount);
+    Debug.Log($"生命 -{amount}，剩余 {Health}");
+
+    if (Health == 0 &amp;&amp; !_deathAnnounced)
+    {
+        _deathAnnounced = true;
+        Died?.Invoke();
+    }
+}</code></pre>
+    </div>
+    <p><code>Died?.Invoke()</code> 的意思是：如果现在有订阅者，就通知它们；没有订阅者也不会报错。<code>_deathAnnounced</code> 保证死亡事件只发一次，避免后续重复调用 <code>LoseHealth</code> 时反复弹提示。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>创建 GameOverController.cs</h2></div>
+    <p>在 <code>Assets/Scripts</code> 新建 C# 脚本 <code>GameOverController</code>，替换为：</p>
+    <div class="code">
+      <div class="code-head"><span>GameOverController.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+
+public class GameOverController : MonoBehaviour
+{
+    [SerializeField] private PlayerStats playerStats;
+
+    private bool _isGameOver;
+    private GUIStyle _titleStyle;
+    private GUIStyle _hintStyle;
+
+    private void Start()
+    {
+        if (playerStats == null)
+        {
+            Debug.LogError(
+                "GameOverController: 请指定 PlayerStats。",
+                this);
+            enabled = false;
+            return;
+        }
+
+        playerStats.Died += HandlePlayerDied;
+    }
+
+    private void OnDestroy()
+    {
+        if (playerStats != null)
+        {
+            playerStats.Died -= HandlePlayerDied;
+        }
+    }
+
+    private void Update()
+    {
+        if (!_isGameOver)
+        {
+            return;
+        }
+
+        Keyboard keyboard = Keyboard.current;
+
+        if (keyboard != null &amp;&amp; keyboard.rKey.wasPressedThisFrame)
+        {
+            SceneManager.LoadScene(
+                SceneManager.GetActiveScene().buildIndex);
+        }
+    }
+
+    private void HandlePlayerDied()
+    {
+        _isGameOver = true;
+    }
+
+    private void OnGUI()
+    {
+        if (!_isGameOver)
+        {
+            return;
+        }
+
+        GUI.depth = -10;
+        GUI.color = new Color(0f, 0f, 0f, 0.68f);
+        GUI.DrawTexture(
+            new Rect(0f, 0f, Screen.width, Screen.height),
+            Texture2D.whiteTexture);
+        GUI.color = Color.white;
+
+        if (_titleStyle == null)
+        {
+            _titleStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 42,
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold
+            };
+            _titleStyle.normal.textColor = Color.white;
+
+            _hintStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 24,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _hintStyle.normal.textColor = new Color(1f, 0.85f, 0.45f);
+        }
+
+        GUI.Label(
+            new Rect(0f, Screen.height * 0.5f - 70f, Screen.width, 60f),
+            "生命耗尽",
+            _titleStyle);
+        GUI.Label(
+            new Rect(0f, Screen.height * 0.5f + 10f, Screen.width, 40f),
+            "按 R 重开",
+            _hintStyle);
+    }
+}</code></pre>
+    </div>
+    <p>三个关键点：</p>
+    <ul>
+      <li><code>Start</code> 里订阅，<code>OnDestroy</code> 里取消订阅。订阅和取消成对出现，避免对象销毁后事件还指向一个空对象。</li>
+      <li><code>Update</code> 只在 <code>_isGameOver</code> 为真时处理 R；平时不响应重开键。</li>
+      <li><code>SceneManager.LoadScene</code> 重载当前场景，场景里的对象、生命、氧气、玩家位置都会回到初始状态。</li>
+    </ul>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>搭一个 GameManager 对象</h2></div>
+    <ol>
+      <li>菜单 <strong>GameObject → Create Empty</strong>，命名为 <code>GameManager</code>。</li>
+      <li>给 GameManager 添加 <code>GameOverController</code> 组件。</li>
+      <li>把 <code>Player</code> 拖到 GameOverController 的 <strong>Player Stats</strong> 字段；Unity 会从 Player 上找到 PlayerStats 组件。</li>
+      <li>确认 Player 上仍然有 <code>PlayerStats</code> 和 <code>PlayerGridMover</code>，并且 Maze 引用没有丢。</li>
+      <li>打开 <strong>File → Build Profiles</strong>（旧版叫 Build Settings），在 Scene List 里确认 <code>Assets/Scenes/Main.unity</code> 已启用。你的工程目前已经包含它，检查一下即可。</li>
+    </ol>
+    <div class="callout">
+      <span class="label">为什么需要 Build Settings</span>
+      <p><code>SceneManager.LoadScene</code> 只能加载已经加入构建场景列表的场景。编辑器里能打开 Main，不代表运行时能按名字/索引加载它。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>测试一次完整的失败与重开</h2></div>
+    <p>用 <code>Level_01</code> 测试。从起点 (1,1) 走到岩浆格 (2,4)，反复进出三次：</p>
+    <ol>
+      <li>W, W, W, D：进入 (2,4)，生命 3 → 2。</li>
+      <li>A：回到 (1,4) 地板，生命仍是 2。</li>
+      <li>D：再次进入 (2,4)，生命 2 → 1。</li>
+      <li>A, D：再次进入，生命 1 → 0。</li>
+    </ol>
+    <p>预期：玩家停止移动，屏幕变暗并显示“生命耗尽 / 按 R 重开”。按 R 后场景重载，HUD 回到 <code>生命 3 / 3</code>、<code>氧气 3 / 3</code>，玩家回到起点。</p>
+    <div class="callout tip">
+      <span class="label">两套 OnGUI 的层级</span>
+      <p>PlayerStats 和 GameOverController 都用 OnGUI 画字。GameOverController 设置了 <code>GUI.depth = -10</code>，数值更小会画在更上层，所以失败提示应该盖住生命/氧气框。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>提交与日志</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "feat: add game over and restart"</code></pre>
+    </div>
+    <p>新建 <code>docs/devlog/2026-10-20-game-over.md</code>：</p>
+    <pre><code># 2026-10-20 · 失败与重开
+
+## 今天做了什么
+- 生命归零时显示失败提示，并停止玩家移动。
+- 按 R 重载当前场景，资源与位置恢复。
+
+## 卡在哪里 / 怎么解决
+- ...
+
+## 下次先做什么
+- 把临时 HUD 换成正式界面，并补上暂停/重开按钮。</code></pre>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>git add .
+git commit -m "docs: add lesson 05 devlog"</code></pre>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习：合上资料再答</h2>
+    <p>先不要往上翻。答错没关系，努力回忆本身就在加固记忆。</p>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">1. <code>Died</code> 事件的主要作用是什么？</p>
+      <div class="options">
+        <button class="option" type="button">修改生命值</button>
+        <button class="option" type="button">绘制玩家图</button>
+        <button class="option" type="button">通知订阅者</button>
+        <button class="option" type="button">读取键盘值</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>事件把“状态发生了变化”通知给订阅者，让 UI 或音效自行决定怎么响应。</p>
+    </div>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">2. 为什么要在 OnDestroy 里取消订阅？</p>
+      <div class="options">
+        <button class="option" type="button">提高画面亮度</button>
+        <button class="option" type="button">避免悬空引用</button>
+        <button class="option" type="button">增加玩家生命</button>
+        <button class="option" type="button">减少代码行数</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>对象销毁后，事件仍持有它的引用会造成悬空引用和潜在重复回调；成对订阅/取消订阅是基本纪律。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">3. 重载场景前，Main 必须在哪里？</p>
+      <div class="options">
+        <button class="option" type="button">资源文件夹里面</button>
+        <button class="option" type="button">检查器面板里面</button>
+        <button class="option" type="button">控制台窗口里面</button>
+        <button class="option" type="button">构建场景列表里</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden><code>SceneManager.LoadScene</code> 只能加载已加入构建场景列表的场景；编辑器打开过不算。</p>
+    </div>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">4. 为什么按 R 直接重载场景，而不是手动改数值？</p>
+      <div class="options">
+        <button class="option" type="button">画面会变得更漂亮</button>
+        <button class="option" type="button">移动速度变得更快</button>
+        <button class="option" type="button">状态重置得更彻底</button>
+        <button class="option" type="button">代码会自动生成啊</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>场景重载会重建所有对象与状态，比逐个手动复位更不容易漏字段。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>最可能原因</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>死亡后没有提示</td><td>Player Stats 没绑定，或事件没订阅</td><td>检查 GameManager 的 GameOverController 引用与 Console。</td></tr>
+          <tr><td>提示出现两次</td><td>没有 <code>_deathAnnounced</code> 保护</td><td>确认死亡事件只在 Health 首次为 0 时触发。</td></tr>
+          <tr><td>按 R 没反应</td><td>没进入死亡状态，或 Game 视图没焦点</td><td>先点 Game 视图；检查 <code>_isGameOver</code>。</td></tr>
+          <tr><td>R 报场景加载失败</td><td>Main 不在构建场景列表</td><td>File → Build Profiles → Scene List 添加 Main。</td></tr>
+          <tr><td>失败提示被 HUD 盖住</td><td>OnGUI 深度不对</td><td>保留 <code>GUI.depth = -10;</code>。</td></tr>
+          <tr><td>死后还能走</td><td>Update 没检查 IsAlive</td><td>确认 PlayerGridMover 开头有 <code>if (!stats.IsAlive) return;</code>。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料（课后 10–15 分钟）</h2>
+    <p><a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/events/">Microsoft Learn: Events</a>——理解发布者/订阅者，以及为什么取消订阅是生命周期的一部分。</p>
+    <p>补充：<a href="https://docs.unity3d.com/ScriptReference/SceneManagement.SceneManager.LoadScene.html">SceneManager.LoadScene</a> 与 <a href="https://docs.unity3d.com/Manual/BuildSettings.html">Build Settings</a>。</p>
+    <p>参考实现：<a href="../solutions/0005/GameOverController.cs">GameOverController.cs</a> · <a href="../solutions/0005/PlayerStats.cs">PlayerStats.cs</a></p>
+  </section>
+
+  <p class="ask">如果死亡提示不出现、按 R 报场景加载错误，或者重开后数值没有恢复，把 Console 内容和 GameManager 的 Inspector 状态发我。下一课会把这套临时提示换成正式 UI，并把“暂停/重开”接到按钮上。</p>
+
+  <nav class="footer-nav">
+    <a href="0004-resource-rules.html">上一课：生命与氧气</a>
+    <a href="0006-bombs-and-stone.html">下一课：炸弹与灰石</a>
+    <a href="../reference/0005-events-and-restart-cheatsheet.html">参考卡：事件与重开</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

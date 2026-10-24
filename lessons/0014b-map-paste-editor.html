@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 14b · 整张地图一次贴进去 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 14b</div>
+    <h1>整张地图<br>一次贴进去</h1>
+    <p class="lede">先不画网格。今天只解决最痛的一步：把完整的地图文本一次粘贴进 LevelDefinition，并在写入资产前验证行宽和字符。</p>
+    <div class="meta"><span>30–45 分钟</span><span>Codec · Custom Inspector</span><span>产出：批量粘贴地图</span></div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0014b">
+      <li><label><input type="checkbox"><span>存在独立的文本解析器，不把解析逻辑塞进 Editor GUI。</span></label></li>
+      <li><label><input type="checkbox"><span>支持 CRLF/LF，并允许粘贴时每行带缩进。</span></label></li>
+      <li><label><input type="checkbox"><span>空行、行宽不一致和未知字符都会被拒绝并指出位置。</span></label></li>
+      <li><label><input type="checkbox"><span>Apply 能修改现有 LevelDefinition，并支持 Undo。</span></label></li>
+      <li><label><input type="checkbox"><span>至少完成一次正常粘贴和一次坏文本测试。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>先实现解析器</h2>
+    <p>在 <code>Assets/Editor/LevelMapCodec.cs</code> 新建 Editor 专用解析器。先确定接口：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelMapCodec.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public static bool TryNormalize(
+    string text,
+    out string[] rows,
+    out string error)
+{
+    // 你的实现
+}</code></pre>
+    </div>
+    <p>处理顺序：</p>
+    <ol>
+      <li>把 <code>\r\n</code> 和 <code>\r</code> 统一成 <code>\n</code>。</li>
+      <li>按换行拆开，并去掉每一行首尾空格。</li>
+      <li>删除文本最前和最后的空行，但保留中间空行作为错误。</li>
+      <li>检查行宽一致。</li>
+      <li>只允许 <code>.#SRBCME123456789</code>。</li>
+      <li>成功时才给 <code>rows</code> 赋值。</li>
+    </ol>
+    <div class="callout tip">
+      <span class="label">提示</span>
+      <p>错误信息要包含第几行、第几列。解析器不依赖 Unity 的 Inspector，之后窗口和测试都能复用它。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>做一个最小测试表</h2></div>
+    <p>先自己手测这些输入：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>输入</th><th>预期</th></tr></thead>
+        <tbody>
+          <tr><td>合法的 7×7 地图</td><td>通过，行数高度正确</td></tr>
+          <tr><td>Windows CRLF 文本</td><td>通过</td></tr>
+          <tr><td>某行多一个字符</td><td>指出该行宽度</td></tr>
+          <tr><td>中间有纯空行</td><td>拒绝</td></tr>
+          <tr><td>使用字母 <code>Q</code></td><td>指出行列位置</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>写自定义 Inspector</h2></div>
+    <p>在 <code>Assets/Editor/LevelDefinitionEditor.cs</code> 添加：</p>
+    <pre><code>[CustomEditor(typeof(LevelDefinition))]
+public class LevelDefinitionEditor : Editor</code></pre>
+    <p>界面包含：多行文本输入、Paste 按钮、状态 HelpBox。不要每次按键都写资产，先把文本留在编辑器中。</p>
+    <p>点击 Paste 后才通过 <code>SerializedObject.FindProperty("rows")</code> 写入数组。写入前调用 Undo，让 Ctrl+Z 能恢复上一张地图。</p>
+    <div class="callout warn">
+      <span class="label">常见错误</span>
+      <p>不要利用换行直接修改 YAML，也不要给私有 <code>rows</code> 增加公开 setter。Editor 可以通过 SerializedObject 正常修改它。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>接入现有校验</h2></div>
+    <p>解析成功后先让 <code>LevelMapCodec</code> 通过，再写入资产；写入后调用 <code>LevelValidator.Validate(level)</code>，把错误显示在 Inspector 中，不要只丢进 Console。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>验收</h2></div>
+    <ol>
+      <li>打开任意关卡，整张地图只需粘贴一次。</li>
+      <li>粘贴坏行宽地图，资产内容保持不变。</li>
+      <li>成功粘贴后按 Ctrl+Z，地图恢复上一版。</li>
+      <li>停止 Play、重新进入 Unity 后，地图仍然保留。</li>
+    </ol>
+    <p>卡住时先告诉我失败的是解析、SerializedProperty 写入还是 Undo。现在不要提前做网格画笔。</p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="0014-level-validation-tool.html">上一课：关卡校验</a>
+    <a href="0014c-level-painter.html">下一课：基础关卡画笔</a>
+    <a href="../reference/0020-level-editor-tools-cheatsheet.html">参考卡：关卡编辑器</a>
+  </nav>
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 09 · 把调试 HUD 换成真正的界面 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 09</div>
+    <h1>把调试 HUD<br>换成真正的界面</h1>
+    <p class="lede">生命、氧气、炸弹现在还是 OnGUI 画出来的调试信息。今天用 Canvas + TextMeshPro 做正式 HUD，并让界面只订阅状态，不拥有状态。</p>
+    <div class="meta">
+      <span>75–90 分钟</span>
+      <span>Canvas · TextMeshPro · UI 事件</span>
+      <span>产出：正式 HUD 与结算面板</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0009">
+      <li><label><input type="checkbox"><span>创建 Canvas，并设置屏幕空间与 1920×1080 参考分辨率。</span></label></li>
+      <li><label><input type="checkbox"><span>创建左上角状态面板，显示生命、氧气、炸弹、金币、材料。</span></label></li>
+      <li><label><input type="checkbox"><span>创建完成/失败面板与重开按钮，以及底部提示文字。</span></label></li>
+      <li><label><input type="checkbox"><span>给 PlayerStats 增加 <code>StatsChanged</code> 事件，移除 OnGUI。</span></label></li>
+      <li><label><input type="checkbox"><span>给 LevelFlowController 增加状态/提示事件，移除 OnGUI。</span></label></li>
+      <li><label><input type="checkbox"><span>创建 GameHud，绑定所有 UI 引用并验证数值、提示、完成、失败、重开。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码与日志，测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>UI 是状态的观察者</h2>
+    <p>正式 UI 不应该拥有生命值，也不应该每帧偷偷改金币。它只做一件事：<strong>订阅状态变化，然后把状态翻译成文字和面板。</strong></p>
+    <div class="concept-grid">
+      <article class="concept">
+        <span class="tag">State</span>
+        <h3>PlayerStats / Flow</h3>
+        <p>保存生命、资源、材料，以及关卡是 Playing、Completed 还是 Failed。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">Event</span>
+        <h3>StatsChanged / StateChanged</h3>
+        <p>状态变化时发出通知；UI 收到后刷新。UI 不需要知道规则细节。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">View</span>
+        <h3>Canvas / TMP</h3>
+        <p>只负责布局、文字和按钮。以后换成像素字体或动画，不需要改玩法代码。</p>
+      </article>
+    </div>
+    <div class="callout warn">
+      <span class="label">移除旧 OnGUI</span>
+      <p>PlayerStats 和 LevelFlowController 现在都用 OnGUI 画字。如果不移除，新 Canvas 会和旧调试层叠在一起，出现两套 HUD。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">00</span><h2>创建 Canvas 与左上角状态面板</h2></div>
+    <ol>
+      <li>菜单 <strong>GameObject → UI → Canvas</strong>，命名为 <code>GameUI</code>。</li>
+      <li>在 Canvas Scaler 上设置 <strong>Scale With Screen Size</strong>，Reference Resolution <code>1920 × 1080</code>，Match <code>0.5</code>。</li>
+      <li>右键 Canvas → <strong>UI → Panel</strong>，命名为 <code>StatsPanel</code>；锚点设为左上，Position <code>(32, -32)</code>，大小 <code>420 × 340</code>。</li>
+      <li>把 Panel 的 Image Color 设为深色半透明，例如 RGBA <code>(0.08, 0.10, 0.12, 0.85)</code>。</li>
+      <li>右键 StatsPanel → <strong>UI → Text - TextMeshPro</strong>，命名为 <code>StatsText</code>；四边拉伸，留 24 的边距；Font Size <code>28</code>，颜色接近白色，Alignment 左上。</li>
+      <li>如果 Unity 弹出 TMP Essentials 导入提示，点 <strong>Import TMP Essentials</strong>。</li>
+    </ol>
+    <p>Text 内容先随便填；运行时 GameHud 会覆盖成实际状态。一个多行 Text 足够显示五项资源，不需要五个独立 Text。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>创建完成/失败面板与提示</h2></div>
+    <ol>
+      <li>右键 Canvas → UI → Panel，命名为 <code>EndPanel</code>；居中，大小 <code>620 × 340</code>，深色背景。</li>
+      <li>在 EndPanel 内创建两个 TextMeshPro：<code>EndTitleText</code>（44 号、加粗、居中）和 <code>EndHintText</code>（24 号、居中）。</li>
+      <li>右键 EndPanel → UI → Button - TextMeshPro，命名为 <code>RestartButton</code>；大小 <code>200 × 56</code>，按钮文字改成“重开”。</li>
+      <li>在 Canvas 下创建 TextMeshPro，命名为 <code>HintText</code>；底部居中，大小约 <code>720 × 50</code>，Font Size 26，颜色淡黄。</li>
+      <li>把 <code>EndPanel</code> 和 <code>HintText</code> 的 GameObject 先设为未激活；GameHud 会在需要时打开。</li>
+    </ol>
+    <div class="callout">
+      <span class="label">按钮点击需要 EventSystem</span>
+      <p>创建 UI Button 时 Unity 通常会自动创建 EventSystem。如果点击无效，检查场景里是否有 EventSystem，以及它使用的是不是 Input System UI Input Module。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>让 PlayerStats 发出状态变化</h2></div>
+    <p>打开 <code>PlayerStats.cs</code>，加入事件：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerStats.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public event System.Action StatsChanged;
+
+// 在 ApplyTile 末尾
+StatsChanged?.Invoke();
+
+// 在 TryConsumeBomb、AddBombs、AddCoins、
+// AddMaterial 的修改完成后也调用
+StatsChanged?.Invoke();</code></pre>
+    </div>
+    <p>然后删除 <code>GUIStyle _labelStyle</code> 和整个 <code>OnGUI()</code> 方法。建议直接用参考文件整份替换，避免漏删：<a href="../solutions/0010/PlayerStats.cs">solutions/0010/PlayerStats.cs</a>。</p>
+    <p><code>StatsChanged</code> 不负责具体显示什么，只负责说“数值变了”。HUD 收到后再拼字符串。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>让 LevelFlowController 发出状态与提示</h2></div>
+    <p>把 <code>LevelFlowController.cs</code> 整份替换为 <a href="../solutions/0010/LevelFlowController.cs">参考实现</a>。关键变化：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelFlowController.cs · 新接口</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public event System.Action StateChanged;
+public event System.Action&lt;string&gt; HintShown;
+
+public void ReachExit(bool hasMaterial)
+{
+    if (State != LevelState.Playing)
+        return;
+
+    if (hasMaterial)
+    {
+        SetState(LevelState.Completed);
+        return;
+    }
+
+    HintShown?.Invoke("还需要找到材料。");
+}
+
+public void Restart()
+{
+    SceneManager.LoadScene(
+        SceneManager.GetActiveScene().buildIndex);
+}</code></pre>
+    </div>
+    <p>删除原来的 OnGUI、GUIStyle 和提示计时字段；提示交给 HUD。R 快捷键仍保留，按钮点击则调用 <code>Restart()</code>。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>创建 GameHud.cs</h2></div>
+    <p>在 <code>Assets/Scripts</code> 新建 C# 脚本 <code>GameHud</code>，替换为：</p>
+    <div class="code">
+      <div class="code-head"><span>GameHud.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using System.Collections;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class GameHud : MonoBehaviour
+{
+    [SerializeField] private PlayerStats playerStats;
+    [SerializeField] private LevelFlowController flow;
+    [SerializeField] private TMP_Text statsText;
+    [SerializeField] private TMP_Text hintText;
+    [SerializeField] private GameObject endPanel;
+    [SerializeField] private TMP_Text endTitleText;
+    [SerializeField] private TMP_Text endHintText;
+    [SerializeField] private Button restartButton;
+
+    private Coroutine _hintRoutine;
+
+    private void Start()
+    {
+        if (!ValidateReferences())
+        {
+            enabled = false;
+            return;
+        }
+
+        playerStats.StatsChanged += RefreshStats;
+        flow.StateChanged += HandleStateChanged;
+        flow.HintShown += ShowHint;
+        restartButton.onClick.AddListener(flow.Restart);
+
+        endPanel.SetActive(false);
+        hintText.gameObject.SetActive(false);
+
+        RefreshStats();
+        HandleStateChanged();
+    }
+
+    private void OnDestroy()
+    {
+        if (playerStats != null)
+        {
+            playerStats.StatsChanged -= RefreshStats;
+        }
+
+        if (flow != null)
+        {
+            flow.StateChanged -= HandleStateChanged;
+            flow.HintShown -= ShowHint;
+        }
+
+        if (restartButton != null &amp;&amp; flow != null)
+        {
+            restartButton.onClick.RemoveListener(flow.Restart);
+        }
+    }
+
+    private bool ValidateReferences()
+    {
+        if (playerStats == null || flow == null ||
+            statsText == null || hintText == null ||
+            endPanel == null || endTitleText == null ||
+            endHintText == null || restartButton == null)
+        {
+            Debug.LogError(
+                "GameHud: 有引用没有绑定，请检查 Inspector。",
+                this);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void RefreshStats()
+    {
+        statsText.text =
+            $"生命  {playerStats.Health} / {PlayerStats.MaxHealth}\n" +
+            $"氧气  {playerStats.Oxygen} / {PlayerStats.MaxOxygen}\n" +
+            $"炸弹  {playerStats.Bombs}\n" +
+            $"金币  {playerStats.Coins}\n" +
+            $"材料  {playerStats.Materials} / 1";
+    }
+
+    private void HandleStateChanged()
+    {
+        bool ended =
+            flow.State == LevelState.Completed ||
+            flow.State == LevelState.Failed;
+
+        endPanel.SetActive(ended);
+
+        if (!ended)
+        {
+            return;
+        }
+
+        endTitleText.text =
+            flow.State == LevelState.Completed
+                ? "关卡完成"
+                : "生命耗尽";
+
+        endHintText.text =
+            flow.State == LevelState.Completed
+                ? "你找到了材料。"
+                : "按 R 或按钮重开。";
+    }
+
+    private void ShowHint(string message)
+    {
+        if (_hintRoutine != null)
+        {
+            StopCoroutine(_hintRoutine);
+        }
+
+        _hintRoutine = StartCoroutine(HintRoutine(message));
+    }
+
+    private IEnumerator HintRoutine(string message)
+    {
+        hintText.text = message;
+        hintText.gameObject.SetActive(true);
+        yield return new WaitForSecondsRealtime(2f);
+        hintText.gameObject.SetActive(false);
+        _hintRoutine = null;
+    }
+}</code></pre>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>在 Inspector 里绑定 HUD</h2></div>
+    <p>选中 Canvas <code>GameUI</code>，添加 <code>GameHud</code>，然后拖入：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>拖什么</th></tr></thead>
+        <tbody>
+          <tr><td>Player Stats</td><td>Player</td></tr>
+          <tr><td>Flow</td><td>GameManager</td></tr>
+          <tr><td>Stats Text</td><td>StatsPanel 下的 StatsText</td></tr>
+          <tr><td>Hint Text</td><td>Canvas 下的 HintText</td></tr>
+          <tr><td>End Panel</td><td>Canvas 下的 EndPanel</td></tr>
+          <tr><td>End Title Text</td><td>EndPanel 下的 EndTitleText</td></tr>
+          <tr><td>End Hint Text</td><td>EndPanel 下的 EndHintText</td></tr>
+          <tr><td>Restart Button</td><td>EndPanel 下的 RestartButton</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>按钮的 OnClick 不需要手动添加；GameHud 在 Start 里绑定 <code>flow.Restart</code>，在 OnDestroy 里取消。记得确认 GameManager 上只保留 LevelFlowController，不再挂 GameOverController。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>测试正式 HUD</h2></div>
+    <ol>
+      <li>Play：左上角显示生命、氧气、炸弹、金币、材料，旧 OnGUI 不应再出现。</li>
+      <li>踩岩浆/水、开宝箱、拿材料：数值即时更新。</li>
+      <li>没材料进出口：底部出现 2 秒提示，玩家仍能移动。</li>
+      <li>有材料进出口：EndPanel 显示“关卡完成”。</li>
+      <li>生命归零：EndPanel 显示“生命耗尽”。</li>
+      <li>点击“重开”或按 R：场景重载，HUD 恢复 3/3、0 金币、0 材料。</li>
+      <li>改变 Game 视图比例：面板仍保持左上/居中布局。</li>
+    </ol>
+    <div class="callout warn">
+      <span class="label">先看 Console</span>
+      <p>GameHud 的 ValidateReferences 会明确告诉你哪个引用为空。按钮无效先查 EventSystem，文字不可见先查 TMP 字体材质、颜色和 Canvas 层级。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">07</span><h2>提交与日志</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "feat: add canvas HUD and end panel"</code></pre>
+    </div>
+    <p>新建 <code>docs/devlog/2026-10-21-hud.md</code>：</p>
+    <pre><code># 2026-10-21 · 正式 HUD
+
+## 今天做了什么
+- 用 Canvas + TextMeshPro 替换临时 OnGUI。
+- 状态面板、提示、完成/失败面板和重开按钮接通事件。
+
+## 卡在哪里 / 怎么解决
+- ...
+
+## 下次先做什么
+- 暂停菜单、音量设置和继续/重开按钮。</code></pre>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>git add .
+git commit -m "docs: add lesson 09 devlog"</code></pre>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习：合上资料再答</h2>
+    <p>先不要往上翻。答错没关系，努力回忆本身就在加固记忆。</p>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">1. 为什么 UI 不直接修改生命值？</p>
+      <div class="options">
+        <button class="option" type="button">让界面更加漂亮</button>
+        <button class="option" type="button">减少脚本的数量</button>
+        <button class="option" type="button">状态应归所有者</button>
+        <button class="option" type="button">提高游戏的帧率</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>生命状态归 PlayerStats；UI 只观察和显示，避免出现两个互相改数值的来源。</p>
+    </div>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">2. 为什么必须移除旧的 OnGUI？</p>
+      <div class="options">
+        <button class="option" type="button">自动增加玩家生命</button>
+        <button class="option" type="button">避免出现两套界面</button>
+        <button class="option" type="button">让画质变得更高些</button>
+        <button class="option" type="button">减少关卡的尺寸些</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>旧 OnGUI 和新 Canvas 会同时绘制同一份状态，形成重复 HUD 或重叠覆盖层。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">3. Canvas Scaler 的参考分辨率有什么用？</p>
+      <div class="options">
+        <button class="option" type="button">提高游戏运行速度</button>
+        <button class="option" type="button">自动生成所有按钮</button>
+        <button class="option" type="button">让文字不能修改啊</button>
+        <button class="option" type="button">让界面按比例缩放</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>参考分辨率配合 Scale With Screen Size，让不同窗口尺寸下 UI 按比例缩放。</p>
+    </div>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">4. Restart 按钮应该调用什么？</p>
+      <div class="options">
+        <button class="option" type="button">直接修改玩家生命</button>
+        <button class="option" type="button">删除整个场景对象</button>
+        <button class="option" type="button">调用流程重启方法</button>
+        <button class="option" type="button">关闭所有游戏音效</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>按钮只发出意图，真正的场景重载由 LevelFlowController.Restart 统一处理。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>最可能原因</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>两套 HUD</td><td>旧 OnGUI 还在</td><td>确认 PlayerStats/LevelFlowController 已整份替换。</td></tr>
+          <tr><td>文字不可见</td><td>TMP 字体材质或颜色问题</td><td>导入 TMP Essentials，设置白色/黑色，检查 Canvas 层级。</td></tr>
+          <tr><td>按钮没反应</td><td>没有 EventSystem</td><td>创建 EventSystem，确认 InputSystemUIInputModule。</td></tr>
+          <tr><td>GameHud 报引用为空</td><td>Inspector 没绑定</td><td>按课程表格逐项拖入。</td></tr>
+          <tr><td>数值不更新</td><td>PlayerStats 没发 StatsChanged</td><td>检查 ApplyTile/TryConsumeBomb/Add 方法末尾。</td></tr>
+          <tr><td>完成面板不出现</td><td>Flow 没发 StateChanged</td><td>检查 SetState 是否 Invoke。</td></tr>
+          <tr><td>按 R 不重开</td><td>Main 不在构建列表</td><td>检查 Build Profiles 的 Scene List。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料（课后 15 分钟）</h2>
+    <p><a href="https://docs.unity3d.com/Packages/com.unity.ugui@2.0/manual/UIHowTos.html">Unity UGUI: UI How-Tos</a>——重点看 Canvas、RectTransform 和屏幕适配。</p>
+    <p>补充：<a href="https://docs.unity3d.com/Packages/com.unity.textmeshpro@3.0/manual/index.html">TextMeshPro 文档</a> 与 <a href="https://docs.unity3d.com/Packages/com.unity.ugui@2.0/api/UnityEngine.UI.Button.html">Button API</a>。</p>
+    <p>参考实现：<a href="../solutions/0010/GameHud.cs">GameHud.cs</a> · <a href="../solutions/0010/PlayerStats.cs">PlayerStats.cs</a> · <a href="../solutions/0010/LevelFlowController.cs">LevelFlowController.cs</a></p>
+  </section>
+
+  <p class="ask">如果出现两套 HUD、按钮点不动，或者完成/失败面板不出现，把 Console 和 Canvas 的 Inspector 发我。下一节 09b 做暂停菜单：Esc、Time.timeScale、继续/重开按钮。</p>
+
+  <nav class="footer-nav">
+    <a href="0008-level-objective-and-flow.html">上一课：关卡目标与流程</a>
+    <a href="0009b-chinese-font-tmp.html">下一课：中文字体与 TMP</a>
+    <a href="../reference/0009-ui-events-cheatsheet.html">参考卡：UI 与事件</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

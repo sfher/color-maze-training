@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 08 · 关卡流程与状态速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 08</div>
+    <h1>关卡流程与状态</h1>
+    <p class="lede">资源、地块、移动各管一件事；关卡进行中、完成、失败由流程控制器统一管理。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>状态机</span>
+      <span>目标与出口</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>三种状态</h2>
+      <table>
+        <thead><tr><th>状态</th><th>条件</th><th>行为</th></tr></thead>
+        <tbody>
+          <tr><td>Playing</td><td>关卡开始</td><td>允许移动与交互</td></tr>
+          <tr><td>Completed</td><td>材料数达到关卡阈值并进入出口</td><td>停止移动，按 R 重开</td></tr>
+          <tr><td>Failed</td><td>生命归零</td><td>停止移动，按 R 重开</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="ref-block">
+      <h2>职责边界</h2>
+      <pre><code>PlayerStats:
+  Health / Oxygen / Bombs
+  Coins / Materials
+
+MazeBootstrapper:
+  TileType[,]
+  Portal IDs
+
+PlayerGridMover:
+  currentCell / facing
+
+LevelFlowController:
+  Playing / Completed / Failed</code></pre>
+      <p>不要把“是否过关”塞进 PlayerStats；它只保存资源。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>材料</h2>
+      <pre><code>case 'M': return TileType.Material;
+case 'E': return TileType.Exit;
+
+public bool HasEnoughMaterial(int required)
+    =&gt; Materials &gt;= required;
+
+TryCollectMaterial(cell)
+  → Material 变 Floor
+  → Materials + 1</code></pre>
+      <p>每拾取一份材料，计数加 1。目标规则允许地图中的材料数多于所需数量；`requiredMaterials` 是预留接口，当前课程示例暂时按 1 比较。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>出口检查</h2>
+      <pre><code>if (tile == TileType.Exit)
+{
+    stats.ApplyTile(TileType.Floor);
+    flow.ReachExit(
+        stats.HasEnoughMaterial(requiredMaterials));
+    return;
+}</code></pre>
+      <p>材料未达阈值时只提示；达到阈值后才进入 Completed。出口本身不是危险格。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>阻止继续移动</h2>
+      <pre><code>if (!stats.IsAlive || !flow.IsPlaying)
+{
+    return;
+}</code></pre>
+      <p>完成或失败后，移动脚本不再响应键盘；这是流程状态对输入层的约束。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>状态转换</h2>
+      <pre><code>Playing
+  ├─ 材料达标 + Exit → Completed
+  ├─ Health == 0   → Failed
+  └─ 材料未达标 + Exit → 提示，仍 Playing</code></pre>
+      <p>材料未达阈值不是失败，也不是完成；玩家应该能继续探索。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>测试清单</h2>
+      <ul>
+        <li>材料未达阈值到出口：提示，仍可移动。</li>
+        <li>材料达到阈值后到出口：完成，停止移动。</li>
+        <li>生命为 0：失败，停止移动。</li>
+        <li>完成或失败后按 R：重载场景。</li>
+        <li>重开后资源、材料、位置重置。</li>
+        <li>没有两层失败/完成覆盖。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>材料变洋红</dt>
+        <dd>ColorFor 缺少 Material，或 M 没映射。</dd>
+      </dl>
+      <dl class="term">
+        <dt>出口没反应</dt>
+        <dd>PlayerGridMover 的 Flow 引用为空。</dd>
+      </dl>
+      <dl class="term">
+        <dt>完成后能动</dt>
+        <dd>Update 没有检查 flow.IsPlaying。</dd>
+      </dl>
+      <dl class="term">
+        <dt>两层覆盖</dt>
+        <dd>GameOverController 与 LevelFlowController 同时挂着。</dd>
+      </dl>
+      <dl class="term">
+        <dt>R 无效</dt>
+        <dd>Main 不在构建场景列表，或 Game 视图没焦点。</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0008-level-objective-and-flow.html">课程 08 · 找到材料，才算真正走出迷宫</a></p>
+    <p>官方查证：<a href="https://docs.unity3d.com/ScriptReference/SceneManagement.SceneManager.LoadScene.html">SceneManager.LoadScene</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0008-level-objective-and-flow.html">回到课程 08</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

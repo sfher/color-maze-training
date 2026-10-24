@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 01 · Unity × C# 术语与速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 01</div>
+    <h1>Unity × C# 术语与速查</h1>
+    <p class="lede">上课时遇到不懂的词，先查这里。课程里使用的术语以这张卡为准；它也会随着项目推进增补。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>随课更新</span>
+      <span>Unity 6 / C# 9+</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+
+    <section class="ref-block">
+      <h2>编辑器地图</h2>
+      <dl class="term">
+        <dt>Hierarchy</dt>
+        <dd>当前场景里的对象树。谁是谁的子对象，在这里一目了然。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Scene</dt>
+        <dd>编辑视图。用来摆放对象、调整位置和查看 2D 图层关系。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Game</dt>
+        <dd>相机最终看到的画面。判断“玩家实际看到什么”只看这里。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Inspector</dt>
+        <dd>选中对象后显示其组件与属性。挂脚本、改数值都在这里。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Project</dt>
+        <dd>对应磁盘上的 <code>Assets/</code>。所有素材、场景、脚本都从这里进入工程。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Console</dt>
+        <dd>日志、警告与报错。红字优先处理，黄字记录待办。</dd>
+      </dl>
+    </section>
+
+    <section class="ref-block">
+      <h2>对象模型</h2>
+      <dl class="term">
+        <dt>GameObject</dt>
+        <dd>场景中的实体容器，有名字、层级，本身不做事。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Component</dt>
+        <dd>给对象加能力的模块，例如渲染、碰撞、音频、脚本。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Transform</dt>
+        <dd>所有 GameObject 必有的组件，记录位置、旋转、缩放与父子关系。</dd>
+      </dl>
+      <dl class="term">
+        <dt>MonoBehaviour</dt>
+        <dd>可挂到 GameObject 上的脚本基类，提供生命周期回调。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Sprite</dt>
+        <dd>2D 图像资源。SpriteRenderer 负责把它画到场景里。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Prefab</dt>
+        <dd>可复用的对象模板。改预制体会同步到所有实例，适合玩家、宝箱、格子。</dd>
+      </dl>
+      <dl class="term">
+        <dt>ScriptableObject</dt>
+        <dd>不挂在场景里的数据资产，适合关卡配置、道具表、数值表。</dd>
+      </dl>
+      <dl class="term">
+        <dt>.meta</dt>
+        <dd>Unity 为每个资产生成的引用信息。必须提交到 Git。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Library</dt>
+        <dd>Unity 自动生成的缓存目录。不要提交，删掉后重新打开工程会重建。</dd>
+      </dl>
+    </section>
+
+    <section class="ref-block">
+      <h2>生命周期</h2>
+      <p>挂载脚本后，Unity 按顺序调用这些方法。第一课只用到 <code>Start</code>，第二课会用 <code>Update</code>。</p>
+      <pre><code>Awake()      // 对象创建时，最早
+OnEnable()   // 每次启用时
+Start()      // 启用后、第一帧前，只一次
+Update()     // 每帧
+OnDisable()  // 每次禁用时
+OnDestroy()  // 销毁时</code></pre>
+      <p><span class="pill">记忆</span> 初始化放 <code>Awake</code>/<code>Start</code>，逐帧输入与动画放 <code>Update</code>。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>网格数学</h2>
+      <p>一维索引与二维坐标互转，是迷宫项目最常用的公式：</p>
+      <pre><code>index = y * Width + x
+x = index % Width      // 列
+y = index / Width      // 行（整数除法）</code></pre>
+      <p>字符串地图从上往下写，而 Unity 的 Y 轴向上，所以生成时常用：</p>
+      <pre><code>int worldY = Height - 1 - (index / Width);</code></pre>
+      <p>把 7 写在一个常量里，不要散落在代码各处。这叫 <strong>单一数据源</strong>（single source of truth）。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>C# 最小语法</h2>
+      <pre><code>int width = 7;              // 整数
+float speed = 2.5f;         // 小数要带 f
+bool isAlive = true;
+string name = "Maze";
+char tile = '#';
+
+int x = index % Width;      // 取余
+int y = index / Width;      // 整除
+
+for (int i = 0; i &lt; 7; i++)
+{
+    // 重复 7 次
+}
+
+if (isAlive)
+{
+    // 条件为真
+}
+
+private void Move(int dx, int dy)
+{
+    // 方法：参数 + 返回类型
+}</code></pre>
+    </section>
+
+    <section class="ref-block">
+      <h2>目录约定</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>路径</th><th>用途</th><th>进 Git？</th></tr></thead>
+          <tbody>
+            <tr><td><code>Assets/Scenes/</code></td><td>主场景与关卡场景</td><td>是</td></tr>
+            <tr><td><code>Assets/Scripts/</code></td><td>本项目自己的 C# 脚本</td><td>是</td></tr>
+            <tr><td><code>Assets/Settings/</code></td><td>URP 2D、输入等模板设置</td><td>是</td></tr>
+            <tr><td><code>Assets/ThirdParty/</code></td><td>外部插件与素材，尽量不改</td><td>是</td></tr>
+            <tr><td><code>Packages/</code></td><td>包依赖清单</td><td>是</td></tr>
+            <tr><td><code>ProjectSettings/</code></td><td>输入、渲染、构建设置</td><td>是</td></tr>
+            <tr><td><code>docs/</code></td><td>开发日志、设计文档</td><td>是</td></tr>
+            <tr><td><code>Library/ Temp/ Logs/</code></td><td>本地缓存与日志</td><td>否</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="ref-block">
+      <h2>Git 提交类型</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>前缀</th><th>用于</th><th>例子</th></tr></thead>
+          <tbody>
+            <tr><td><code>feat</code></td><td>新功能</td><td><code>feat: add player grid movement</code></td></tr>
+            <tr><td><code>fix</code></td><td>修复缺陷</td><td><code>fix: stop player entering walls</code></td></tr>
+            <tr><td><code>docs</code></td><td>文档与日志</td><td><code>docs: add lesson 01 devlog</code></td></tr>
+            <tr><td><code>refactor</code></td><td>不改行为的重构</td><td><code>refactor: extract level parser</code></td></tr>
+            <tr><td><code>test</code></td><td>测试</td><td><code>test: cover oxygen depletion</code></td></tr>
+            <tr><td><code>chore</code></td><td>工程杂务</td><td><code>chore: create Unity project</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>一次提交只做一件事；提交前先让工程能运行。这样出问题时，回退范围才小。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>CS1002</dt>
+        <dd>少了分号。看报错行号的上一行。</dd>
+      </dl>
+      <dl class="term">
+        <dt>CS1513</dt>
+        <dd>少了右花括号 <code>}</code>。检查方法是否闭合。</dd>
+      </dl>
+      <dl class="term">
+        <dt>CS0117</dt>
+        <dd>成员不存在。多半是拼写错误或 API 名称记错，查 Scripting API。</dd>
+      </dl>
+      <dl class="term">
+        <dt>NullReference</dt>
+        <dd>引用了空对象。先确认 Inspector 里的引用是否拖上，再查初始化顺序。</dd>
+      </dl>
+      <dl class="term">
+        <dt>洋红色方块</dt>
+        <dd>地图里有未识别字符，或 Sprite 材质缺失。前者查 <code>ColorFor</code>，后者查导入设置。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Play 按钮灰掉</dt>
+        <dd>工程有编译错误。打开 Console，双击第一条红字。</dd>
+      </dl>
+    </section>
+
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0001-first-color-grid.html">课程 01 · 把策划案变成第一屏彩色迷宫</a></p>
+    <p>官方查证入口：<a href="https://docs.unity3d.com/Manual/GameObjects.html">Unity Manual: GameObjects</a> · <a href="https://docs.unity3d.com/ScriptReference/MonoBehaviour.html">MonoBehaviour API</a> · <a href="https://learn.microsoft.com/en-us/dotnet/csharp/">C# 文档</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0001-first-color-grid.html">回到课程 01</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

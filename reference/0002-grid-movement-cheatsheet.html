@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 02 · 网格移动与输入速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 02</div>
+    <h1>网格移动与输入速查</h1>
+    <p class="lede">网格游戏的移动不是“每秒移动多少米”，而是“一次按键从一格走到相邻格”。这张卡记录最小可用的输入、坐标与验证顺序。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>Unity Input System</span>
+      <span>网格坐标</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+
+    <section class="ref-block">
+      <h2>一帧内的数据流</h2>
+      <p><code>Keyboard.current</code> → <code>ReadDirection()</code> → <code>TryMove()</code> → <code>IsWalkable()</code> → <code>CellToWorld()</code> → <code>transform.position</code></p>
+      <p>每一步只做一件事：读输入、算目标、验证、提交状态、更新显示。把“验证”放在“提交”之前，是网格移动最重要的顺序。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>生命周期</h2>
+      <dl class="term">
+        <dt>Start()</dt>
+        <dd>对象启用后执行一次。适合绑定引用、设置初始格子。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Update()</dt>
+        <dd>每帧执行。适合读取输入、更新位置；不要在里面对整张地图做重活。</dd>
+      </dl>
+      <dl class="term">
+        <dt>enabled = false</dt>
+        <dd>禁用组件，<code>Update</code> 不再执行；常用于引用缺失时保护后续逻辑。</dd>
+      </dl>
+    </section>
+
+    <section class="ref-block">
+      <h2>新 Input System</h2>
+      <pre><code>using UnityEngine.InputSystem;
+
+Keyboard keyboard = Keyboard.current;
+
+if (keyboard == null)
+{
+    return Vector2Int.zero;
+}
+
+if (keyboard.wKey.wasPressedThisFrame)
+{
+    // 这一帧刚按下 W
+}</code></pre>
+      <p><span class="pill">区别</span> <code>wasPressedThisFrame</code> 只在按下瞬间为真；<code>isPressed</code> 在按住期间持续为真。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>Vector2Int</h2>
+      <pre><code>Vector2Int.up      // (0, 1)
+Vector2Int.down    // (0, -1)
+Vector2Int.left    // (-1, 0)
+Vector2Int.right   // (1, 0)
+Vector2Int.zero    // (0, 0)
+
+Vector2Int target = current + direction;
+bool same = target == current;</code></pre>
+      <p>网格坐标用整数，避免浮点误差；世界位置仍然用 <code>Vector3</code>。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>格子 → 世界坐标</h2>
+      <pre><code>private Vector3 CellToLocal(Vector2Int cell)
+{
+    return new Vector3(
+        cell.x - (Width - 1) * 0.5f,
+        cell.y - (Height - 1) * 0.5f,
+        0f);
+}
+
+public Vector3 CellToWorld(Vector2Int cell)
+{
+    return transform.TransformPoint(CellToLocal(cell));
+}</code></pre>
+      <p><code>TransformPoint</code> 会把 Maze 根对象的位置、旋转和缩放一起算进去；以后移动 Maze 时，玩家仍会对齐。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>移动验证顺序</h2>
+      <pre><code>private void TryMove(Vector2Int direction)
+{
+    Vector2Int target = currentCell + direction;
+
+    if (!maze.IsWalkable(target))
+    {
+        return;
+    }
+
+    currentCell = target;
+    transform.position = maze.CellToWorld(currentCell);
+}</code></pre>
+      <p>如果先改 <code>currentCell</code> 再验证，失败时还得回滚；先验证可以少一条失败路径。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>Inspector 引用</h2>
+      <pre><code>[SerializeField]
+private MazeBootstrapper maze;</code></pre>
+      <p><code>[SerializeField]</code> 让私有字段出现在 Inspector。运行时为空会抛 <code>NullReferenceException</code>，所以在 <code>Start</code> 里先检查并给出明确报错。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>没反应</dt>
+        <dd>先点 Game 视图；再检查 Active Input Handling 与 Console。</dd>
+      </dl>
+      <dl class="term">
+        <dt>连续移动</dt>
+        <dd>把 <code>isPressed</code> 改为 <code>wasPressedThisFrame</code>。</dd>
+      </dl>
+      <dl class="term">
+        <dt>空引用</dt>
+        <dd>Maze 字段没有拖引用；拖挂了 <code>MazeBootstrapper</code> 的对象。</dd>
+      </dl>
+      <dl class="term">
+        <dt>被盖住</dt>
+        <dd>提高 Player 的 Sorting Order，例如 10。</dd>
+      </dl>
+      <dl class="term">
+        <dt>撞墙能走</dt>
+        <dd>检查 <code>TryMove</code> 是否真的调用了 <code>IsWalkable</code>。</dd>
+      </dl>
+    </section>
+
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0002-grid-movement.html">课程 02 · 让方块在网格上走一步</a></p>
+    <p>官方查证：<a href="https://docs.unity3d.com/Packages/com.unity.inputsystem@1.19/manual/Keyboard.html">Input System Keyboard</a> · <a href="https://docs.unity3d.com/ScriptReference/Vector2Int.html">Vector2Int</a> · <a href="https://docs.unity3d.com/ScriptReference/MonoBehaviour.Update.html">MonoBehaviour.Update</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0002-grid-movement.html">回到课程 02</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

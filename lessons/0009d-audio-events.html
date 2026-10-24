@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 09d · 事件发生了，声音才该响 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 09d</div>
+    <h1>事件发生了<br>声音才该响</h1>
+    <p class="lede">音效不是背景音乐，也不是每帧播放。今天把拾取、开箱、破石、传送、受伤和过关接到明确的游戏事件上。</p>
+    <div class="meta">
+      <span>45–60 分钟</span>
+      <span>AudioSource · 事件 · PlayOneShot</span>
+      <span>产出：8 个可触发音效</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0009d">
+      <li><label><input type="checkbox"><span>完成 <code>AudioManager</code>，并能播放一次性音效。</span></label></li>
+      <li><label><input type="checkbox"><span>在 GameManager 上加 AudioSource，绑定 8 个 AudioClip。</span></label></li>
+      <li><label><input type="checkbox"><span>PlayerGridMover 能在破石、开箱、拾取、传送、受伤时播放声音。</span></label></li>
+      <li><label><input type="checkbox"><span>LevelFlowController 能在无材料出口、过关和死亡时播放声音。</span></label></li>
+      <li><label><input type="checkbox"><span>每条音效只在实际事件成功时播放，不在 Update 里反复播放。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码与日志，测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>声音属于事件，不属于帧</h2>
+    <p>如果每帧调用 <code>PlayOneShot</code>，同一个音效会叠加几百次，听起来像爆音。正确做法是：在状态真正改变的那一刻播放一次。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>游戏事件</th><th>播放方法</th><th>音频文件</th></tr></thead>
+        <tbody>
+          <tr><td>拾取材料/金币</td><td><code>PlayPickup()</code></td><td><code>pickup_material.ogg</code></td></tr>
+          <tr><td>打开宝箱</td><td><code>PlayChestOpen()</code></td><td><code>chest_open.ogg</code></td></tr>
+          <tr><td>炸开石头</td><td><code>PlayStoneBreak()</code></td><td><code>stone_break.ogg</code></td></tr>
+          <tr><td>进入传送门</td><td><code>PlayPortal()</code></td><td><code>portal_enter.ogg</code></td></tr>
+          <tr><td>无材料出口/无效操作</td><td><code>PlayUiError()</code></td><td><code>ui_error.ogg</code></td></tr>
+          <tr><td>关卡完成</td><td><code>PlayLevelComplete()</code></td><td><code>level_complete.ogg</code></td></tr>
+          <tr><td>受伤/死亡</td><td><code>PlayDamage()</code></td><td><code>damage.ogg</code></td></tr>
+          <tr><td>按钮确认（后续）</td><td><code>PlayUiConfirm()</code></td><td><code>ui_confirm.ogg</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout tip">
+      <span class="label">PlayOneShot</span>
+      <p><code>AudioSource.PlayOneShot(clip)</code> 可以叠加短音效；<code>Play()</code> 会打断当前播放。拾取和爆炸很适合 OneShot，背景音乐则应该用独立的 AudioSource 和循环播放。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>完成 AudioManager</h2></div>
+    <p>替换你当前空的 <code>AudioManager.cs</code>：</p>
+    <div class="code">
+      <div class="code-head"><span>AudioManager.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using UnityEngine;
+
+public class AudioManager : MonoBehaviour
+{
+    [SerializeField] private AudioSource source;
+    [SerializeField] private AudioClip pickup;
+    [SerializeField] private AudioClip chestOpen;
+    [SerializeField] private AudioClip stoneBreak;
+    [SerializeField] private AudioClip portalEnter;
+    [SerializeField] private AudioClip uiConfirm;
+    [SerializeField] private AudioClip levelComplete;
+    [SerializeField] private AudioClip uiError;
+    [SerializeField] private AudioClip damage;
+
+    private void Awake()
+    {
+        if (source == null)
+        {
+            source = GetComponent&lt;AudioSource&gt;();
+        }
+
+        if (source == null)
+        {
+            source = gameObject.AddComponent&lt;AudioSource&gt;();
+        }
+
+        source.playOnAwake = false;
+        source.spatialBlend = 0f;
+    }
+
+    public void PlayPickup() =&gt; Play(pickup);
+    public void PlayChestOpen() =&gt; Play(chestOpen);
+    public void PlayStoneBreak() =&gt; Play(stoneBreak);
+    public void PlayPortal() =&gt; Play(portalEnter);
+    public void PlayUiConfirm() =&gt; Play(uiConfirm);
+    public void PlayLevelComplete() =&gt; Play(levelComplete);
+    public void PlayUiError() =&gt; Play(uiError);
+    public void PlayDamage() =&gt; Play(damage);
+
+    private void Play(AudioClip clip)
+    {
+        if (clip == null || source == null)
+        {
+            return;
+        }
+
+        source.PlayOneShot(clip);
+    }
+}</code></pre>
+    </div>
+    <p><code>spatialBlend = 0</code> 表示 2D 音效，左右声道不随相机距离变化；HUD、拾取和 UI 反馈通常用 2D。以后做场景内的 3D 声源再单独配置。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>在 GameManager 上配置音频源</h2></div>
+    <ol>
+      <li>选中 GameManager，添加 <strong>Audio Source</strong> 组件。</li>
+      <li>取消 Play On Awake；Volume 先保持 1。</li>
+      <li>给 GameManager 添加 <code>AudioManager</code> 组件。</li>
+      <li>把 <code>Assets/ThirdParty/Audio/Kenney/</code> 里的对应文件拖到 AudioManager 的 8 个 Clip 字段。</li>
+    </ol>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>拖入文件</th></tr></thead>
+        <tbody>
+          <tr><td>Pickup</td><td><code>pickup_material.ogg</code></td></tr>
+          <tr><td>Chest Open</td><td><code>chest_open.ogg</code></td></tr>
+          <tr><td>Stone Break</td><td><code>stone_break.ogg</code></td></tr>
+          <tr><td>Portal Enter</td><td><code>portal_enter.ogg</code></td></tr>
+          <tr><td>Ui Confirm</td><td><code>ui_confirm.ogg</code></td></tr>
+          <tr><td>Level Complete</td><td><code>level_complete.ogg</code></td></tr>
+          <tr><td>Ui Error</td><td><code>ui_error.ogg</code></td></tr>
+          <tr><td>Damage</td><td><code>damage.ogg</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>不要在这里加背景音乐；本课只做短音效。音乐以后用另一个 AudioSource，避免拾取声打断音乐。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>给 PlayerGridMover 加 Audio 引用</h2></div>
+    <p>在字段区加入：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerGridMover.cs · 字段与校验</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[SerializeField] private AudioManager audio;
+
+if (maze == null || flow == null || audio == null)
+{
+    Debug.LogError(
+        "PlayerGridMover: 请指定 Maze、Flow 和 Audio。",
+        this);
+    enabled = false;
+    return;
+}</code></pre>
+    </div>
+    <p>把 GameManager 拖到 PlayerGridMover 的 <strong>Audio</strong> 字段。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>在事件成功时播放声音</h2></div>
+    <p>按下面位置插入调用。注意都是在“成功”分支里，不是在 Update 开头。</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerGridMover.cs · 音效调用点</span><button class="copy" type="button">复制</button></div>
+      <pre><code>// 破石成功
+if (maze.TryBreakStone(targetCell))
+{
+    audio.PlayStoneBreak();
+}
+
+// 开箱成功
+if (maze.TryOpenChest(currentCell))
+{
+    stats.AddCoins(ChestCoins);
+    stats.AddBombs(ChestBombs);
+    audio.PlayChestOpen();
+}
+
+// 材料拾取成功
+if (maze.TryCollectMaterial(currentCell))
+{
+    stats.AddMaterial();
+    audio.PlayPickup();
+}
+
+// 传送成功
+maze.MarkPortalPairKnown(maze.GetPortalId(currentCell));
+audio.PlayPortal();
+
+// 岩浆造成非致命伤害
+stats.ApplyTile(tile);
+if (tile == TileType.Lava &amp;&amp; stats.IsAlive)
+{
+    audio.PlayDamage();
+}
+
+// 无配对传送门
+audio.PlayUiError();</code></pre>
+    </div>
+    <p>完整参考实现：<a href="../solutions/0011/PlayerGridMover.cs">solutions/0011/PlayerGridMover.cs</a>。它同时修正了当前版本对特殊格子重复调用 <code>ApplyTile</code> 的问题。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>让 LevelFlowController 也使用音频</h2></div>
+    <p>加入 Audio 引用，并在没有材料/完成/死亡时播放：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelFlowController.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[SerializeField] private AudioManager audio;
+
+// Start 校验
+if (playerStats == null || audio == null)
+{
+    Debug.LogError(
+        "LevelFlowController: 请指定 PlayerStats 和 Audio。",
+        this);
+    enabled = false;
+    return;
+}
+
+// 有材料到出口
+SetState(LevelState.Completed);
+audio.PlayLevelComplete();
+
+// 没材料到出口
+audio.PlayUiError();
+HintShown?.Invoke("还需要找到材料。");
+
+// 死亡
+SetState(LevelState.Failed);
+audio.PlayDamage();</code></pre>
+    </div>
+    <p>把 GameManager 也拖到 LevelFlowController 的 <strong>Audio</strong> 字段。完整参考：<a href="../solutions/0011/LevelFlowController.cs">solutions/0011/LevelFlowController.cs</a>。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>逐事件验收</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>操作</th><th>预期声音</th></tr></thead>
+        <tbody>
+          <tr><td>炸开石头</td><td><code>stone_break.ogg</code></td></tr>
+          <tr><td>打开宝箱</td><td><code>chest_open.ogg</code></td></tr>
+          <tr><td>拾取材料</td><td><code>pickup_material.ogg</code></td></tr>
+          <tr><td>进入传送门</td><td><code>portal_enter.ogg</code></td></tr>
+          <tr><td>踩岩浆且未死亡</td><td><code>damage.ogg</code></td></tr>
+          <tr><td>没材料进出口</td><td><code>ui_error.ogg</code></td></tr>
+          <tr><td>有材料过关</td><td><code>level_complete.ogg</code></td></tr>
+          <tr><td>生命归零</td><td><code>damage.ogg</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><code>ui_confirm.ogg</code> 先保留，等做暂停/按钮时再使用。不要为了让 8 个文件都有声音而硬塞触发点。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">07</span><h2>提交与日志</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "feat: add event-driven audio feedback"</code></pre>
+    </div>
+    <p>写一条日志 <code>docs/devlog/2026-10-22-audio.md</code>：</p>
+    <pre><code># 2026-10-22 · 音效事件
+
+## 今天做了什么
+- 拾取、开箱、破石、传送、受伤、过关分别触发音效。
+- 音效只在事件成功时播放一次。
+
+## 卡在哪里 / 怎么解决
+- ...
+
+## 下次先做什么
+- 暂停菜单与 UI 确认音。</code></pre>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习</h2>
+    <p>先不要往上翻。</p>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">1. 为什么短音效适合 PlayOneShot？</p>
+      <div class="options">
+        <button class="option" type="button">会停止当前音乐</button>
+        <button class="option" type="button">可以叠加多个短声</button>
+        <button class="option" type="button">会自动循环播放</button>
+        <button class="option" type="button">会修改玩家生命</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>PlayOneShot 允许拾取、爆炸等短音效叠加，不打断其他声音。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">2. 音效应该在哪里播放？</p>
+      <div class="options">
+        <button class="option" type="button">每帧 Update 开始</button>
+        <button class="option" type="button">每次场景加载时</button>
+        <button class="option" type="button">字体资产生成时</button>
+        <button class="option" type="button">事件成功的那一刻</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>每帧播放会叠加成噪音；事件成功一次，反馈一次。</p>
+    </div>
+
+    <div class="quiz" data-answer="0">
+      <p class="q">3. UI/拾取音效通常如何设置空间混合？</p>
+      <div class="options">
+        <button class="option" type="button">2D，spatialBlend 为 0</button>
+        <button class="option" type="button">3D，spatialBlend 为 1</button>
+        <button class="option" type="button">随机切换左右声道</button>
+        <button class="option" type="button">关闭 AudioSource</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>UI/拾取反馈不应随相机距离衰减，使用 2D 音效更稳定。</p>
+    </div>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">4. 没有材料进入出口应该播放什么？</p>
+      <div class="options">
+        <button class="option" type="button">level_complete</button>
+        <button class="option" type="button">pickup_material</button>
+        <button class="option" type="button">ui_error</button>
+        <button class="option" type="button">portal_enter</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>目标未满足是无效操作，用 error 反馈；有材料才播放过关音。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>完全没有声音</td><td>AudioSource 的 Volume、Mute、AudioListener；Game 视图是否静音。</td></tr>
+          <tr><td>只有部分事件没声音</td><td>对应 Clip 字段是否为空；事件是否真的成功。</td></tr>
+          <tr><td>只有过关没声音</td><td>AudioManager 的 Level Complete 字段是 None；拖入 <code>level_complete.ogg</code>。</td></tr>
+          <tr><td>音效叠成爆音</td><td>检查是否在 Update 里调用；应该只在成功分支调用一次。</td></tr>
+          <tr><td>音乐被拾取声打断</td><td>不要让短音效和音乐共用同一个 AudioSource。</td></tr>
+          <tr><td>Audio 引用为空</td><td>把 GameManager 拖到 PlayerGridMover/LevelFlowController 的 Audio 字段。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料</h2>
+    <p><a href="https://docs.unity3d.com/ScriptReference/AudioSource.PlayOneShot.html">Unity: AudioSource.PlayOneShot</a> · <a href="https://docs.unity3d.com/Manual/AudioFiles.html">Unity: Audio files</a></p>
+    <p>音效来源与许可记录：<a href="../Color%20Maze/THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a> · <a href="../reference/0010-asset-sourcing-and-licensing.html">素材来源与许可</a></p>
+  </section>
+
+  <p class="ask">如果某个事件没有声音，把事件名和 GameManager 的 AudioManager 字段截图/描述发我。下一节 09e 做暂停菜单，并把 ui_confirm 接到继续/重开按钮。</p>
+
+  <nav class="footer-nav">
+    <a href="0009c-asset-sourcing.html">上一课：素材搜索与授权</a>
+    <a href="0009e-pause-menu.html">下一课：暂停菜单</a>
+    <a href="../reference/0012-audio-events-cheatsheet.html">参考卡：音效事件速查</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

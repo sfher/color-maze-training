@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 03 · ScriptableObject 与关卡数据速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 03</div>
+    <h1>ScriptableObject 与关卡数据</h1>
+    <p class="lede">把“内容”从“行为”里拆出来。关卡、道具表、数值配置适合做成资产；玩家的当前生命值、当前格子不适合。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>数据资产</span>
+      <span>编辑器 vs 运行时</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+
+    <section class="ref-block">
+      <h2>MonoBehaviour vs ScriptableObject</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th></th><th>MonoBehaviour</th><th>ScriptableObject</th></tr></thead>
+          <tbody>
+            <tr><td>挂载位置</td><td>场景里的 GameObject</td><td>Project 里的资产</td></tr>
+            <tr><td>适合</td><td>行为、输入、渲染、碰撞</td><td>关卡、道具表、数值</td></tr>
+            <tr><td>生命周期</td><td>随场景加载/销毁</td><td>作为资产被引用</td></tr>
+            <tr><td>运行时状态</td><td>适合</td><td>不适合保存玩家进度</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="ref-block">
+      <h2>最小模板</h2>
+      <pre><code>[CreateAssetMenu(
+    menuName = "Color Maze/Level Definition",
+    fileName = "Level_01")]
+public class LevelDefinition : ScriptableObject
+{
+    [SerializeField] private string[] rows;
+}</code></pre>
+      <p><code>[CreateAssetMenu]</code> 负责在 Create 菜单里加入口；<code>[SerializeField]</code> 负责让私有字段出现在 Inspector。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>关卡查询 API</h2>
+      <pre><code>public int Width  =&gt; rows[0].Length;
+public int Height =&gt; rows.Length;
+
+public bool Contains(Vector2Int cell)
+{
+    return cell.x &gt;= 0 &amp;&amp; cell.x &lt; Width &amp;&amp;
+           cell.y &gt;= 0 &amp;&amp; cell.y &lt; Height;
+}
+
+public char GetTile(Vector2Int cell)
+{
+    int row = Height - 1 - cell.y;
+    return rows[row][cell.x];
+}</code></pre>
+      <p>调用 <code>GetTile</code> 前先用 <code>Contains</code> 检查边界；不要依赖调用方永远传对坐标。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>数据校验</h2>
+      <pre><code>private void OnValidate()
+{
+    if (rows == null || rows.Length == 0)
+        return;
+
+    int width = rows[0].Length;
+
+    for (int i = 0; i &lt; rows.Length; i++)
+    {
+        if (rows[i].Length != width)
+            Debug.LogWarning(
+                $"第 {i + 1} 行长度不一致", this);
+    }
+}</code></pre>
+      <p><code>OnValidate</code> 在编辑器里修改资产时运行，适合做“数据形状”检查；它不是运行时业务逻辑。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>地图坐标</h2>
+      <p><code>rows[0]</code> 是最上面一行，而 Unity 的 y 轴向上。因此：</p>
+      <pre><code>int row = Height - 1 - cell.y;
+char tile = rows[row][cell.x];</code></pre>
+      <p>如果地图上下颠倒，先检查这一行。宽高从数据推导，不要在多个地方写死 7。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>运行时 vs 编辑器</h2>
+      <dl class="term">
+        <dt>UnityEngine</dt>
+        <dd>运行时程序集，玩家构建里存在；MonoBehaviour、SpriteRenderer、Vector2Int 都在这里。</dd>
+      </dl>
+      <dl class="term">
+        <dt>UnityEditor</dt>
+        <dd>只在编辑器里存在；打包后的玩家构建没有它。运行时脚本不要 <code>using UnityEditor</code>。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Editor/</dt>
+        <dd>放在名为 Editor 的目录里的脚本只在编辑器编译，适合自定义 Inspector、菜单工具。</dd>
+      </dl>
+      <dl class="term">
+        <dt>#if UNITY_EDITOR</dt>
+        <dd>需要把少量编辑器代码和运行时脚本放在同一文件时，用条件编译隔离。</dd>
+      </dl>
+    </section>
+
+    <section class="ref-block">
+      <h2>什么时候该拆数据</h2>
+      <ul>
+        <li>同一份逻辑要服务多个关卡、道具或角色。</li>
+        <li>内容会频繁调整，但代码逻辑稳定。</li>
+        <li>希望非程序员也能编辑内容。</li>
+        <li>数据需要被多个场景或系统共享。</li>
+      </ul>
+      <p>只有一关时也可以先写死；但一旦出现“复制脚本改地图”的冲动，就是拆数据的信号。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>Create 没入口</dt>
+        <dd>脚本编译失败，或类名/文件名不一致；先看 Console。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Level 是 None</dt>
+        <dd>资产没有拖到 MazeBootstrapper 的 Level 字段。</dd>
+      </dl>
+      <dl class="term">
+        <dt>全洋红</dt>
+        <dd>地图里有未识别字符；只允许 <code># . R B</code>。</dd>
+      </dl>
+      <dl class="term">
+        <dt>索引越界</dt>
+        <dd>某一行长度不一致，或调用 GetTile 前没检查 Contains。</dd>
+      </dl>
+      <dl class="term">
+        <dt>打包失败</dt>
+        <dd>运行时脚本引用了 <code>UnityEditor</code>；删掉或移到 Editor 目录。</dd>
+      </dl>
+    </section>
+
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0003-level-data-asset.html">课程 03 · 把关卡从代码里搬出来</a></p>
+    <p>官方查证：<a href="https://docs.unity3d.com/Manual/class-ScriptableObject.html">ScriptableObject</a> · <a href="https://docs.unity3d.com/ScriptReference/CreateAssetMenuAttribute.html">CreateAssetMenu</a> · <a href="https://docs.unity3d.com/ScriptReference/MonoBehaviour.OnValidate.html">OnValidate</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0003-level-data-asset.html">回到课程 03</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

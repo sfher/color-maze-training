@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 12a · 先把货架装满 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 12a</div>
+    <h1>先把货架装满</h1>
+    <p class="lede">金币的价值来自它买到的内容。先完成可购买的主题、图片与关卡目录；商店代码暂缓，避免先做完交易系统却没有值得购买的东西。</p>
+    <div class="meta">
+      <span>30–45 分钟</span>
+      <span>Content Catalog · Licensing</span>
+      <span>产出：可购买内容清单</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0012a">
+      <li><label><input type="checkbox"><span>建立 UI 主题、画廊图片、额外关卡三个内容目录。</span></label></li>
+      <li><label><input type="checkbox"><span>每项内容都有唯一 ID、预览、价格、来源许可证和完成状态。</span></label></li>
+      <li><label><input type="checkbox"><span>目录中至少有 3 个真实或明确临时来源的候选内容。</span></label></li>
+      <li><label><input type="checkbox"><span>未完成或未授权内容不会进入未来商店。</span></label></li>
+      <li><label><input type="checkbox"><span>提交素材目录与开发日志。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section class="callout tip">
+    <span class="label">当前进度</span>
+    <p><code>Level_Water World</code> 已登记为 <code>data-ready</code>：关卡数据已经存在，购买逻辑与预览素材留到后续商店和素材课。</p>
+  </section>
+
+  <section>
+    <h2>先回答“买了以后多什么”</h2>
+    <p>玩家必须能看见购买后的具体变化。先选少量候选，不设计完整商城。</p>
+    <div class="concept-grid">
+      <div class="concept"><span class="tag">THEME</span><h3>UI 主题</h3><p>HUD 边框、按钮配色与面板皮肤。</p></div>
+      <div class="concept"><span class="tag">GALLERY</span><h3>画廊图片</h3><p>MAYA、场景或故事插画，提供收藏目标。</p></div>
+      <div class="concept"><span class="tag">LEVEL</span><h3>额外关卡</h3><p>真正能进入并完成的新关卡数据。</p></div>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>建立内容目录</h2></div>
+    <pre><code>Assets/Content/
+  UIThemes/
+  Gallery/
+  Levels/</code></pre>
+    <p>先统一目录与命名，再制作内容。本课不写商店脚本。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>使用稳定 ID</h2></div>
+    <p>每项内容使用稳定、短小、只含英文与连字符的 ID：</p>
+    <pre><code>theme-terminal-green
+image-maya-first-meeting
+level-forest-01</code></pre>
+    <p>显示名称可以改；未来存档只认 ID。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>填写内容目录</h2></div>
+    <p>复制模板：<a href="../practice/STORE-CONTENT-CATALOG.md">STORE-CONTENT-CATALOG.md</a>。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>通过标准</th></tr></thead>
+        <tbody>
+          <tr><td>ID / 名称</td><td>唯一 ID，玩家能看懂销售名称。</td></tr>
+          <tr><td>类型</td><td>Theme、Gallery 或 Level。</td></tr>
+          <tr><td>预览</td><td>商店实际可显示的缩略图或色板。</td></tr>
+          <tr><td>获得后变化</td><td>一句可验证描述。</td></tr>
+          <tr><td>来源 / 许可证</td><td>原创或第三方素材的明确记录。</td></tr>
+          <tr><td>状态</td><td>idea、draft、ready；只有 ready 可出售。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>完成三件候选</h2></div>
+    <ol>
+      <li>一个 UI 主题：色板和至少一个 HUD 应用示例。</li>
+      <li>一张画廊图片：缩略图、来源和许可。</li>
+      <li>一个额外关卡：地图、材料位置、出口与公平性说明。</li>
+    </ol>
+    <p>正式素材不足时可以标成 draft；未授权内容不能标成 ready。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>写验收条件</h2></div>
+    <p>每项内容都要回答“购买后如何确认真的获得”：</p>
+    <ul>
+      <li>主题：选择后 HUD 立即变化，并在重开后保留。</li>
+      <li>图片：画廊中出现缩略图，点击可打开完整图片。</li>
+      <li>关卡：从入口进入，尺寸正确，能拿材料并到达出口。</li>
+    </ul>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>提交</h2></div>
+    <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add Assets/Content docs/CONTENT_CATALOG.md docs/devlog
+git commit -m "feat(content): add purchasable content catalog"</code></pre>
+  </section>
+
+  <section class="source">
+    <h2>参考</h2>
+    <p><a href="0009c-asset-sourcing.html">课程 09c · 素材搜索与授权</a> · <a href="../Color Maze/THIRD_PARTY_NOTICES.md">当前第三方素材记录</a></p>
+  </section>
+
+  <p class="ask">本课不设测验。先完成三个候选；如果某类内容方向不明，直接告诉我并缩小范围。</p>
+  <nav class="footer-nav">
+    <a href="0011-feedback-layer.html">上一课：反馈层</a>
+    <a href="0012-shop-and-upgrades.html">搁置的商店课</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 13 · 留一份可以回来找的记录 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 13</div>
+    <h1>留一份可以<br>回来找的记录</h1>
+    <p class="lede">把本轮金币、已解锁内容和玩家设置写入 JSON 文件。重点是版本字段、损坏恢复与设置应用，而不是把游戏对象直接序列化。</p>
+    <div class="meta">
+      <span>60–80 分钟</span>
+      <span>JSON · File I/O · Settings</span>
+      <span>产出：可恢复的存档与设置</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0013">
+      <li><label><input type="checkbox"><span>存档数据有显式 <code>version</code> 字段。</span></label></li>
+      <li><label><input type="checkbox"><span>保存时先写临时文件，再替换正式文件并保留备份。</span></label></li>
+      <li><label><input type="checkbox"><span>正式档损坏时会尝试读取备份；两份都坏则使用默认值且不崩溃。</span></label></li>
+      <li><label><input type="checkbox"><span>音量、全屏和分辨率可以从存档应用，也能重新写回。</span></label></li>
+      <li><label><input type="checkbox"><span>你亲自完成 UI 绑定，并测一次正常保存与一次损坏恢复。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码与开发日志。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>存档保存的是数据，不是场景</h2>
+    <p>不要把 GameObject、MonoBehaviour 或运行中的 LevelDefinition 直接写进 JSON。建立一个只包含可持久字段的 DTO：</p>
+    <div class="code">
+      <div class="code-head"><span>GameSaveData.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using System;
+
+[Serializable]
+public class GameSaveData
+{
+    public int version = SaveService.CurrentVersion;
+    public int coins;
+    public string[] unlockedContentIds =
+        Array.Empty&lt;string&gt;();
+    public float masterVolume = 0.8f;
+    public bool fullscreen = true;
+    public int screenWidth = 1280;
+    public int screenHeight = 720;
+}</code></pre>
+    </div>
+    <p><code>coins</code> 与内容 ID 属于游戏进度；音量与窗口属于玩家设置。它们可以先放在同一个文件里，但字段职责要分清。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>确定文件位置和版本</h2></div>
+    <p>使用 <code>Application.persistentDataPath</code>，不要写到 Unity 安装目录或 Assets 目录：</p>
+    <div class="code">
+      <div class="code-head"><span>SaveService.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public const int CurrentVersion = 1;
+
+public static string SavePath =&gt;
+    Path.Combine(
+        Application.persistentDataPath,
+        "save.json");
+
+public static string BackupPath =&gt;
+    Path.Combine(
+        Application.persistentDataPath,
+        "save.backup.json");</code></pre>
+    </div>
+    <p>未来字段变化时，读取旧版本并通过迁移补默认值，而不是直接假设旧文件拥有新字段。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>保存：临时文件 → 替换 → 备份</h2></div>
+    <div class="code">
+      <div class="code-head"><span>SaveService.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>string temp = Path.Combine(
+    Application.persistentDataPath,
+    "save.tmp");
+
+File.WriteAllText(
+    temp,
+    JsonUtility.ToJson(data, true));
+
+if (File.Exists(SavePath))
+{
+    File.Replace(temp, SavePath, BackupPath);
+}
+else
+{
+    File.Move(temp, SavePath);
+}</code></pre>
+    </div>
+    <p>直接覆盖存档时，如果程序恰好中断，可能只剩半份 JSON。临时文件完整写入后再替换，风险更小。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>读取：坏档不能拖垮游戏</h2></div>
+    <p>读取流程必须是“正式档 → 备份 → 默认数据”，每一层都捕获解析异常：</p>
+    <div class="code">
+      <div class="code-head"><span>SaveService.cs · TryLoad</span><button class="copy" type="button">复制</button></div>
+      <pre><code>if (TryRead(SavePath, out data))
+    return true;
+
+if (TryRead(BackupPath, out data))
+{
+    LastLoadUsedBackup = true;
+    return true;
+}
+
+data = null;
+return false;</code></pre>
+    </div>
+    <p>调用方在返回 <code>false</code> 时创建 <code>new GameSaveData()</code>。不要在读取失败时自动覆盖坏文件，先保留现场便于排查。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>应用音量与窗口设置</h2></div>
+    <p><code>SettingsController</code> 保存三个值，并在用户改动时立刻应用：</p>
+    <div class="code">
+      <div class="code-head"><span>SettingsController.cs · ApplyCurrentValues</span><button class="copy" type="button">复制</button></div>
+      <pre><code>AudioListener.volume =
+    Mathf.Clamp01(volumeSlider.value);
+
+Vector2Int resolution =
+    _resolutions[resolutionDropdown.value];
+
+Screen.SetResolution(
+    resolution.x,
+    resolution.y,
+    fullscreenToggle.isOn);</code></pre>
+    </div>
+    <p>从文件初始化 UI 时使用 <code>SetValueWithoutNotify</code>，避免“设置控件值”反而触发一次保存。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>用一个协调器接起存档与设置</h2></div>
+    <p><code>SaveCoordinator</code> 负责加载数据、把设置交给 UI，并在设置变化时保存：</p>
+    <div class="code">
+      <div class="code-head"><span>SaveCoordinator.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>private void Start()
+{
+    if (!SaveService.TryLoad(out GameSaveData data))
+        data = new GameSaveData();
+
+    Data = data;
+    settings.Apply(Data);
+    settings.Changed += Save;
+}
+
+public void Save()
+{
+    settings.CaptureTo(Data);
+    SaveService.Save(Data);
+}</code></pre>
+    </div>
+    <p>接下来由你完成 UI：音量 Slider、全屏 Toggle、分辨率 Dropdown。把 <code>SettingsController</code> 和 <code>SaveCoordinator</code> 挂到常驻 GameManager 上并绑定引用。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>制作设置面板 UI</h2></div>
+    <p>最省事的做法是复用现有暂停流程：在 Canvas/GameUI 下新建一个 <code>SettingsPanel</code>，不要改动 PausePanel 的继续和重开逻辑。</p>
+    <ol>
+      <li>在 GameUI 下新建 <code>UI → Panel</code>，命名 <code>SettingsPanel</code>。Anchor 设为四边拉伸，作为深色遮罩；再在它下面新建一个普通 <code>UI → Panel</code>，命名 <code>SettingsCard</code>，尺寸约 <code>560 × 430</code>、Anchor 和 Pivot 居中。这里的 Card 只是命名习惯，不是 Unity 组件类型。</li>
+      <li>Card 顶部放标题 TMP“设置”。下面放三行：<code>VolumeRow</code>、<code>FullscreenRow</code>、<code>ResolutionRow</code>。每行左侧放说明文字，右侧放控件。</li>
+      <li>音量行：新建 <code>UI → Slider</code>，宽约 300，Min Value 为 0、Max Value 为 1、Value 为 0.8，Whole Numbers 关闭。</li>
+      <li>全屏行：新建 <code>UI → Toggle</code>，宽约 300，Is On 先设为 true；保留 Toggle 自带的 Background/Checkmark。</li>
+      <li>分辨率行：新建 <code>UI → Dropdown - TextMeshPro</code>，宽约 300；Caption Text 先写“分辨率”。运行时脚本会自动填入分辨率选项。</li>
+      <li>Card 底部放 <code>CloseButton</code>，文案“返回”。</li>
+      <li>在现有 PausePanel 中添加 <code>SettingsButton</code>，文案“设置”，位置可以放在“继续”和“重开”下面。</li>
+      <li>把 SettingsController 与 SaveCoordinator 挂在常驻的 GameManager 上，不要挂在默认关闭的 SettingsPanel 上。</li>
+    </ol>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Inspector 字段</th><th>拖入对象</th></tr></thead>
+        <tbody>
+          <tr><td>SettingsController / Volume Slider</td><td>SettingsPanel 的音量 Slider</td></tr>
+          <tr><td>SettingsController / Fullscreen Toggle</td><td>SettingsPanel 的全屏 Toggle</td></tr>
+          <tr><td>SettingsController / Resolution Dropdown</td><td>SettingsPanel 的分辨率 Dropdown</td></tr>
+          <tr><td>SettingsController / Settings Panel</td><td>SettingsPanel 根对象</td></tr>
+          <tr><td>SaveCoordinator / Settings</td><td>GameManager 上的 SettingsController</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>最后配置两个点击事件：PausePanel 的 SettingsButton 调用 <code>SettingsController.Open</code>；SettingsPanel 的 CloseButton 调用 <code>SettingsController.Close</code>。设置值变化后会自动应用，并在约 0.25 秒后保存。</p>
+    <div class="callout warn">
+      <span class="label">不要手工再绑 Slider/Toggle/Dropdown 的 OnValueChanged</span>
+      <p>SettingsController 已经在代码中订阅这三项变化。Inspector 再绑一次会造成重复应用和重复保存。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">07</span><h2>只做三次快速验收</h2></div>
+    <ol>
+      <li>修改音量与分辨率，退出 Play 再进入：设置从文件恢复。</li>
+      <li>找到 <code>Application.persistentDataPath</code>，把 <code>save.json</code> 改成无效内容：游戏能读取 backup，或不崩溃地回到默认值。</li>
+      <li>删除正式档和备份，再进入游戏：使用默认设置，不产生 Console 异常。</li>
+    </ol>
+    <p>边界细节与报错由你调试；遇到具体失败再贴 Console，不需要提前写完所有测试。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">08</span><h2>提交与日志</h2></div>
+    <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add Assets docs/devlog
+git commit -m "feat(save): persist progress and settings"</code></pre>
+    <p>日志记录：存档版本、备份策略、你实际遇到的坏档或窗口问题。</p>
+  </section>
+
+  <section class="source">
+    <h2>主资料</h2>
+    <p><a href="https://docs.unity3d.com/ScriptReference/Application-persistentDataPath.html">Application.persistentDataPath</a> · <a href="https://docs.unity3d.com/ScriptReference/JsonUtility.html">JsonUtility</a> · <a href="https://docs.unity3d.com/ScriptReference/Screen.SetResolution.html">Screen.SetResolution</a></p>
+    <p>完整参考：<a href="../solutions/0017/GameSaveData.cs">GameSaveData.cs</a> · <a href="../solutions/0017/SaveService.cs">SaveService.cs</a> · <a href="../solutions/0017/SettingsController.cs">SettingsController.cs</a> · <a href="../solutions/0017/SaveCoordinator.cs">SaveCoordinator.cs</a></p>
+  </section>
+
+  <p class="ask">UI 是你的挑战部分。先完成三个控件和一个保存入口；如果读档顺序、覆盖写入或分辨率恢复出现具体问题，把异常和 Inspector 绑定发我。</p>
+
+  <nav class="footer-nav">
+    <a href="0012a-store-content.html">上一课：内容目录</a>
+    <a href="../reference/0018-save-and-settings-cheatsheet.html">参考卡：存档与设置</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

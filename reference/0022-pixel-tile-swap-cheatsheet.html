@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 22 · 像素地砖替换速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 22</div>
+    <h1>像素地砖替换</h1>
+    <p class="lede">内容进 ScriptableObject，代码只管规则；sprite 管长相，color 只管传送门染色；换格必须连 sprite 带白一起写。</p>
+    <div class="meta"><span>打印友好</span><span>SpriteRenderer</span><span>TileVisuals</span></div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>渲染数据流</h2>
+      <pre><code>LevelDefinition 字符
+  → TileType
+  → TileVisuals.GetSprite(tile)
+  → SpriteRenderer.sprite
+  → Portal 例外：color = PortalColor(id)</code></pre>
+      <p>白方块时代 color 是调色盘；像素时代 color 只染白螺旋。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>TileVisuals 要点</h2>
+      <ul>
+        <li>9 个 Sprite 字段：floor/wall/stone/water/lava/chest/material/exit/portalBase。</li>
+        <li>资产放 <code>Assets/Data/</code>，名字 <code>TileVisuals_Classic</code>。</li>
+        <li>default 返回 floor，别返回 null。</li>
+        <li>一套资产 = 一套主题；商店换皮 = 换引用。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>TryReplace 坑</h2>
+      <pre><code>_renderers[x, y].sprite =
+    visuals.GetSprite(replacement);
+_renderers[x, y].color = Color.white;</code></pre>
+      <p>color 是乘法 tint。只换 sprite 不清色，地板会带上石头灰或水蓝。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>层级表</h2>
+      <pre><code>地砖   sortingOrder 0（默认）
+炸弹   sortingOrder 5
+玩家   sortingOrder 10</code></pre>
+      <p>15b 之后仍然成立；新增渲染物先想清楚放哪层。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>Player 场景设置</h2>
+      <ul>
+        <li>Sprite：<code>player_default</code>（Assets/Art/Player/）。</li>
+        <li>Color：纯白（旧黄色 tint 会让冒险者变黄）。</li>
+        <li>Order in Layer：10 不动。</li>
+        <li>皮肤系列 8 张备用：orange/yellow/green/teal/blue/purple/rose。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>尺寸为什么刚好</h2>
+      <pre><code>sprite 16px ÷ PPU 16 = 1 world unit = 迷宫 1 格</code></pre>
+      <p>PPU 在贴图导入设置里；改 PPU 等于改格子大小，全项目统一。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>不动的部分</h2>
+      <ul>
+        <li>PortalColor 两段紫（未知/已记忆）。</li>
+        <li>CellToLocal、相机、MazeCameraFitter。</li>
+        <li>CreateBombMarker 仍用白方块 + 缩放 0.5。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>故障速查</h2>
+      <ul>
+        <li>地图全白块 → Visuals 字段没绑（看 Console 报错）。</li>
+        <li>地板带残色 → TryReplace 没重置 color。</li>
+        <li>玩家变黄 → Player 的 Color 没归白。</li>
+        <li>地砖糊/大小不对 → 导入设置被改（回参考卡 21）。</li>
+        <li>传送门记忆失灵 → Start 里 portal 染色被误删。</li>
+      </ul>
+    </section>
+  </div>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0015b-pixel-tile-swap.html">课程 15b</a>
+    <a href="0021-pixel-art-import-cheatsheet.html">参考卡 21</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

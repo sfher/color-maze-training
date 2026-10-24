@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 10b · MAYA 开口以后 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 10b</div>
+    <h1>MAYA 开口以后</h1>
+    <p class="lede">上一课只显示了一句通关提示。今天把一句静态文字变成一段由玩家控制的对话：逐字出现、可以立即显示全句、最后再开放重开或下一关。</p>
+    <div class="meta">
+      <span>50–70 分钟</span>
+      <span>string[] · IEnumerator · Input System</span>
+      <span>产出：可推进的 MAYA 对话</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0010b">
+      <li><label><input type="checkbox"><span>每一关能用 <code>CompletionDialogue</code> 配置自己的对白。</span></label></li>
+      <li><label><input type="checkbox"><span>对话逐字显示，但点击或空格可以立即显示整句。</span></label></li>
+      <li><label><input type="checkbox"><span>一句话读完后，下一次输入才进入下一句。</span></label></li>
+      <li><label><input type="checkbox"><span>最后一句结束前，“重开”和“下一关”都不出现。</span></label></li>
+      <li><label><input type="checkbox"><span>失败流程不启动 MAYA 通关对话。</span></label></li>
+      <li><label><input type="checkbox"><span>Level_FlowTest 与 Level_05 显示各自的 2–3 句对白。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码、开发日志；测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>为什么不能只把一句话变长</h2>
+    <p>把整段话一次性塞进 TMP 文本，会有三个问题：玩家控制不了节奏、无法知道当前读到第几句、按钮出现时机也没有单独状态。对话需要一个小型队列。</p>
+    <div class="concept-grid">
+      <div class="concept">
+        <span class="tag">DATA</span>
+        <h3>对白属于关卡</h3>
+        <p>台词放在 LevelDefinition 资产里，不写在 GameHud 的 <code>if</code> 中。</p>
+      </div>
+      <div class="concept">
+        <span class="tag">VIEW</span>
+        <h3>视图只管显示</h3>
+        <p>MayaDialogueView 维护第几句、是否正在打字，以及文字是否显示完整。</p>
+      </div>
+      <div class="concept">
+        <span class="tag">FLOW</span>
+        <h3>流程决定时机</h3>
+        <p>GameHud 只在 Completed 时开对话；Failed 直接进入失败结算。</p>
+      </div>
+    </div>
+
+    <div class="dialogue-demo"
+         data-lines='["材料拿到了。","前面是熔岩区。石头会挡住你，但不会主动追来。","我找到下一条线索了。准备好就出发。"]'>
+      <div class="dialogue-speaker">MAYA · 通讯接入</div>
+      <p class="dialogue-body"></p>
+      <div class="dialogue-meta">
+        <span class="dialogue-status">对话 1 / 3</span>
+        <button class="dialogue-next" type="button">全部显示</button>
+      </div>
+    </div>
+    <p><small>先玩一下上面的反馈环：第一次点击要能跳过逐字动画，第二次才切换句子。</small></p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>把对白放进关卡资产</h2></div>
+    <p>在 <code>LevelDefinition.cs</code> 加入对白数组和只读属性：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelDefinition.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[SerializeField] private string[] completionDialogue;
+
+public string[] CompletionDialogue =&gt;
+    completionDialogue;</code></pre>
+    </div>
+    <p>再让流程控制器公开当前关卡，供 UI 读取台词：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelFlowController.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public LevelDefinition CurrentLevel =&gt;
+    maze != null ? maze.CurrentLevel : null;</code></pre>
+    </div>
+    <p>这样做以后，新增关卡只需要填台词，不需要再改 GameHud。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>先把对话状态说清楚</h2></div>
+    <p>在 <code>Assets/Scripts</code> 新建 <code>MayaDialogueView.cs</code>。它只保存四项关键状态：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>状态</th><th>回答的问题</th></tr></thead>
+        <tbody>
+          <tr><td><code>_lines</code></td><td>这次要依次显示哪些句子？</td></tr>
+          <tr><td><code>_lineIndex</code></td><td>现在正在读第几句？</td></tr>
+          <tr><td><code>_lineIsComplete</code></td><td>当前这句已经完整显示了吗？</td></tr>
+          <tr><td><code>IsShowing</code></td><td>整个对话是否仍在进行？</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout tip">
+      <span class="label">输入规则</span>
+      <p>正在打字时，第一次推进输入只补全当前句；已经补全后，下一次推进输入才换到下一句。这样快速连点不会意外跳过整段剧情。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>用协程制造逐字效果</h2></div>
+    <p>协程会跨帧暂停和继续，适合“每隔一点时间多显示几个字”。它不是后台线程，TMP 文本仍然只在主线程更新。官方说明见 <a href="https://docs.unity3d.com/6000.0/Documentation/Manual/Coroutines.html">Unity Manual: Coroutines</a>。</p>
+    <div class="code">
+      <div class="code-head"><span>MayaDialogueView.cs · TypeLine</span><button class="copy" type="button">复制</button></div>
+      <pre><code>private IEnumerator TypeLine(string line)
+{
+    float visibleCharacters = 0f;
+    bodyText.text = string.Empty;
+
+    while (visibleCharacters &lt; line.Length)
+    {
+        visibleCharacters +=
+            charactersPerSecond *
+            Time.unscaledDeltaTime;
+
+        int count = Mathf.Min(
+            line.Length,
+            Mathf.FloorToInt(visibleCharacters));
+
+        bodyText.text = line.Substring(0, count);
+        yield return null;
+    }
+
+    bodyText.text = WithContinueCue(line);
+    _lineIsComplete = true;
+}</code></pre>
+    </div>
+    <p>使用 <code>Time.unscaledDeltaTime</code>，界面动画不会因为 <code>Time.timeScale</code> 的变化而冻结。完整实现：<a href="../solutions/0014/MayaDialogueView.cs">MayaDialogueView.cs</a>。</p>
+    <p>在 <code>Awake</code> 中把 <code>bodyText.verticalAlignment</code> 设为 <code>Top</code>。动态文本会从顶部向下生长，而不是随着行数变化重新居中或向上顶。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>让 GameHud 接上对话</h2></div>
+    <p>给 GameHud 增加一个对话引用，并在 Start 中订阅结束事件：</p>
+    <div class="code">
+      <div class="code-head"><span>GameHud.cs · 引用</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[SerializeField] private MayaDialogueView dialogue;
+
+dialogue.Finished += HandleDialogueFinished;</code></pre>
+    </div>
+    <p>GameHud 的 <code>Update</code> 只在对话打开时读取推进输入：</p>
+    <div class="code">
+      <div class="code-head"><span>GameHud.cs · 推进输入</span><button class="copy" type="button">复制</button></div>
+      <pre><code>if (!dialogue.IsShowing)
+{
+    return;
+}
+
+bool advance =
+    keyboard.spaceKey.wasPressedThisFrame ||
+    keyboard.enterKey.wasPressedThisFrame ||
+    mouse.leftButton.wasPressedThisFrame;
+
+if (advance)
+{
+    dialogue.Advance();
+}</code></pre>
+    </div>
+    <p>完成状态先隐藏两个按钮并开始对话；失败状态直接显示重开：</p>
+    <div class="code">
+      <div class="code-head"><span>GameHud.cs · 状态分支</span><button class="copy" type="button">复制</button></div>
+      <pre><code>if (flow.State == LevelState.Failed)
+{
+    dialogue.HideImmediate();
+    restartButton.gameObject.SetActive(true);
+    nextLevelButton.gameObject.SetActive(false);
+    return;
+}
+
+restartButton.gameObject.SetActive(false);
+nextLevelButton.gameObject.SetActive(false);
+dialogue.Show(flow.CurrentLevel.CompletionDialogue);</code></pre>
+    </div>
+    <p>对话结束时要把面板从“通讯态”切回“结算态”，否则标题会一直停留在通讯接入：</p>
+    <div class="code">
+      <div class="code-head"><span>GameHud.cs · Finished</span><button class="copy" type="button">复制</button></div>
+      <pre><code>private void HandleDialogueFinished()
+{
+    endTitleText.text = "关卡完成";
+    restartButton.gameObject.SetActive(true);
+    nextLevelButton.gameObject.SetActive(
+        flow.CanAdvance);
+}</code></pre>
+    </div>
+    <p>完整接线见 <a href="../solutions/0014/GameHud.cs">GameHud.cs</a>、<a href="../solutions/0014/LevelFlowController.cs">LevelFlowController.cs</a> 和 <a href="../solutions/0014/LevelDefinition.cs">LevelDefinition.cs</a>。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>配置面板、文字与两关对白</h2></div>
+    <p>在 GameUI 上添加 <code>MayaDialogueView</code>：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>绑定或数值</th></tr></thead>
+        <tbody>
+          <tr><td>Body Text</td><td>现有的 EndHintText</td></tr>
+          <tr><td>Characters Per Second</td><td>28–36，先用 32</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>把 EndHintText 的 RectTransform 调整到约 <code>540 × 120</code>，Y 约为 10；Vertical Alignment 必须选 <strong>Top</strong>。EndTitleText 上移，运行时显示“通讯接入”。</p>
+    <div class="callout warn">
+      <span class="label">不要用 Bottom 对齐</span>
+      <p>“继续”提示会追加两行文字。底部对齐时，新增行会从底边向上生长，导致已经读到的正文突然上移并撞到标题。顶部对齐能固定第一行位置。</p>
+    </div>
+    <p>在两个关卡资产中填写 Completion Dialogue，例如：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>关卡</th><th>建议对白</th></tr></thead>
+        <tbody>
+          <tr><td>Level_FlowTest</td><td>“材料拿到了。” / “前面是熔岩区。石头会挡住你，但不会主动追来。” / “我找到下一条线索了。准备好就出发。”</td></tr>
+          <tr><td>Level_05</td><td>“我们穿过了熔岩区。” / “这次没有新的地点可去，但这只是旅程的停顿。”</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout warn">
+      <span class="label">先检查空数组</span>
+      <p>最后一关也必须配置对白。若数组为空，代码仍应显示一句保底文本，而不是留下空白面板。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>测试节奏与状态边界</h2></div>
+    <ol>
+      <li>完成 Level_FlowTest：标题变为 MAYA，第一句逐字出现，操作按钮不可见。</li>
+      <li>打字过程中点击一次：当前句立即完整显示，但不会跳到下一句。</li>
+      <li>再次点击或按空格：进入第二句。最后一句后再推进，才出现“重开”和“下一关”。</li>
+      <li>进入 Level_05：看到不同对白；读完最后一句后只出现“重开”，没有“下一关”。</li>
+      <li>让生命耗尽：不播放 MAYA 通关对话，直接显示失败结算。</li>
+      <li>对话中按 R：重开后的关卡与 HUD 不残留旧台词。</li>
+    </ol>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习</h2>
+    <p>先不要往上翻。</p>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">1. 为什么把通关台词放进关卡资产？</p>
+      <div class="options">
+        <button class="option" type="button">让 TMP 自动翻译台词</button>
+        <button class="option" type="button">让协程运行得更快速</button>
+        <button class="option" type="button">让新关卡配置自己的台词</button>
+        <button class="option" type="button">让按钮永远保持隐藏</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>内容属于关卡数据，显示逻辑与推进逻辑不需要为每一关复制。</p>
+    </div>
+
+    <div class="quiz" data-answer="0">
+      <p class="q">2. 正在逐字显示时第一次推进输入做什么？</p>
+      <div class="options">
+        <button class="option" type="button">补全当前这一句</button>
+        <button class="option" type="button">立刻跳到最后一关</button>
+        <button class="option" type="button">删除剩余全部台词</button>
+        <button class="option" type="button">打开暂停设置菜单</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>这是“跳过动画但不跳剧情”的两层输入规则。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">3. 对话文字为何使用 unscaledDeltaTime？</p>
+      <div class="options">
+        <button class="option" type="button">让音频自动降低音量</button>
+        <button class="option" type="button">让场景永远保持激活</button>
+        <button class="option" type="button">让输入系统自动重新启动</button>
+        <button class="option" type="button">让界面动画不受暂停缩放</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>UI 的显示节奏不应依赖游戏世界的 timeScale。</p>
+    </div>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">4. 什么时候显示重开和下一关按钮？</p>
+      <div class="options">
+        <button class="option" type="button">关卡刚开始移动时</button>
+        <button class="option" type="button">对话最后一句结束后</button>
+        <button class="option" type="button">第一句文字出现之前</button>
+        <button class="option" type="button">玩家走进岩浆的时候</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>玩家先读完剧情，再得到下一步操作；失败则走独立分支。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>完成后没有文字</td><td>MayaDialogueView 是否绑定 EndHintText，关卡数组是否有内容。</td></tr>
+          <tr><td>一次输入跳过两句</td><td>同一帧是否被 Update 和按钮各推进了一次；只保留一条输入路径。</td></tr>
+          <tr><td>文字停在一半</td><td>协程是否被 StopCoroutine 后没有补全；检查 Advance 分支。</td></tr>
+          <tr><td>继续提示出现后文本上移</td><td>EndHintText 是否仍是 Bottom 对齐；改为 Top，并扩大文本框。</td></tr>
+          <tr><td>按钮提前出现</td><td>Completed 分支是否在 Show 前把按钮设为 false。</td></tr>
+          <tr><td>失败也出现 MAYA</td><td>Failed 分支是否先 HideImmediate，并提前 return。</td></tr>
+          <tr><td>重新进关残留文字</td><td>HideImmediate 是否清理数组、索引、协程和 TMP 文本。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">07</span><h2>提交与开发日志</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add Assets
+git commit -m "feat(dialogue): add Maya level dialogue"</code></pre>
+    </div>
+    <p>在 <code>docs/devlog/</code> 写三行：做了什么、最难的边界、下次先做什么。开发日志要和代码分开提交。</p>
+  </section>
+
+  <section class="source">
+    <h2>主资料</h2>
+    <p><a href="https://docs.unity3d.com/6000.0/Documentation/Manual/Coroutines.html">Unity Manual: Coroutines</a> · <a href="https://docs.unity3d.com/6000.0/Documentation/ScriptReference/MonoBehaviour.StartCoroutine.html">MonoBehaviour.StartCoroutine</a> · <a href="https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Time-unscaledDeltaTime.html">Time.unscaledDeltaTime</a></p>
+    <p>完整参考：<a href="../solutions/0014/MayaDialogueView.cs">MayaDialogueView.cs</a> · <a href="../solutions/0014/GameHud.cs">GameHud.cs</a></p>
+  </section>
+
+  <p class="ask">如果按钮提前出现、快速点击跳过两句，或第一次完成后文字没有开始，把 Console、GameHud 的四个引用和关卡数组截图发我。下一课会把这条对话链补成统一的受击与拾取反馈层。</p>
+
+  <nav class="footer-nav">
+    <a href="0010-maya-and-next-level.html">上一课：MAYA 与下一关</a>
+    <a href="../reference/0015-maya-dialogue-cheatsheet.html">参考卡：对话队列与逐字显示</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+<script src="../assets/dialogue-demo.js"></script>
+</body>
+</html>

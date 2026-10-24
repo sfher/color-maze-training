@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 03 · 把关卡从代码里搬出来 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 03</div>
+    <h1>把关卡从代码里<br>搬出来</h1>
+    <p class="lede">现在每加一个关卡都要改 C#，这不是做内容的方式。今天把地图搬进一个可编辑的 <code>LevelDefinition</code> 资产，让关卡变成数据，而不是代码。</p>
+    <div class="meta">
+      <span>50–75 分钟</span>
+      <span>ScriptableObject · 数据 · 重构</span>
+      <span>产出：可编辑的关卡资产</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0003">
+      <li><label><input type="checkbox"><span>删除 Player 下多余的空子对象 <code>PlayerGridMover</code>。</span></label></li>
+      <li><label><input type="checkbox"><span>创建 <code>Assets/Scripts/LevelDefinition.cs</code>。</span></label></li>
+      <li><label><input type="checkbox"><span>把 <code>MazeBootstrapper</code> 改为从 <code>LevelDefinition</code> 读取地图。</span></label></li>
+      <li><label><input type="checkbox"><span>创建并绑定 <code>Level_01</code> 资产，Play 后画面与之前一致。</span></label></li>
+      <li><label><input type="checkbox"><span>在 Inspector 里改一行地图，Play 后看到变化；提交并写日志。</span></label></li>
+      <li><label><input type="checkbox"><span>测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>为什么现在重构</h2>
+    <p>你现在的 <code>MazeBootstrapper</code> 里同时有：地图字符串、尺寸常量、渲染逻辑、可通行判断。只有一关时它很好用；但《色彩迷宫》要做的是多个关卡，继续这样写会出现三个问题：</p>
+    <ul>
+      <li>每加一关都要复制或修改脚本，代码和内容纠缠在一起。</li>
+      <li>地图数据藏在字符串拼接里，改错一个字符很难定位。</li>
+      <li>以后想让“关卡设计”和“程序实现”分开，没有清晰的边界。</li>
+    </ul>
+    <p>今天引入 <strong>ScriptableObject</strong>：一种存放在 <code>Assets</code> 里、可以被 Inspector 编辑、但不挂在场景对象上的数据资产。它很适合关卡、道具表、数值配置。</p>
+    <div class="concept-grid">
+      <article class="concept">
+        <span class="tag">Data</span>
+        <h3>LevelDefinition</h3>
+        <p>保存地图行、尺寸与格子查询。它只回答“这一格是什么”，不负责生成方块。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">View / Query</span>
+        <h3>MazeBootstrapper</h3>
+        <p>读取关卡数据，生成方块，回答“这一格能不能走”。它不再拥有地图内容。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">Input</span>
+        <h3>PlayerGridMover</h3>
+        <p>只负责读取按键、询问目标格是否可走、更新玩家位置。</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">00</span><h2>先清理两个技术债</h2></div>
+    <p>打开 Hierarchy，展开 <code>Player</code>。你会看到一个名为 <code>PlayerGridMover</code> 的子对象，它的组件引用是空的。它是重复对象，会让 Console 报错；选中这个子对象并删除，保留 <code>Player</code> 本身和它身上的 <code>Player Grid Mover</code> 组件。</p>
+    <p>然后打开 <code>Assets/Scripts/MazeBootstrapper.cs</code>，确认文件顶部没有这两行：</p>
+    <pre><code>using JetBrains.Annotations;
+using UnityEditor.Tilemaps;</code></pre>
+    <p>它们没有被用到；其中 <code>UnityEditor.Tilemaps</code> 属于编辑器程序集，运行时代码引用它，在编辑器里可能正常，但打包 Windows 版本时会失败。运行时代码只应该依赖 <code>UnityEngine</code>；编辑器工具代码要放在单独的 <code>Editor/</code> 目录或用条件编译隔离。</p>
+    <div class="callout warn">
+      <span class="label">这是行业里很常见的坑</span>
+      <p>“编辑器里能跑”不等于“能打包”。每次引入一个命名空间，都要问：它属于运行时还是编辑器？<code>UnityEditor</code> 开头的类型，默认不能出现在玩家的构建里。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>创建 LevelDefinition.cs</h2></div>
+    <p>在 <code>Assets/Scripts</code> 右键，选择 <strong>Create → C# Script</strong>，命名为 <code>LevelDefinition</code>。替换为：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelDefinition.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using UnityEngine;
+
+[CreateAssetMenu(
+    menuName = "Color Maze/Level Definition",
+    fileName = "Level_01")]
+public class LevelDefinition : ScriptableObject
+{
+    [SerializeField] private string[] rows =
+    {
+        "#######",
+        "#.....#",
+        "#.RR..#",
+        "#.....#",
+        "#..BB.#",
+        "#.....#",
+        "#######"
+    };
+
+    public int Width =&gt; rows != null &amp;&amp; rows.Length &gt; 0
+        ? rows[0].Length
+        : 0;
+
+    public int Height =&gt; rows != null ? rows.Length : 0;
+
+    public bool Contains(Vector2Int cell)
+    {
+        return cell.x &gt;= 0 &amp;&amp; cell.x &lt; Width &amp;&amp;
+               cell.y &gt;= 0 &amp;&amp; cell.y &lt; Height;
+    }
+
+    public char GetTile(Vector2Int cell)
+    {
+        int row = Height - 1 - cell.y;
+        return rows[row][cell.x];
+    }
+
+    private void OnValidate()
+    {
+        if (rows == null || rows.Length == 0)
+        {
+            Debug.LogWarning("LevelDefinition: 地图至少需要一行。", this);
+            return;
+        }
+
+        int width = rows[0].Length;
+
+        for (int i = 0; i &lt; rows.Length; i++)
+        {
+            if (string.IsNullOrEmpty(rows[i]) ||
+                rows[i].Length != width)
+            {
+                Debug.LogWarning(
+                    $"LevelDefinition: 第 {i + 1} 行长度不一致，应为 {width}。",
+                    this);
+            }
+        }
+    }
+}</code></pre>
+    </div>
+    <p>这里有几个新概念：</p>
+    <ul>
+      <li><code>ScriptableObject</code> 是一个可序列化的数据对象，不会像 MonoBehaviour 那样挂在场景对象上。</li>
+      <li><code>[CreateAssetMenu]</code> 会在 Project 窗口的 Create 菜单里增加一个入口，方便创建资产。</li>
+      <li><code>rows</code> 是逐行地图，数组第一项是顶部行；<code>GetTile</code> 把 y 轴翻回 Unity 的方向。</li>
+      <li><code>OnValidate</code> 只用于编辑器里的数据检查：行长不一致时在 Console 给出警告，而不是等到运行时才崩。</li>
+    </ul>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>让 MazeBootstrapper 读取关卡资产</h2></div>
+    <p>用下面的版本替换 <code>MazeBootstrapper.cs</code>。渲染逻辑和颜色逻辑保持原样，变化在于地图不再写死在脚本里。</p>
+    <div class="code">
+      <div class="code-head"><span>MazeBootstrapper.cs · 重构后</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using UnityEngine;
+
+public class MazeBootstrapper : MonoBehaviour
+{
+    [SerializeField] private LevelDefinition level;
+
+    private int Width =&gt; level != null ? level.Width : 0;
+    private int Height =&gt; level != null ? level.Height : 0;
+
+    private void Start()
+    {
+        if (level == null)
+        {
+            Debug.LogError(
+                "MazeBootstrapper: 请在 Inspector 里指定 Level Definition。",
+                this);
+            enabled = false;
+            return;
+        }
+
+        Sprite square = CreateSquareSprite();
+
+        for (int y = 0; y &lt; Height; y++)
+        {
+            for (int x = 0; x &lt; Width; x++)
+            {
+                char tile = level.GetTile(new Vector2Int(x, y));
+                CreateCell(square, x, y, tile);
+            }
+        }
+    }
+
+    public bool IsWalkable(Vector2Int cell)
+    {
+        if (level == null || !level.Contains(cell))
+        {
+            return false;
+        }
+
+        return level.GetTile(cell) != '#';
+    }
+
+    public Vector3 CellToWorld(Vector2Int cell)
+    {
+        return transform.TransformPoint(CellToLocal(cell));
+    }
+
+    private Vector3 CellToLocal(Vector2Int cell)
+    {
+        return new Vector3(
+            cell.x - (Width - 1) * 0.5f,
+            cell.y - (Height - 1) * 0.5f,
+            0f);
+    }
+
+    private void CreateCell(Sprite square, int x, int y, char tile)
+    {
+        GameObject cell = new GameObject($"Cell_{x}_{y}");
+        cell.transform.SetParent(transform);
+        cell.transform.localPosition = CellToLocal(new Vector2Int(x, y));
+
+        SpriteRenderer spriteRenderer = cell.AddComponent&lt;SpriteRenderer&gt;();
+        spriteRenderer.sprite = square;
+        spriteRenderer.color = ColorFor(tile);
+    }
+
+    private Color ColorFor(char tile)
+    {
+        switch (tile)
+        {
+            case '#': return new Color(0.10f, 0.10f, 0.12f);
+            case '.': return new Color(0.93f, 0.92f, 0.88f);
+            case 'R': return new Color(0.82f, 0.22f, 0.20f);
+            case 'B': return new Color(0.16f, 0.45f, 0.86f);
+            default: return Color.magenta;
+        }
+    }
+
+    private Sprite CreateSquareSprite()
+    {
+        Texture2D texture = new Texture2D(1, 1);
+        texture.SetPixel(0, 0, Color.white);
+        texture.Apply();
+
+        return Sprite.Create(
+            texture,
+            new Rect(0f, 0f, 1f, 1f),
+            new Vector2(0.5f, 0.5f),
+            1f);
+    }
+}</code></pre>
+    </div>
+    <p>注意：脚本文件名必须仍然是 <code>MazeBootstrapper.cs</code>，这样场景里已经挂好的组件引用不会断。等 Unity 编译完成后，Inspector 里会多出一个 <strong>Level</strong> 字段，现在是 <code>None</code>。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>创建 Level_01 资产并绑定</h2></div>
+    <ol>
+      <li>在 Project 窗口右键 <code>Assets</code>，选择 <strong>Create → Folder</strong>，命名 <code>Data</code>。</li>
+      <li>右键 <code>Data</code>，选择 <strong>Create → Color Maze → Level Definition</strong>，命名为 <code>Level_01</code>。</li>
+      <li>选中 <code>Level_01</code>，在 Inspector 里确认 Rows 有 7 个元素，内容与原来的地图一致。</li>
+      <li>选中挂了 <code>MazeBootstrapper</code> 的对象，把 <code>Level_01</code> 从 Project 窗口拖到它的 <strong>Level</strong> 字段。</li>
+      <li>按 Play。画面应该与第一课完全一致，玩家仍然可以移动。</li>
+    </ol>
+    <div class="callout tip">
+      <span class="label">本课真正的胜利</span>
+      <p>停止 Play，在 <code>Level_01</code> 里把某一行改一个字符，例如把 <code>#.RR..#</code> 改成 <code>#.R...#</code>，再 Play。画面立刻变化，而你一行 C# 都没改。这就是“数据驱动内容”。</p>
+    </div>
+    <p>如果 Rows 显示为空，检查脚本是否编译成功、类名和文件名是否一致；创建资产时字段初始化器应该自动填入默认地图。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>可选挑战：做第二关</h2></div>
+    <p>选中 <code>Level_01</code>，按 <code>Ctrl + D</code> 复制，命名为 <code>Level_02</code>，改几行地图，再把 Maze 的 Level 字段换成它。确认：</p>
+    <ul>
+      <li>两个关卡使用同一套脚本；</li>
+      <li>切换资产就能切换内容；</li>
+      <li>所有行长度一致，否则 <code>OnValidate</code> 会在 Console 提醒。</li>
+    </ul>
+    <p>如果第二关的起点 <code>(1,1)</code> 是墙，玩家会出生在墙里但无法移动；先把起点改成可走格，或者暂时把 Start Cell 调整到合适位置。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>提交与开发日志</h2></div>
+    <p>在 <code>Color Maze</code> 工程根目录执行：</p>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "refactor: move level data into ScriptableObject"</code></pre>
+    </div>
+    <p>写日志。如果 <code>2026-10-20.md</code> 已经被第二课占用，就新建 <code>2026-10-20-level-data.md</code>，不要覆盖：</p>
+    <pre><code># 2026-10-20 · 关卡数据
+
+## 今天做了什么
+- 把地图从 MazeBootstrapper 搬进 LevelDefinition 资产。
+- 改数据就能换地图，不需要改 C#。
+
+## 卡在哪里 / 怎么解决
+- ...
+
+## 下次先做什么
+- 让红色岩浆扣生命，让蓝色水消耗氧气。</code></pre>
+    <p>再提交一次：</p>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>git add .
+git commit -m "docs: add lesson 03 devlog"</code></pre>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习：合上资料再答</h2>
+    <p>先不要往上翻。答错没关系，努力回忆本身就在加固记忆。</p>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">1. ScriptableObject 最适合承担下面哪件事？</p>
+      <div class="options">
+        <button class="option" type="button">控制玩家输入</button>
+        <button class="option" type="button">存放关卡数据</button>
+        <button class="option" type="button">渲染场景画面</button>
+        <button class="option" type="button">编译 C# 代码</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>ScriptableObject 是数据资产，适合关卡、道具表和数值配置；输入和渲染仍由运行时组件负责。</p>
+    </div>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">2. <code>[CreateAssetMenu]</code> 的作用是什么？</p>
+      <div class="options">
+        <button class="option" type="button">自动保存整场景</button>
+        <button class="option" type="button">编译全部脚本啊</button>
+        <button class="option" type="button">添加创建菜单项</button>
+        <button class="option" type="button">删除旧资源文件</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>它把“创建这种数据资产”的入口加到 Project 窗口的 Create 菜单里，方便策划或开发者新建关卡。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">3. 为什么运行时代码不能引用 <code>UnityEditor</code>？</p>
+      <div class="options">
+        <button class="option" type="button">会让整个画面更暗一些</button>
+        <button class="option" type="button">会增加玩家的生命值啊</button>
+        <button class="option" type="button">会删除所有的场景文件</button>
+        <button class="option" type="button">打包后不存在此程序集</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden><code>UnityEditor</code> 只存在于编辑器环境；玩家构建里没有这组程序集，所以运行时代码不能依赖它。</p>
+    </div>
+
+    <div class="quiz" data-answer="0">
+      <p class="q">4. 把地图放进 LevelDefinition 的最大收益是什么？</p>
+      <div class="options">
+        <button class="option" type="button">改关卡不用改代码</button>
+        <button class="option" type="button">让方块移动更快些</button>
+        <button class="option" type="button">减少游戏占用内存</button>
+        <button class="option" type="button">自动生成美术图片</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>关卡内容变成可编辑资产，新增或调整关卡不需要改动 C#，也让内容与程序职责分开。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>最可能原因</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>Inspector 里没有 Level 字段</td><td>MazeBootstrapper 没编译成功</td><td>看 Console 第一条红字；确认类名与文件名一致。</td></tr>
+          <tr><td>Create 菜单里没有 Color Maze</td><td>LevelDefinition 还有编译错误</td><td>修复脚本错误，等 Unity 重新编译。</td></tr>
+          <tr><td>Play 后 Maze 不生成</td><td>Level 字段是 None</td><td>把 Level_01 拖到 MazeBootstrapper 的 Level 字段。</td></tr>
+          <tr><td>方块全是洋红色</td><td>关卡里有未识别字符</td><td>只使用 <code>#</code>、<code>.</code>、<code>R</code>、<code>B</code>；检查每行字符。</td></tr>
+          <tr><td>IndexOutOfRangeException</td><td>各行长度不一致</td><td>让每行长度相同；看 OnValidate 的警告。</td></tr>
+          <tr><td>玩家不能移动</td><td>IsWalkable 读到 null Level 或越界</td><td>确认 Level 已绑定，起点 (1,1) 不是墙。</td></tr>
+          <tr><td>打包时报 UnityEditor 错误</td><td>运行时脚本引用了编辑器程序集</td><td>删除 <code>using UnityEditor...</code>；编辑器代码放到 Editor 目录。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料（课后 15 分钟）</h2>
+    <p><a href="https://docs.unity3d.com/Manual/class-ScriptableObject.html">Unity Manual: ScriptableObject</a>——重点看“数据资产”与“不要用它保存运行时状态”。</p>
+    <p>补充：<a href="https://docs.unity3d.com/ScriptReference/CreateAssetMenuAttribute.html">CreateAssetMenuAttribute</a> 与 <a href="https://docs.unity3d.com/ScriptReference/MonoBehaviour.OnValidate.html">OnValidate</a>。读完后想一想：为什么 <code>LevelDefinition</code> 不应该保存“玩家当前生命值”？</p>
+    <p>参考实现：<a href="../solutions/0003/LevelDefinition.cs">LevelDefinition.cs</a> · <a href="../solutions/0003/MazeBootstrapper.cs">MazeBootstrapper.cs</a></p>
+  </section>
+
+  <p class="ask">如果你卡在“Create 菜单没有 Color Maze”、资产拖不进 Level 字段，或者 Play 后地图不对，把 Console 红字和 LevelDefinition 的 Inspector 内容发我。下一课开始让红色岩浆扣生命、蓝色水耗氧气。</p>
+
+  <nav class="footer-nav">
+    <a href="0002-grid-movement.html">上一课：网格移动</a>
+    <a href="0004-resource-rules.html">下一课：生命与氧气</a>
+    <a href="../reference/0003-scriptable-object-cheatsheet.html">参考卡：ScriptableObject 速查</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

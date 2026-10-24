@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 20 · 关卡编辑器工具速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 20</div>
+    <h1>关卡编辑器工具</h1>
+    <p class="lede">文本负责批量导入，编辑器窗口负责绘制，SerializedObject 负责安全写回，Validator 负责拒绝坏地图。</p>
+    <div class="meta"><span>打印友好</span><span>UnityEditor</span><span>Level Workflow</span></div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>三层结构</h2>
+      <pre><code>LevelMapCodec
+  string → string[]
+
+LevelPainterWindow
+  string[] → char[,]
+  paint / sample / validate
+
+SerializedObject
+  char[,] → LevelDefinition.rows</code></pre>
+      <p>解析、编辑、写资产分开，任何一层都能单独测试。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>粘贴规则</h2>
+      <ul>
+        <li>CRLF、LF 都支持。</li>
+        <li>每行首尾空白忽略。</li>
+        <li>首尾空行可以删除。</li>
+        <li>中间空行报错。</li>
+        <li>行宽必须一致。</li>
+        <li>只允许地图字符。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>允许字符</h2>
+      <pre><code>.#SRBCME123456789</code></pre>
+      <p>未知字符必须报错，不能静默当墙。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>写入资产</h2>
+      <pre><code>SerializedObject so =
+    new SerializedObject(level);
+
+SerializedProperty rows =
+    so.FindProperty("rows");
+
+rows.arraySize = newRows.Length;
+// 写每个 string
+so.ApplyModifiedProperties();</code></pre>
+      <p>写前记录 Undo，写后保存资产。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>画笔状态</h2>
+      <pre><code>LevelDefinition level
+char[,] cells
+char brush = '#'
+bool isDirty
+
+左键 → 绘制
+右键 → 取样
+Apply → 写资产
+Revert → 重读资产</code></pre>
+    </section>
+
+    <section class="ref-block">
+      <h2>坐标提醒</h2>
+      <ul>
+        <li>rows[0] 是地图顶部。</li>
+        <li>游戏 y=0 是地图底部。</li>
+        <li>起点固定为 x=1,y=1。</li>
+        <li>网格 UI 绘制时最容易上下颠倒。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>必做保护</h2>
+      <ul>
+        <li>切换资产前检查未保存修改。</li>
+        <li>缩小地图前确认。</li>
+        <li>校验失败仍可保存 draft，但要标红。</li>
+        <li>不要在 IMGUI 循环中直接改资产。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>最小验收</h2>
+      <ul>
+        <li>一次粘贴完整地图。</li>
+        <li>点击绘制和右键取样。</li>
+        <li>Apply 后 Ctrl+Z 可撤销。</li>
+        <li>坏地图指出行列。</li>
+        <li>新建关卡无需改 YAML。</li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程与资料</h2>
+    <p><a href="../lessons/0014b-map-paste-editor.html">14b · 批量粘贴</a> · <a href="../lessons/0014c-level-painter.html">14c · 基础画笔</a> · <a href="../lessons/0014d-level-editor-polish.html">14d · 工作流补全</a></p>
+    <p><a href="https://docs.unity3d.com/ScriptReference/SerializedObject.html">SerializedObject</a> · <a href="https://docs.unity3d.com/ScriptReference/EditorWindow.html">EditorWindow</a> · <a href="https://docs.unity3d.com/ScriptReference/AssetDatabase.html">AssetDatabase</a></p>
+  </section>
+
+  <nav class="footer-nav"><a href="../lessons/0014b-map-paste-editor.html">开始 14b</a><a href="../CURRICULUM.md">课程路线图</a></nav>
+</main>
+</body>
+</html>

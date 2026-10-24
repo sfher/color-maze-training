@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 13 · 暂停与 timeScale 速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 13</div>
+    <h1>暂停与 timeScale</h1>
+    <p class="lede">暂停是一个可以回到 Playing 的状态。时间停住不等于 Update 停住，输入和 UI 仍需要明确管理。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>Paused</span>
+      <span>Time.timeScale</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>状态转换</h2>
+      <pre><code>Playing --Esc--&gt; Paused
+Paused  --Esc--&gt; Playing
+Paused  --Restart--&gt; scene reload
+Playing --material+exit--&gt; Completed
+Playing --health 0--&gt; Failed</code></pre>
+      <p>Completed/Failed 不接受暂停；只允许 R 或按钮重开。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>暂停/继续</h2>
+      <pre><code>SetState(Paused);
+Time.timeScale = 0f;
+
+SetState(Playing);
+Time.timeScale = 1f;</code></pre>
+      <p>先改状态再停时间，或先停时间再改状态都可以；关键是两者都发生，恢复时两者都回来。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>Update 仍在执行</h2>
+      <ul>
+        <li><code>Time.timeScale = 0</code>：物理/基于时间的动画停。</li>
+        <li><code>Update</code> 仍执行，所以 Esc 仍能被检测。</li>
+        <li>移动脚本必须检查 <code>flow.IsPlaying</code>。</li>
+        <li>定时 UI 用 <code>WaitForSecondsRealtime</code>。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>音频</h2>
+      <pre><code>audio.PlayUiConfirm();
+
+// 短音效不依赖 timeScale
+source.PlayOneShot(uiConfirm);</code></pre>
+      <p>本课没有暂停 AudioListener，因此暂停/继续确认音仍可播放。背景音乐暂停需要单独设计。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>UI 面板</h2>
+      <pre><code>pausePanel.SetActive(
+    flow.State == LevelState.Paused);
+
+endPanel.SetActive(
+    State == Completed || State == Failed);</code></pre>
+      <p>暂停面板和结算面板互斥；不要在暂停时同时显示结算。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>按钮</h2>
+      <ul>
+        <li>ResumeButton → <code>flow.Resume</code></li>
+        <li>PauseRestartButton → <code>flow.Restart</code></li>
+        <li>OnDestroy 移除监听。</li>
+        <li>EventSystem 必须存在。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>测试清单</h2>
+      <ul>
+        <li>Esc 显示/隐藏暂停面板。</li>
+        <li>暂停时玩家不移动、不响应炸弹。</li>
+        <li>继续后恢复输入。</li>
+        <li>暂停时重开，timeScale 恢复为 1。</li>
+        <li>结算时按 Esc 不进入暂停。</li>
+        <li>暂停/继续只播放一次确认音。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>Esc 没反应</dt>
+        <dd>Game 视图焦点、Escape 输入、Flow 是否启用。</dd>
+      </dl>
+      <dl class="term">
+        <dt>暂停还能走</dt>
+        <dd>PlayerGridMover 没有检查 flow.IsPlaying。</dd>
+      </dl>
+      <dl class="term">
+        <dt>重开仍冻结</dt>
+        <dd>Restart/新场景 Start 没有恢复 timeScale=1。</dd>
+      </dl>
+      <dl class="term">
+        <dt>面板按钮无效</dt>
+        <dd>GameHud 未绑定按钮，或场景缺 EventSystem。</dd>
+      </dl>
+      <dl class="term">
+        <dt>结算还能暂停</dt>
+        <dd>Esc 状态判断范围写错。</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0009e-pause-menu.html">课程 09e · 暂停不是把游戏关掉</a></p>
+    <p>官方查证：<a href="https://docs.unity3d.com/ScriptReference/Time-timeScale.html">Time.timeScale</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0009e-pause-menu.html">回到课程 09e</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

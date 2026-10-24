@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 14c · 基础关卡画笔 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 14c</div>
+    <h1>基础关卡画笔</h1>
+    <p class="lede">你要做一个最小但真正可用的 EditorWindow：读取关卡、选择字符、点击格子、验证并应用。</p>
+    <div class="meta"><span>60–90 分钟</span><span>EditorWindow · Grid · Buffer</span><span>产出：可绘制关卡</span></div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0014c">
+      <li><label><input type="checkbox"><span>菜单出现 <code>Color Maze → Levels → Level Painter</code>。</span></label></li>
+      <li><label><input type="checkbox"><span>可以选择 LevelDefinition 并把地图载入窗口。</span></label></li>
+      <li><label><input type="checkbox"><span>左键绘制、右键吸取格子。</span></label></li>
+      <li><label><input type="checkbox"><span>Apply 写回资产并支持 Undo；Revert 恢复资产版本。</span></label></li>
+      <li><label><input type="checkbox"><span>Validate 不修改资产也能报告当前缓冲的问题。</span></label></li>
+      <li><label><input type="checkbox"><span>切换关卡时不会静默丢失未应用的画笔修改。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>窗口只做三件事</h2>
+    <div class="concept-grid">
+      <div class="concept"><span class="tag">SELECT</span><h3>选择关卡</h3><p>用 ObjectField 绑定一个 LevelDefinition。</p></div>
+      <div class="concept"><span class="tag">EDIT</span><h3>编辑缓冲</h3><p>网格操作先改内存，不立即写资产。</p></div>
+      <div class="concept"><span class="tag">COMMIT</span><h3>应用结果</h3><p>用户点 Apply 后才写 SerializedObject。</p></div>
+    </div>
+    <div class="callout tip">
+      <span class="label">先定状态</span>
+      <p>窗口至少需要 <code>LevelDefinition level</code>、<code>char[,] cells</code>、<code>char brush</code>、<code>bool isDirty</code>。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>建立最小窗口</h2></div>
+    <pre><code>public class LevelPainterWindow : EditorWindow
+{
+    [MenuItem("Color Maze/Levels/Level Painter")]
+    private static void Open()
+    {
+        GetWindow&lt;LevelPainterWindow&gt;(
+            "Level Painter");
+    }
+}</code></pre>
+    <p>顶部放 <code>EditorGUILayout.ObjectField</code>。选择资产时，把它的 rows 复制成 <code>char[,]</code>；不要长期保存对 SerializedProperty 的引用。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>制作调色板</h2></div>
+    <p>调色板顺序固定为：</p>
+    <pre><code>.  #  S  R  B  C  M  E  1 … 9</code></pre>
+    <p>每个按钮用当前画笔高亮。传送门 1–9 可以放在第二行，避免窗口太宽。切换画笔不能修改地图。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>画网格</h2></div>
+    <p>用双层循环创建 <code>GUILayout.Button</code>。每个按钮宽高约 28–32px，按钮文字用 <code>#</code>、<code>.</code>、<code>R</code> 等字符。</p>
+    <ul>
+      <li>左键：把当前格设为画笔。</li>
+      <li>右键：把当前格字符设为画笔，即“取样”。</li>
+      <li>修改后设置 <code>isDirty = true</code> 并 <code>Repaint()</code>。</li>
+      <li>始终在 <code>(1,1)</code> 显示红色起点标记，但不要改变地图字符。</li>
+    </ul>
+    <p>地图行数组是“上到下”，坐标 y 是“下到上”。绘制时最容易在这里弄反。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>应用、撤销与恢复</h2></div>
+    <p>Apply 时把 <code>char[,]</code> 转回 <code>string[]</code>，然后用 SerializedObject 写入 rows。写入前注册 Undo，并调用 <code>AssetDatabase.SaveAssets()</code>。</p>
+    <p>Revert 重新从资产读取；有未应用修改时，切换关卡或关闭窗口要弹出 Save / Discard / Cancel。</p>
+    <div class="callout warn">
+      <span class="label">不要靠 Inspector 自动 Undo</span>
+      <p>你修改的是窗口缓冲，必须显式注册 Undo。否则 Apply 后 Ctrl+Z 找不回上一张地图。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>校验当前缓冲</h2></div>
+    <p>把 14b 的 Codec 与 14 的 Validator 复用起来。Validate 检查的是窗口中的 <code>char[,]</code>，不是磁盘上的旧资产。</p>
+    <p>建议校验函数接收 <code>string[] rows</code> 与 <code>stepLimit</code>，LevelDefinition 版本只是读取字段后调用同一个函数。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>验收</h2></div>
+    <ol>
+      <li>打开 Level_Water World，画三格再撤销。</li>
+      <li>右键吸取一个水格，再用它绘制另一格。</li>
+      <li>绘制、Validate、Apply，关闭窗口重新打开后内容一致。</li>
+      <li>不 Apply 就切换关卡，出现未保存提示。</li>
+    </ol>
+    <p>如果卡住，把 Console 或窗口截图发我。下一节再补新建关卡、尺寸调整和完整工作流。</p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="0014b-map-paste-editor.html">上一课：批量粘贴</a>
+    <a href="0014d-level-editor-polish.html">下一课：工作流补全</a>
+    <a href="../reference/0020-level-editor-tools-cheatsheet.html">参考卡</a>
+  </nav>
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

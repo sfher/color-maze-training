@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 06 · 运行时地图与炸弹速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 06</div>
+    <h1>运行时地图与炸弹</h1>
+    <p class="lede">关卡资产是模板，运行时副本才是这一局的状态。炸石头要同时改逻辑格子和画面，并且只在确认目标合法后消耗炸弹。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>二维数组</span>
+      <span>资源消耗</span>
+    </div>
+  </header>
+
+  <section class="callout warn">
+    <span class="label">历史规则</span>
+    <p>当前炸弹不是瞬间炸前方：按 E 原地放置，三次有效移动后爆炸，破坏上下左右灰石并可伤到玩家。请以项目内 <code>docs/LEVEL_DESIGN_GUIDE.md</code> 为准。</p>
+  </section>
+
+  <div class="ref-grid">
+
+    <section class="ref-block">
+      <h2>模板 → 运行时</h2>
+      <pre><code>LevelDefinition（资产）
+  rows: "#######", ...
+        ↓ Start 时复制
+TileType[,] _tiles（这一局）
+        ↓ 炸石头
+_tiles[x, y] = Floor
+_renderers[x, y].color = 地板色</code></pre>
+      <p>不要写回 <code>LevelDefinition</code>；否则停止 Play 后模板可能被永久修改。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>Stone 类型</h2>
+      <pre><code>public enum TileType
+{
+    Floor,
+    Wall,
+    Lava,
+    Water,
+    Stone
+}</code></pre>
+      <p>地图字符 <code>S</code> → <code>TileType.Stone</code>；未知字符仍默认 Wall。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>二维数组</h2>
+      <pre><code>private TileType[,] _tiles;
+
+_tiles = new TileType[Width, Height];
+
+_tiles[x, y] = tile;
+TileType tile = _tiles[cell.x, cell.y];</code></pre>
+      <p>第一维是 x，第二维是 y；数组下标从 0 开始，访问前先检查边界。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>破坏石头的顺序</h2>
+      <pre><code>1. 前方目标是不是 Stone？
+2. 玩家还有炸弹吗？
+3. 扣炸弹
+4. _tiles[cell] = Floor
+5. _renderers[cell].color = ColorFor(Floor)</code></pre>
+      <p>目标不合法就不消耗资源；逻辑与显示必须同步更新。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>面朝方向</h2>
+      <pre><code>private Vector2Int facing = Vector2Int.up;
+
+// 每次尝试移动先记录方向
+facing = direction;
+
+// 炸弹作用于前方一格
+Vector2Int target = currentCell + facing;</code></pre>
+      <p>撞墙也算“面朝该方向”；这样玩家可以先按方向键对准石头，再按 E。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>炸弹资源</h2>
+      <pre><code>public int Bombs { get; private set; } = 1;
+
+public bool TryConsumeBomb()
+{
+    if (Bombs &lt;= 0)
+        return false;
+
+    Bombs -= 1;
+    return true;
+}</code></pre>
+      <p>返回 <code>bool</code> 让调用方知道是否真的消耗成功；不要先减到负数再判断。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>测试清单</h2>
+      <ul>
+        <li>石头挡住 Movement。</li>
+        <li>朝石头按 E：石头变地板，炸弹 1 → 0。</li>
+        <li>炸开后能走进原石头格。</li>
+        <li>没有石头时按 E：不扣炸弹。</li>
+        <li>停止 Play 后资产里的 S 还在。</li>
+        <li>再次 Play，石头重新出现。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>洋红色</dt>
+        <dd>ColorFor 缺少 Stone，或 S 没映射。</dd>
+      </dl>
+      <dl class="term">
+        <dt>炸不开</dt>
+        <dd>朝向不对，或 TryBreakStone 没有改 <code>_tiles</code>。</dd>
+      </dl>
+      <dl class="term">
+        <dt>扣了炸弹</dt>
+        <dd>先消耗后验证；应先检查目标是否 Stone。</dd>
+      </dl>
+      <dl class="term">
+        <dt>石头永久消失</dt>
+        <dd>写回了 LevelDefinition 资产，而不是运行时副本。</dd>
+      </dl>
+      <dl class="term">
+        <dt>画面没变</dt>
+        <dd>只改了 <code>_tiles</code>，没有改对应 SpriteRenderer 颜色。</dd>
+      </dl>
+    </section>
+
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0006-bombs-and-stone.html">课程 06 · 让关卡可以被改变</a></p>
+    <p>官方查证：<a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/arrays/multidimensional-arrays">C# 多维数组</a> · <a href="https://docs.unity3d.com/Manual/class-ScriptableObject.html">ScriptableObject</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0006-bombs-and-stone.html">回到课程 06</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

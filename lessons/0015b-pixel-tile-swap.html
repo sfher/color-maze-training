@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 15b · 把方块换成像素地砖 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 15b</div>
+    <h1>把方块换成<br>像素地砖</h1>
+    <p class="lede">15a 的素材已经躺在工程里了。今天接上最后一根线：TileVisuals 资产 → MazeBootstrapper → 场景，白方块退役。完整代码在页面里，参考实现（已编译验证）在 <code>solutions/0019/</code>。</p>
+    <div class="meta"><span>45–60 分钟</span><span>ScriptableObject · SpriteRenderer</span><span>产出：像素版主循环</span></div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0015b">
+      <li><label><input type="checkbox"><span>新建 <code>TileVisuals</code> ScriptableObject，一张资产管住全部地砖 sprite。</span></label></li>
+      <li><label><input type="checkbox"><span><code>MazeBootstrapper</code> 按 TileType 取像素地砖，不再运行时生成白方块（炸弹标记除外）。</span></label></li>
+      <li><label><input type="checkbox"><span>传送门用白色螺旋按编号染色，“踩过后变亮”的记忆机制行为不变。</span></label></li>
+      <li><label><input type="checkbox"><span>炸石、开箱、拾取后格子变回地板地砖，无颜色残留。</span></label></li>
+      <li><label><input type="checkbox"><span>Player 使用 <code>player_default</code>，颜色重置为白，层级保持 10。</span></label></li>
+      <li><label><input type="checkbox"><span>Play 一遍 Level_01 全流程，无视觉错误、镜头取景不变。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>先想清楚：什么变了，什么没变</h2>
+    <div class="code">
+      <div class="code-head"><span>渲染管线对比</span><button class="copy" type="button">复制</button></div>
+      <pre><code>现在  字符 → CreateSquareSprite() 1×1 白块 → color = ColorFor(tile)
+目标  字符 → TileVisuals.GetSprite(tile)  → 像素地砖
+                └ Portal 例外：白色螺旋 × PortalColor(id) 染色</code></pre>
+    </div>
+    <p>现在的白块是“全白 + 乘色”，所以 <code>ColorFor</code> 能当调色盘用。换成像素地砖后，地砖自带颜色，<code>color</code> 只剩一个职责：给白色螺旋染传送门色。记住这句话，下面每一处改动都是在执行它。</p>
+    <p>本课只动两个脚本和两处场景，<strong>关卡数据、移动、规则、相机、HUD 一概不动</strong>。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>新建 TileVisuals（完整代码）</h2></div>
+    <p>新建 <code>Assets/Scripts/TileVisuals.cs</code>（运行时程序集，不是 Editor），整个文件如下：</p>
+    <div class="code">
+      <div class="code-head"><span>TileVisuals.cs · 完整</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using UnityEngine;
+
+/// &lt;summary&gt;
+/// 一套关卡视觉皮肤：每种 TileType 对应一张像素地砖。
+/// 换主题 = 换一张 TileVisuals 资产，渲染代码不变。
+/// &lt;/summary&gt;
+[CreateAssetMenu(
+    menuName = "Color Maze/Tile Visuals",
+    fileName = "TileVisuals_Classic")]
+public class TileVisuals : ScriptableObject
+{
+    [SerializeField] private Sprite floor;
+    [SerializeField] private Sprite wall;
+    [SerializeField] private Sprite stone;
+    [SerializeField] private Sprite water;
+    [SerializeField] private Sprite lava;
+    [SerializeField] private Sprite chest;
+    [SerializeField] private Sprite material;
+    [SerializeField] private Sprite exit;
+    [SerializeField] private Sprite portalBase;
+
+    public Sprite GetSprite(TileType tile)
+    {
+        switch (tile)
+        {
+            case TileType.Wall: return wall;
+            case TileType.Stone: return stone;
+            case TileType.Lava: return lava;
+            case TileType.Water: return water;
+            case TileType.Chest: return chest;
+            case TileType.Portal: return portalBase;
+            case TileType.Material: return material;
+            case TileType.Exit: return exit;
+            default: return floor;
+        }
+    }
+}</code></pre>
+    </div>
+    <p>逐段理解：</p>
+    <ul>
+      <li><code>[CreateAssetMenu]</code>：让 Project 右键菜单出现 <code>Create → Color Maze → Tile Visuals</code>，和 LevelDefinition 同款做法。</li>
+      <li>九个字段对应九种地砖：<code>floor/wall/stone/water/lava/chest/material/exit/portalBase</code>。都是 <code>[SerializeField] private</code>，外部只读不写。</li>
+      <li><code>GetSprite</code> 用 switch 做映射，<code>default</code> 返回 <code>floor</code>——宁可给错地板，也不要返回 null 让渲染器空白。</li>
+    </ul>
+    <p>然后创建资产并填图：Project 进入 <code>Assets/Data/</code> → 右键 <code>Create → Color Maze → Tile Visuals</code>（名字就用默认 <code>TileVisuals_Classic</code>）→ 按下表拖入 15a 的素材：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>字段</th><th>拖入的素材</th></tr></thead>
+        <tbody>
+          <tr><td>floor / wall / water / material</td><td><code>Art/Kenney/RoguelikeCavesDungeons/</code> 对应 png</td></tr>
+          <tr><td>chest / exit</td><td><code>Art/Kenney/RoguelikeRpg/</code> 对应 png</td></tr>
+          <tr><td>lava / stone</td><td><code>Art/Tiles/tile_lava.png</code>、<code>tile_stone.png</code></td></tr>
+          <tr><td>portalBase</td><td><code>Art/Tiles/tile_portal.png</code>（白色螺旋）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout tip">
+      <span class="label">为什么是 ScriptableObject</span>
+      <p>商店主题就是“第二张 TileVisuals 资产”：再建一张、拖另一套图、Maze 换引用，零代码换皮。内容进数据、代码只管规则——和 LevelDefinition 是同一个模式。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>改造 MazeBootstrapper（四处改动 + 一处删除）</h2></div>
+    <p>完整改造后的文件在 <a href="../solutions/0019/MazeBootstrapper.cs">solutions/0019/MazeBootstrapper.cs</a>（已用 Unity 程序集编译验证 0 警告 0 错误）。下面按改动点逐个讲，未提到的部分<strong>一行都不用动</strong>。</p>
+
+    <h3>改动 1 · 加一个字段</h3>
+    <pre><code>[SerializeField] private LevelDefinition level;
+[SerializeField] private TileVisuals visuals;   // ← 新增</code></pre>
+
+    <h3>改动 2 · Start 里补判空</h3>
+    <p>在 <code>level</code> 判空之后照抄一段。缺资产时立刻报错停用，比画了半张地图才 NullReference 强得多：</p>
+    <pre><code>if (visuals == null)
+{
+    Debug.LogError(
+        "MazeBootstrapper: 请在 Inspector 里指定 Tile Visuals。",
+        this);
+    enabled = false;
+    return;
+}</code></pre>
+
+    <h3>改动 3 · CreateCell：白块 → 像素地砖</h3>
+    <p>方法签名里不再需要 <code>Sprite square</code> 参数，删掉它；两行赋值换掉：</p>
+    <pre><code>private SpriteRenderer CreateCell(
+    int x,
+    int y,
+    TileType tile)
+{
+    GameObject cell = new GameObject($"Cell_{x}_{y}");
+    cell.transform.SetParent(transform);
+    cell.transform.localPosition = CellToLocal(new Vector2Int(x, y));
+
+    SpriteRenderer spriteRenderer = cell.AddComponent<SpriteRenderer>();
+    spriteRenderer.sprite = visuals.GetSprite(tile);
+    spriteRenderer.color = Color.white;          // ← 像素地砖自带颜色，tint 归白
+    return spriteRenderer;
+}</code></pre>
+    <p>Start 循环里的调用相应改成 <code>CreateCell(x, y, tile)</code>。<strong>循环末尾那段 <code>if (tile == TileType.Portal) { ... PortalColor(portalId) }</code> 原样保留</strong>——白螺旋乘紫色就是紫螺旋，“踩过后变亮”的记忆机制（<code>MarkPortalPairKnown</code>）只改 color，也自动继续工作。</p>
+
+    <h3>改动 4 · TryReplace：本课的核心坑</h3>
+    <p>炸石、开箱、捡材料都走这里。旧版只改颜色；新版要换 sprite，<strong>并且必须把 color 重置回白</strong>：</p>
+    <pre><code>private bool TryReplace(
+    Vector2Int cell,
+    TileType expected,
+    TileType replacement)
+{
+    if (GetTileType(cell) != expected)
+    {
+        return false;
+    }
+
+    _tiles[cell.x, cell.y] = replacement;
+    _renderers[cell.x, cell.y].sprite =
+        visuals.GetSprite(replacement);
+    // color 是乘法 tint：换新地砖后必须归白，
+    // 否则地板会带上石头灰、水蓝等旧颜色。
+    _renderers[cell.x, cell.y].color = Color.white;
+    return true;
+}</code></pre>
+    <p>为什么必须归白：<code>SpriteRenderer.color</code> 会<strong>乘</strong>在贴图每个像素上。石头格原来 tint 着灰色，只换 sprite 的话，新地板贴图 × 灰 = 灰扑扑的地板。这就是“color 只剩传送门一个职责”的另一半：所有非传送门路径离开时都要是白色。</p>
+    <div class="callout warn">
+      <span class="label">注意</span>
+      <p><code>TryBreakStone / TryOpenChest / TryCollectMaterial</code> 保持 <code>public bool</code> 并 <code>return TryReplace(...)</code>——<code>PlayerGridMover</code> 依赖这些返回值，抄参考实现时别把 return 丢了。</p>
+    </div>
+
+    <h3>删除 · ColorFor</h3>
+    <p>整个 <code>ColorFor(TileType tile)</code> 方法删除（已无调用者）。<strong>保留</strong> <code>CreateSquareSprite()</code> 和 <code>_squareSprite</code>——炸弹标记 <code>CreateBombMarker</code> 还在用白方块（缩小 0.5 + 染色，临时标记反而清晰），也保留 <code>PortalColor</code>。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>场景接线（两处）</h2></div>
+    <ol>
+      <li><code>Maze</code> 对象：Inspector 里把 <code>TileVisuals_Classic</code> 拖进新字段 <code>Visuals</code>。</li>
+      <li><code>Player</code> 对象：SpriteRenderer 的 <code>Sprite</code> 从内置 Square 换成 <code>player_default</code>；<code>Color</code> 从黄 <code>(1, 0.9, 0)</code> 改回纯白——乘法 tint 同理会染黄冒险者；<code>Order in Layer</code> 保持 10（地砖 0、炸弹 5、玩家 10 的层级表已经是对的）。</li>
+    </ol>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>验收与提交</h2></div>
+    <p>Play <code>Level_01</code>，逐项过：</p>
+    <ul>
+      <li>九种地砖各就各位：灰墙、洞壁地板、水、岩浆、圆石、宝箱、绿宝石、木门出口、紫螺旋。</li>
+      <li>玩家是红兜帽冒险者，站在地砖之上，移动时无闪烁。</li>
+      <li>踩传送门：两格螺旋变亮紫（记忆染色）；再炸一块灰石、开一个宝箱、捡材料——格子都变回干净的地板地砖，无残色。</li>
+      <li>镜头取景与改造前一致（16px ÷ PPU16 = 1 世界单位，格子没有变大变小）。</li>
+    </ul>
+    <p>提交内容：<code>TileVisuals.cs</code>、<code>MazeBootstrapper.cs</code>、<code>Main.unity</code>（这次场景变化是功能本体，应当提交）、<code>TileVisuals_Classic.asset</code> + meta，以及 15a 遗漏的 <code>Assets/Art.meta</code>：</p>
+    <pre><code>git add Assets/Scripts/TileVisuals.cs Assets/Scripts/MazeBootstrapper.cs \
+  Assets/Data/TileVisuals_Classic.asset Assets/Scenes/Main.unity Assets/Art.meta
+git commit -m "feat(visuals): swap runtime squares for pixel tiles"</code></pre>
+    <p>三个检索问题自测：① 为什么 <code>TryReplace</code> 必须重置 color？② 传送门记忆染色为什么不用改代码就继续工作？③ PPU=16 如何保证一张地砖恰好占一格？卡住时告诉我卡在哪一处改动，对照 <a href="../solutions/0019/">solutions/0019</a> 找差异。</p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="0015a-pixel-art-sourcing.html">上一课：像素素材导入</a>
+    <a href="../reference/0022-pixel-tile-swap-cheatsheet.html">参考卡：地砖替换</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 11 · 让每次操作都有回音 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 11</div>
+    <h1>让每次操作<br>都有回音</h1>
+    <p class="lede">拾取材料、踩进岩浆、炸开石头，本来会分别调用音效。今天建立一个统一的反馈入口：同一个动作同时触发声音与短暂画面提示，而调用方不必知道每种反馈怎样实现。</p>
+    <div class="meta">
+      <span>50–70 分钟</span>
+      <span>Facade · Coroutine · UI Image</span>
+      <span>产出：受击与拾取反馈</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0011">
+      <li><label><input type="checkbox"><span>新增 <code>GameFeedback</code>，统一处理移动中的声音与闪光。</span></label></li>
+      <li><label><input type="checkbox"><span>拾取、宝箱、破石、传送、受击和错误各有清晰入口。</span></label></li>
+      <li><label><input type="checkbox"><span>PlayerGridMover 不再直接依赖 AudioManager。</span></label></li>
+      <li><label><input type="checkbox"><span>反馈遮罩不拦截鼠标，且动画结束后透明度回到 0。</span></label></li>
+      <li><label><input type="checkbox"><span>连续触发时旧动画会停止，不会叠加残留颜色。</span></label></li>
+      <li><label><input type="checkbox"><span>声音、颜色和文字共同表达结果，不只靠颜色。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码、开发日志；测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>反馈不是一把音效开关</h2>
+    <p>“踩到岩浆”和“拾取材料”是两个游戏事件。声音、颜色和时长只是它们当前选择的表达方式。调用方应该说“玩家受伤了”，而不是同时知道要播哪个 Clip、打开哪张图片、等待多少秒。</p>
+
+    <div class="feedback-demo">
+      <div class="feedback-stage">
+        <div class="feedback-flash"></div>
+        <button class="feedback-tile" type="button" data-feedback="damage">受伤</button>
+        <button class="feedback-tile" type="button" data-feedback="pickup">拾取</button>
+        <span class="feedback-caption">点击一次查看反馈</span>
+      </div>
+    </div>
+    <p><small>真正的游戏会同时播放声音；这里先观察颜色、方向和时长如何把两个事件区分开。</small></p>
+
+    <div class="concept-grid">
+      <div class="concept">
+        <span class="tag">CALLER</span>
+        <h3>只说发生了什么</h3>
+        <p><code>feedback.Damage()</code> 比一串底层播放调用更能表达意图。</p>
+      </div>
+      <div class="concept">
+        <span class="tag">FACADE</span>
+        <h3>组合多种反馈</h3>
+        <p>一个入口内部协调声音与画面，调用方不需要知道组合细节。</p>
+      </div>
+      <div class="concept">
+        <span class="tag">ACCESS</span>
+        <h3>不只依赖颜色</h3>
+        <p>颜色只是附加提示；音效、HUD 数字和明确文字仍然表达结果。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>先盘点现有反馈入口</h2></div>
+    <p>打开 <code>PlayerGridMover.cs</code>，目前与反馈有关的调用分散在移动、炸弹和传送分支里：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>事件</th><th>现在直接调用</th><th>目标语义</th></tr></thead>
+        <tbody>
+          <tr><td>踩岩浆</td><td><code>audio.PlayDamage()</code></td><td><code>feedback.Damage()</code></td></tr>
+          <tr><td>拿材料</td><td><code>audio.PlayPickup()</code></td><td><code>feedback.Pickup()</code></td></tr>
+          <tr><td>开宝箱</td><td><code>audio.PlayChestOpen()</code></td><td><code>feedback.ChestOpened()</code></td></tr>
+          <tr><td>炸石头</td><td><code>audio.PlayStoneBreak()</code></td><td><code>feedback.StoneBroken()</code></td></tr>
+          <tr><td>使用传送门</td><td><code>audio.PlayPortal()</code></td><td><code>feedback.PortalUsed()</code></td></tr>
+          <tr><td>无效操作</td><td><code>audio.PlayUiError()</code></td><td><code>feedback.Error()</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>这一步先不改行为，只把“事件名称”和“播放名称”分开。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>建立 GameFeedback 入口</h2></div>
+    <p>在 <code>Assets/Scripts</code> 新建 <code>GameFeedback.cs</code>。它依赖低层 AudioManager 和一张 UI 遮罩：</p>
+    <div class="code">
+      <div class="code-head"><span>GameFeedback.cs · 字段</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[SerializeField] private AudioManager audio;
+[SerializeField] private Image screenFlash;
+
+[SerializeField] private Color damageColor =
+    new Color(0.75f, 0.12f, 0.10f, 0.22f);
+[SerializeField] private Color gainColor =
+    new Color(1f, 0.78f, 0.18f, 0.12f);
+
+private Coroutine _flashRoutine;</code></pre>
+    </div>
+    <p>对外方法只描述游戏事件：</p>
+    <div class="code">
+      <div class="code-head"><span>GameFeedback.cs · 事件入口</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public void Damage()
+{
+    audio.PlayDamage();
+    Flash(damageColor, 0.2f);
+}
+
+public void Pickup()
+{
+    audio.PlayPickup();
+    Flash(gainColor, 0.12f);
+}</code></pre>
+    </div>
+    <p>完整入口还包含 <code>ChestOpened</code>、<code>StoneBroken</code>、<code>PortalUsed</code> 和 <code>Error</code>。参考：<a href="../solutions/0015/GameFeedback.cs">GameFeedback.cs</a>。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>让闪光自行淡出</h2></div>
+    <p>每次反馈只保存一个 Coroutine 引用。新事件到来时，先停止旧动画，再启动新动画，避免两个 alpha 同时写同一张图片：</p>
+    <div class="code">
+      <div class="code-head"><span>GameFeedback.cs · FlashRoutine</span><button class="copy" type="button">复制</button></div>
+      <pre><code>while (elapsed &lt; duration)
+{
+    elapsed += Time.unscaledDeltaTime;
+    float progress =
+        Mathf.Clamp01(elapsed / duration);
+
+    screenFlash.color = new Color(
+        color.r,
+        color.g,
+        color.b,
+        Mathf.Lerp(color.a, 0f, progress));
+
+    yield return null;
+}
+
+ClearFlash();</code></pre>
+    </div>
+    <p>受击闪光的持续时间应短于 0.25 秒。画面提示是补充，不应该拖慢玩家再次操作。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>把 PlayerGridMover 改为依赖语义</h2></div>
+    <p>把字段从 AudioManager 改为 GameFeedback，并逐一替换调用：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerGridMover.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>// 字段
+[SerializeField] private GameFeedback feedback;
+
+// 示例
+stats.AddMaterial();
+feedback.Pickup();
+
+// 受击
+if (tile == TileType.Lava &amp;&amp; stats.IsAlive)
+{
+    feedback.Damage();
+}</code></pre>
+    </div>
+    <p>Start 的引用检查也要改成 <code>feedback == null</code>。完整参考：<a href="../solutions/0015/PlayerGridMover.cs">PlayerGridMover.cs</a>。</p>
+    <div class="callout tip">
+      <span class="label">职责没有消失，只是移动了</span>
+      <p>AudioManager 仍然负责播放 Clip；GameFeedback 负责“哪个游戏事件应该产生哪些反馈”。这是外观层 Facade，不是把音频系统删掉。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>创建不挡操作的遮罩</h2></div>
+    <p>在 Canvas 下新建一个全屏 <code>Image</code>，命名为 <code>FeedbackFlash</code>：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>属性</th><th>设置</th></tr></thead>
+        <tbody>
+          <tr><td>RectTransform</td><td>Anchor 四边拉伸，Left/Top/Right/Bottom 均为 0</td></tr>
+          <tr><td>Color</td><td>任意反馈色，Alpha 设为 0</td></tr>
+          <tr><td>Raycast Target</td><td>关闭；也可由 Awake 再强制关闭</td></tr>
+          <tr><td>层级</td><td>覆盖游戏画面，但放在 HUD 与结算面板下方</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>在 GameManager 上添加 <code>GameFeedback</code>，绑定 Audio 与 FeedbackFlash；再把 PlayerGridMover 的 Feedback 字段指向它。</p>
+    <div class="callout warn">
+      <span class="label">不要让反馈阻止输入</span>
+      <p>Image 默认会成为 UI Raycast Target。全屏遮罩如果开启，会吞掉鼠标点击，使对话推进和按钮变得不稳定。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>测试组合反馈与边界</h2></div>
+    <ol>
+      <li>拾取材料：听到拾取音效，并看到很短的暖色闪光。</li>
+      <li>踩进岩浆但未死亡：听到伤害音效，并看到红色闪光。</li>
+      <li>炸开石头、打开宝箱、使用传送门：各自触发对应声音和颜色。</li>
+      <li>快速连续触发两种反馈：画面不应残留上一层颜色。</li>
+      <li>反馈播放时点击对话框或按钮：输入仍然有效。</li>
+      <li>暂停游戏后触发错误提示：若反馈由 UI 触发，动画也不应依赖 timeScale。</li>
+    </ol>
+    <div class="callout tip">
+      <span class="label">可访问性检查</span>
+      <p>把音量调到很低时，HUD 仍然显示生命、氧气和材料变化；不要用“闪红”代替受伤文字或数值。对强闪光敏感的用户，应能通过取消 screenFlash 引用关闭画面闪光而保留声音。</p>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习</h2>
+    <p>先不要往上翻。</p>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">1. 为什么 PlayerGridMover 调用 GameFeedback？</p>
+      <div class="options">
+        <button class="option" type="button">让每个音效自动循环</button>
+        <button class="option" type="button">让调用方只表达游戏事件</button>
+        <button class="option" type="button">让场景物体自动增加</button>
+        <button class="option" type="button">让颜色永久保持可见</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>调用方表达“受伤/拾取”，具体声音和画面组合留在反馈层。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">2. 新反馈开始时为什么先停止旧 Coroutine？</p>
+      <div class="options">
+        <button class="option" type="button">让 AudioSource 自动恢复</button>
+        <button class="option" type="button">让场景加载速度更快</button>
+        <button class="option" type="button">让玩家恢复全部生命</button>
+        <button class="option" type="button">防止两个淡出同时修改颜色</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>两个协程同时写同一张 Image，会出现闪烁或残留 alpha。</p>
+    </div>
+
+    <div class="quiz" data-answer="0">
+      <p class="q">3. 为什么全屏反馈遮罩要关闭 Raycast Target？</p>
+      <div class="options">
+        <button class="option" type="button">避免拦截鼠标与界面点击</button>
+        <button class="option" type="button">避免音乐自动停止播放</button>
+        <button class="option" type="button">让相机尺寸自动变化</button>
+        <button class="option" type="button">让 TMP 文本自动换行</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>反馈层只负责显示，不能参与界面命中测试。</p>
+    </div>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">4. 反馈闪光为什么使用 unscaledDeltaTime？</p>
+      <div class="options">
+        <button class="option" type="button">让所有音效提高音调</button>
+        <button class="option" type="button">让关卡资产自动更新</button>
+        <button class="option" type="button">让界面动画不受暂停影响</button>
+        <button class="option" type="button">让玩家移动速度翻倍</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>UI 反馈的显示时间不应绑定游戏世界的时间缩放。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>有声音但没闪光</td><td>GameFeedback 的 Screen Flash 是否绑定，Image Alpha 是否为 0 起始。</td></tr>
+          <tr><td>画面一直发红</td><td>协程是否在结束后调用 ClearFlash，duration 是否大于 0。</td></tr>
+          <tr><td>反馈后不能点按钮</td><td>FeedbackFlash 的 Raycast Target 是否仍开启。</td></tr>
+          <tr><td>连点时颜色乱跳</td><td>启动新动画前是否 StopCoroutine 旧协程。</td></tr>
+          <tr><td>受击音效播放两次</td><td>检查死亡路径：HUD 与 LevelFlowController 是否都在播放。</td></tr>
+          <tr><td>暂停时闪光冻结</td><td>动画时间是否误用了 <code>Time.deltaTime</code>。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">07</span><h2>提交与开发日志</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add Assets
+git commit -m "feat(feedback): add event feedback layer"</code></pre>
+    </div>
+    <p>日志写清：哪个事件最容易重复播放、为什么全屏 Image 必须关闭射线检测、下次是否把 UI 音效也迁入反馈层。</p>
+  </section>
+
+  <section class="source">
+    <h2>主资料</h2>
+    <p><a href="https://docs.unity3d.com/6000.0/Documentation/Manual/Coroutines.html">Unity Manual: Coroutines</a> · <a href="https://docs.unity3d.com/Packages/com.unity.ugui@2.0/api/UnityEngine.UI.Graphic.html">Unity UI: Graphic</a> · <a href="https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Time-unscaledDeltaTime.html">Time.unscaledDeltaTime</a></p>
+    <p>完整参考：<a href="../solutions/0015/GameFeedback.cs">GameFeedback.cs</a> · <a href="../solutions/0015/PlayerGridMover.cs">PlayerGridMover.cs</a></p>
+  </section>
+
+  <p class="ask">如果全屏遮罩挡住点击、连续音效叠成噪音，或受伤闪光超过 0.25 秒仍不消失，把 Feedback 面板截图和 Console 发我。下一节开始保存金币与音量设置。</p>
+
+  <nav class="footer-nav">
+    <a href="0010b-maya-dialogue.html">上一课：MAYA 对话</a>
+    <a href="../reference/0016-feedback-layer-cheatsheet.html">参考卡：反馈层与界面动画</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+<script src="../assets/feedback-demo.js"></script>
+</body>
+</html>

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 07 · 宝箱与金币速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 07</div>
+    <h1>宝箱与金币</h1>
+    <p class="lede">宝箱是“一次性的运行时交互格”：进入时发奖励，然后变成地板。金币归玩家状态，关卡资产只保存宝箱模板。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>交互</span>
+      <span>资源所有权</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>开箱流程</h2>
+      <pre><code>进入格子
+  → GetTileType == Chest ?
+  → TryOpenChest(cell)
+  → 奖励入账
+  → Tile 改为 Floor
+  → 更新 SpriteRenderer</code></pre>
+      <p>进入时先验证，只有真的打开成功才发奖励；重复进入不会再次奖励。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>一次性替换</h2>
+      <pre><code>public bool TryOpenChest(Vector2Int cell)
+{
+    return TryReplace(
+        cell,
+        TileType.Chest,
+        TileType.Floor);
+}</code></pre>
+      <p>宝箱从 Chest 变成 Floor，所以下次 <code>GetTileType</code> 不再是 Chest。运行时副本不影响资产。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>资源归谁</h2>
+      <pre><code>PlayerStats:
+  Health
+  Oxygen
+  Bombs
+  Coins
+
+MazeBootstrapper:
+  TileType[,]
+
+PlayerGridMover:
+  currentCell
+  facing</code></pre>
+      <p>金币是玩家状态，不应该存在关卡资产里；关卡资产只保存宝箱的位置。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>本课奖励</h2>
+      <pre><code>private const int ChestCoins = 3;
+private const int ChestBombs = 1;
+
+stats.AddCoins(ChestCoins);
+stats.AddBombs(ChestBombs);</code></pre>
+      <p>原型阶段固定掉落，先验证资源循环；以后再做宝箱掉落表。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>地板处理</h2>
+      <pre><code>if (maze.TryOpenChest(currentCell))
+{
+    stats.AddCoins(3);
+    stats.AddBombs(1);
+}
+
+stats.ApplyTile(TileType.Floor);</code></pre>
+      <p>宝箱开完就是地板，按地板规则恢复氧气；不要把宝箱当成岩浆或水。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>HUD 顺序</h2>
+      <pre><code>生命: 3 / 3
+氧气: 3 / 3
+炸弹: 1
+金币: 0</code></pre>
+      <p>HUD 只读 PlayerStats；不要在 HUD 里修改金币。显示和状态分开，后面换正式 UI 时只换视图。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>测试清单</h2>
+      <ul>
+        <li>初始金币 0、炸弹 1。</li>
+        <li>炸石头后炸弹变 0。</li>
+        <li>进入宝箱后金币 3、炸弹 1。</li>
+        <li>离开再回来不重复奖励。</li>
+        <li>宝箱开完变地板。</li>
+        <li>停止 Play 后资产里的 C 还在。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>洋红色</dt>
+        <dd>ColorFor 缺少 Chest，或 C 没映射成 Chest。</dd>
+      </dl>
+      <dl class="term">
+        <dt>无奖励</dt>
+        <dd>进入格子后没调用 TryOpenChest，或当前格不是 Chest。</dd>
+      </dl>
+      <dl class="term">
+        <dt>重复奖励</dt>
+        <dd>开箱后没有替换成 Floor。</dd>
+      </dl>
+      <dl class="term">
+        <dt>金币不显示</dt>
+        <dd>HUD 没加 Coins 行，或盒子高度不够。</dd>
+      </dl>
+      <dl class="term">
+        <dt>资产被改</dt>
+        <dd>写到了 LevelDefinition，而不是 _tiles 副本。</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0007-chests-and-coins.html">课程 07 · 宝箱不是装饰，是资源入口</a></p>
+    <p>官方查证：<a href="https://docs.unity3d.com/Manual/class-ScriptableObject.html">ScriptableObject</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0007-chests-and-coins.html">回到课程 07</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

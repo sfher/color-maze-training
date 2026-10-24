@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 21 · 像素素材导入速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 21</div>
+    <h1>像素素材导入</h1>
+    <p class="lede">先定需求再搜索；许可证不明不下载；PPU 等于贴图边长；Point 采样防糊；notices 带日期。</p>
+    <div class="meta"><span>打印友好</span><span>TextureImporter</span><span>Asset Pipeline</span></div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>导入设置表</h2>
+      <pre><code>Texture Type   Sprite (2D and UI)
+Sprite Mode    Multiple / Single
+Pixels Per Unit = 贴图边长 (16 / 32)
+Filter Mode    Point (no filter)
+Compression    None
+Max Size       ≥ 原图边长</code></pre>
+      <p>迷宫 1 格 = 1 世界单位，PPU = 边长时 1 sprite 恰好 1 格。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>许可证判定</h2>
+      <ul>
+        <li>CC0 ✅ 无署名义务，记录来源即可。</li>
+        <li>CC-BY ⚠️ 可用，notices 记署名，发布物保留 credit。</li>
+        <li>OFL ✅ 字体；保留 LICENSE-OFL。</li>
+        <li>未写明 ❌ 换素材，不猜。</li>
+        <li>itch.io 以随包文件 / 作者页为准。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>目录约定</h2>
+      <pre><code>Assets/ThirdParty/Art/
+  Kenney/
+    &lt;pack-name&gt;/
+      *.png
+      License.txt   ← 必进仓库</code></pre>
+      <p>png 与 .meta 成对提交，缺一不可。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>切雪图</h2>
+      <pre><code>选中纹理 → Sprite Editor
+  → Slice → Grid By Cell Size
+  → 16×16（或 32×32）
+  → Slice → Apply</code></pre>
+      <p>切完在 Project 展开纹理，每个地块是一个子 Sprite。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>notices 条目字段</h2>
+      <pre><code>ID | Asset | Author | Source
+   | License | Date | Modified | Attribution</code></pre>
+      <ul>
+        <li>Date 必填，无日期难审计。</li>
+        <li>Modified 写明"选用地块切片，未修改原图"这类事实。</li>
+        <li>同步更新 Local Files 与 License Texts 段。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>故障速查</h2>
+      <ul>
+        <li>sprite 小到看不见 → PPU 还是默认 100。</li>
+        <li>像素边缘发糊 → Filter 不是 Point。</li>
+        <li>色块渗色 → Compression 不是 None。</li>
+        <li>格子大小不一 → 混用了 16 与 32 的包。</li>
+        <li>别人打开全丢引用 → 提交时漏了 .meta。</li>
+        <li>场景变脏 → 只在临时场景冒烟，不保存。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>需求清单起点</h2>
+      <pre><code>. # S R B  地形 5 种
+C M E      目标 3 种
+1–9        传送门底图 1 张
+player     玩家 1 张</code></pre>
+      <p>单包优先；这批素材同时供给 12a 商店的主题/预览图。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>本课不碰的东西</h2>
+      <ul>
+        <li>MazeBootstrapper（15b 才换 sprite）。</li>
+        <li>Main.unity（一个字节不动）。</li>
+        <li>HUD 图标（已有 1-bit Pixel Icons）。</li>
+      </ul>
+    </section>
+  </div>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0015a-pixel-art-sourcing.html">课程 15a</a>
+    <a href="0020-level-editor-tools-cheatsheet.html">参考卡 20</a>
+    <a href="../RESOURCES.md">资源清单</a>
+  </nav>
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

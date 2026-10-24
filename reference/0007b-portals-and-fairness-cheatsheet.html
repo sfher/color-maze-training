@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 07b · 传送门与公平性速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 07b</div>
+    <h1>传送门与公平性</h1>
+    <p class="lede">所有传送门同色，编号只存在于数据里；第一次使用后整对变色，让玩家靠观察和记忆，而不是靠随机惩罚。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>配对</span>
+      <span>公平性</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>数据模型</h2>
+      <pre><code>地图字符 1–9 → Portal
+字符值 - '0' → 配对编号
+
+All portals: 同一种紫色
+Known pair: 更亮的紫色</code></pre>
+      <p>颜色只负责表现；数字负责配对。这样以后可以在同一关放多对传送门。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>配对规则</h2>
+      <ul>
+        <li>每个编号恰好出现两次。</li>
+        <li>两个端点都放在安全可走格。</li>
+        <li>配对固定，不因每次进入而随机换出口。</li>
+        <li>没有配对时停留并警告，不惩罚玩家。</li>
+        <li>首次使用后标记整对已知。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>查找出口</h2>
+      <pre><code>int id = GetPortalId(entry);
+
+for each cell:
+    if id matches and cell != entry:
+        exit = cell;
+        return true;
+
+return false;</code></pre>
+      <p>7×7 地图直接扫描足够便宜；大关卡再考虑用字典预计算。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>记忆标记</h2>
+      <pre><code>private readonly HashSet&lt;int>
+    _knownPortalIds = new HashSet&lt;int&gt;();
+
+_knownPortalIds.Add(id);
+// 重新给同编号的两端上色</code></pre>
+      <p><code>HashSet</code> 只关心“这个编号是否已经记住”，适合唯一标记。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>传送顺序</h2>
+      <pre><code>1. 进入 Portal 格
+2. 查找同编号出口
+3. currentCell = exit
+4. transform.position = CellToWorld(exit)
+5. 标记整对已知
+6. 按 Floor 应用效果</code></pre>
+      <p>只在“进入”时触发一次，不递归调用移动，避免无限传送。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>测试清单</h2>
+      <ul>
+        <li>两端初始深紫色，配对未知。</li>
+        <li>进入一端后到达另一端。</li>
+        <li>首次使用后两端变亮紫色。</li>
+        <li>再次进入仍然到同一出口。</li>
+        <li>缺少一端时停留并警告。</li>
+        <li>传送不扣生命或氧气。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>传送不动</dt>
+        <dd>同编号没有第二个端点，或编号查询为 0。</dd>
+      </dl>
+      <dl class="term">
+        <dt>传到墙里</dt>
+        <dd>端点地图数据不对；先把两个数字放在安全格。</dd>
+      </dl>
+      <dl class="term">
+        <dt>无限传送</dt>
+        <dd>出口后又递归调用 TryMove；只触发一次。</dd>
+      </dl>
+      <dl class="term">
+        <dt>颜色亮错</dt>
+        <dd>已知编号和实际所在编号不一致。</dd>
+      </dl>
+      <dl class="term">
+        <dt>随机惩罚</dt>
+        <dd>缺配对或出口危险；未知不能用随机扣资源处理。</dd>
+      </dl>
+    </section>
+
+    <section class="ref-block">
+      <h2>可选数据校验</h2>
+      <p>在 <code>LevelDefinition.OnValidate</code> 统计每个数字出现次数：</p>
+      <ul>
+        <li>次数为 0：忽略。</li>
+        <li>次数为 2：正常。</li>
+        <li>其他次数：Console 警告并列出编号。</li>
+      </ul>
+      <p>这是关卡验收工具，不是玩家运行时逻辑。</p>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0007b-portals-and-fairness.html">课程 07b · 未知，但不该不公平</a></p>
+    <p>官方查证：<a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/collections">C# Collections</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0007b-portals-and-fairness.html">回到课程 07b</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

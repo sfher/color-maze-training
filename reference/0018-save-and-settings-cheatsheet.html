@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 18 · 存档与设置速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 18</div>
+    <h1>存档与设置</h1>
+    <p class="lede">只序列化数据 DTO；正式档、临时档和备份分开；设置先应用，再由玩家操作写回。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>JSON · IO · Settings</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>文件位置</h2>
+      <pre><code>Application.persistentDataPath
+  save.json
+  save.tmp
+  save.backup.json</code></pre>
+      <p>不要写入 Assets、Unity 安装目录或当前工作目录。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>版本</h2>
+      <pre><code>[Serializable]
+public class GameSaveData
+{
+    public int version = 1;
+    public int coins;
+    public string[] unlockedContentIds;
+    public float masterVolume;
+}</code></pre>
+      <p>读取时检查版本；升级字段时迁移旧版本。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>保存顺序</h2>
+      <ol>
+        <li>JSON 写入 save.tmp。</li>
+        <li>完整写入后替换 save.json。</li>
+        <li>替换时保留 save.backup.json。</li>
+        <li>首次保存直接移动临时文件。</li>
+      </ol>
+    </section>
+
+    <section class="ref-block">
+      <h2>读取顺序</h2>
+      <pre><code>正式档
+  ↓ 失败
+备份
+  ↓ 失败
+默认 GameSaveData</code></pre>
+      <p>坏档要捕获异常，不要自动覆盖，方便定位。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>设置应用</h2>
+      <pre><code>AudioListener.volume =
+    Mathf.Clamp01(masterVolume);
+
+Screen.SetResolution(
+    width,
+    height,
+    fullscreen);</code></pre>
+      <p>UI 初始化使用 SetWithoutNotify，避免加载时触发保存。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>UI 绑定位置</h2>
+      <pre><code>GameManager
+  SettingsController
+  SaveCoordinator
+
+Canvas / GameUI
+  PausePanel / SettingsButton
+  SettingsPanel / Slider
+  SettingsPanel / Toggle
+  SettingsPanel / Dropdown</code></pre>
+      <p>控制器挂常驻对象；面板初始化时可关闭，但引用仍能保存。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>数据归属</h2>
+      <ul>
+        <li>金币、已解锁内容 ID：游戏进度。</li>
+        <li>当前关卡 ID：游戏进度。</li>
+        <li>音量、窗口模式、分辨率：玩家设置。</li>
+        <li>场景对象引用：不要写进 JSON。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>必测</h2>
+      <ul>
+        <li>正常保存并重进 Play 后恢复。</li>
+        <li>正式档损坏时读取备份。</li>
+        <li>两份都缺失时使用默认值。</li>
+        <li>分辨率不在当前列表中时不越界。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term"><dt>读到空对象</dt><dd>JSON 语法错误或 DTO 字段不匹配；先看异常。</dd></dl>
+      <dl class="term"><dt>设置被重置</dt><dd>先创建默认数据，后应用存档，顺序反了。</dd></dl>
+      <dl class="term"><dt>加载时自动保存</dt><dd>UI SetValue 触发了 Changed；改用 SetWithoutNotify。</dd></dl>
+      <dl class="term"><dt>只在编辑器可见</dt><dd>把文件误写到了 Assets，而非 persistentDataPath。</dd></dl>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程与资料</h2>
+    <p><a href="../lessons/0013-save-and-settings.html">课程 13 · 留一份可以回来找的记录</a></p>
+    <p><a href="https://docs.unity3d.com/ScriptReference/Application-persistentDataPath.html">Application.persistentDataPath</a> · <a href="https://docs.unity3d.com/ScriptReference/JsonUtility.html">JsonUtility</a> · <a href="https://docs.unity3d.com/ScriptReference/Screen.SetResolution.html">Screen.SetResolution</a></p>
+  </section>
+  <nav class="footer-nav">
+    <a href="../lessons/0013-save-and-settings.html">回到课程 13</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+</main>
+</body>
+</html>

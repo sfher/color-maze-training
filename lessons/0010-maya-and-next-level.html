@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 10 · 通关之后，故事继续 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 10</div>
+    <h1>通关之后<br>故事继续</h1>
+    <p class="lede">完成一关后，玩家要回到 MAYA 身边，得到下一条线索，再进入下一关。今天把关卡引用、跨场景选择和“下一关”按钮串起来。</p>
+    <div class="meta">
+      <span>50–70 分钟</span>
+      <span>ScriptableObject · GameSession · 场景流</span>
+      <span>产出：MAYA 线索与下一关</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0010">
+      <li><label><input type="checkbox"><span>给 <code>LevelDefinition</code> 增加 <code>NextLevel</code> 引用。</span></label></li>
+      <li><label><input type="checkbox"><span>用 <code>GameSession.CurrentLevel</code> 在场景重载后保持当前关卡。</span></label></li>
+      <li><label><input type="checkbox"><span>MazeBootstrapper 从 GameSession 选择关卡，并暴露 CurrentLevel。</span></label></li>
+      <li><label><input type="checkbox"><span>LevelFlowController 支持 <code>CanAdvance</code> 与 <code>AdvanceToNextLevel</code>。</span></label></li>
+      <li><label><input type="checkbox"><span>结算面板出现“下一关”按钮，并显示 MAYA 的线索。</span></label></li>
+      <li><label><input type="checkbox"><span>完成 Level_FlowTest 后能进入 Level_05；重开仍留在当前关。</span></label></li>
+      <li><label><input type="checkbox"><span>镜头按当前关卡尺寸自动缩放，Level_05 顶部出口完整可见。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码与日志，测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>为什么不能只写 nextLevel</h2>
+    <p>场景重载时，场景里的组件会重建，Maze 的 Level 字段会回到 Inspector 中保存的那个关卡。只在 LevelDefinition 里写一个 NextLevel，还不足以让新关卡被加载。</p>
+    <p>本课用一个小小的跨场景选择器：</p>
+    <pre><code>LevelDefinition.NextLevel
+        ↓
+GameSession.CurrentLevel（静态，跨场景重载保留）
+        ↓
+SceneManager.LoadScene
+        ↓
+MazeBootstrapper.Awake 读取 CurrentLevel
+        ↓
+重新生成新关卡</code></pre>
+    <div class="callout tip">
+      <span class="label">这不是存档系统</span>
+      <p>GameSession 只在本次运行中保存当前关卡；停止 Play 或重新启动游戏后清空。真正的进度存档会在后面的存档课用文件/JSON 完成。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>让关卡指向下一关</h2></div>
+    <p>打开 <code>LevelDefinition.cs</code>，在 rows 下面加入：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelDefinition.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[SerializeField] private LevelDefinition nextLevel;
+
+public LevelDefinition NextLevel =&gt; nextLevel;</code></pre>
+    </div>
+    <p>这样每个关卡资产都能在 Inspector 中指定下一关，而不是把流程写死在代码里。最后一关的 NextLevel 留空。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>创建 GameSession</h2></div>
+    <p>新建 <code>GameSession.cs</code>：</p>
+    <div class="code">
+      <div class="code-head"><span>GameSession.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public static class GameSession
+{
+    public static LevelDefinition CurrentLevel { get; set; }
+
+    [UnityEngine.RuntimeInitializeOnLoadMethod(
+        UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetOnPlay()
+    {
+        CurrentLevel = null;
+    }
+}</code></pre>
+    </div>
+    <p><code>SubsystemRegistration</code> 在每次进入 Play 时清空 CurrentLevel；场景重载不会触发它，所以下一关/重开能保持当前关卡。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>让 Maze 从 GameSession 选关卡</h2></div>
+    <p>在 <code>MazeBootstrapper</code> 加入 Awake 和当前关卡属性：</p>
+    <div class="code">
+      <div class="code-head"><span>MazeBootstrapper.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public LevelDefinition CurrentLevel => level;
+
+private void Awake()
+{
+    if (GameSession.CurrentLevel != null)
+    {
+        level = GameSession.CurrentLevel;
+    }
+    else
+    {
+        GameSession.CurrentLevel = level;
+    }
+}</code></pre>
+    </div>
+    <p>第一次启动使用 Inspector 里保存的初始 Level；下一关重载时使用 GameSession 里保存的关卡。Start 之后仍然照常生成格子。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>让流程控制器切换到下一关</h2></div>
+    <p>给 <code>LevelFlowController</code> 增加 Maze 引用：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelFlowController.cs · 字段</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[SerializeField] private MazeBootstrapper maze;</code></pre>
+    </div>
+    <p>加入判断和切换方法：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelFlowController.cs · 下一关</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public bool CanAdvance =&gt;
+    State == LevelState.Completed &amp;&amp;
+    maze != null &amp;&amp;
+    maze.CurrentLevel != null &amp;&amp;
+    maze.CurrentLevel.NextLevel != null;
+
+public void AdvanceToNextLevel()
+{
+    if (!CanAdvance)
+    {
+        return;
+    }
+
+    LevelDefinition next = maze.CurrentLevel.NextLevel;
+    audio.PlayUiConfirm();
+    GameSession.CurrentLevel = next;
+    Time.timeScale = 1f;
+    SceneManager.LoadScene(
+        SceneManager.GetActiveScene().buildIndex);
+}</code></pre>
+    </div>
+    <p>Start 的引用校验也要包含 Maze：<code>playerStats == null || audio == null || maze == null</code>。完整参考：<a href="../solutions/0013/LevelFlowController.cs">solutions/0013/LevelFlowController.cs</a>。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>在结算面板加“下一关”</h2></div>
+    <p>在 EndPanel 中增加一个 Button，命名为 <code>NextLevelButton</code>，文案“下一关”。它和原来的“重开”并列。</p>
+    <p>给 GameHud 增加字段：</p>
+    <div class="code">
+      <div class="code-head"><span>GameHud.cs · 字段与绑定</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[SerializeField] private Button nextLevelButton;
+
+nextLevelButton.onClick.AddListener(
+    flow.AdvanceToNextLevel);
+
+// OnDestroy
+nextLevelButton.onClick.RemoveListener(
+    flow.AdvanceToNextLevel);</code></pre>
+    </div>
+    <p>状态变化时控制显示，并写 MAYA 的台词：</p>
+    <div class="code">
+      <div class="code-head"><span>GameHud.cs · 完成状态</span><button class="copy" type="button">复制</button></div>
+      <pre><code>bool canAdvance =
+    flow.State == LevelState.Completed &amp;&amp;
+    flow.CanAdvance;
+
+nextLevelButton.gameObject.SetActive(canAdvance);
+
+endHintText.text =
+    flow.State == LevelState.Completed
+        ? (canAdvance
+            ? "MAYA：我找到下一条线索了。"
+            : "MAYA：这次的材料够了，旅程暂告一段落。")
+        : "按 R 或按钮重开。";</code></pre>
+    </div>
+    <p>失败时 <code>canAdvance</code> 为 false，下一关按钮隐藏；重开按钮仍保留。完整参考：<a href="../solutions/0013/GameHud.cs">solutions/0013/GameHud.cs</a>。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>配置关卡链与 Inspector</h2></div>
+    <p>当前场景的 Maze 使用 <code>Level_FlowTest</code>。选中它，把 <code>Level_05 Lava &amp; Stone</code> 拖到 <strong>Next Level</strong> 字段。最后一关 <code>Level_05</code> 的 Next Level 保持 None。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>对象</th><th>字段</th><th>拖什么</th></tr></thead>
+        <tbody>
+          <tr><td>Level_FlowTest</td><td>Next Level</td><td>Level_05 Lava &amp; Stone</td></tr>
+          <tr><td>Level_05</td><td>Next Level</td><td>None（旅程暂告一段落）</td></tr>
+          <tr><td>GameManager / LevelFlowController</td><td>Maze</td><td>挂了 MazeBootstrapper 的对象</td></tr>
+          <tr><td>GameUI / GameHud</td><td>Next Level Button</td><td>EndPanel/NextLevelButton</td></tr>
+          <tr><td>Main Camera / MazeCameraFitter</td><td>Maze</td><td>挂了 MazeBootstrapper 的对象</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>也可以把 Level_01 指向 Level_02，取决于你当前想展示的关卡链；关键是资产引用，不要在代码里写关卡名字。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">07</span><h2>让镜头适应关卡尺寸</h2></div>
+    <p>关卡数据换了，画面尺寸也可能换。当前相机正交尺寸是 5，只能完整显示 10 个世界单位的高度；Level_05 有 15 行，如果沿用旧设置，顶部出口会被裁掉。</p>
+    <p>新增 <code>MazeCameraFitter</code>，每帧读取当前关卡的宽高。正交相机同时受垂直尺寸和窗口宽高比限制，所以两种要求都要计算，再取较大值：</p>
+    <div class="code">
+      <div class="code-head"><span>MazeCameraFitter.cs · 核心计算</span><button class="copy" type="button">复制</button></div>
+      <pre><code>float halfWidth = level.Width * 0.5f;
+float halfHeight = level.Height * 0.5f;
+
+float sizeForHeight = halfHeight + padding;
+float sizeForWidth =
+    (halfWidth + padding) / _camera.aspect;
+
+_camera.orthographicSize = Mathf.Max(
+    minimumSize,
+    sizeForHeight,
+    sizeForWidth);</code></pre>
+    </div>
+    <p>把组件挂到 <code>Main Camera</code>，绑定场景中的 Maze。完整实现：<a href="../solutions/0013/MazeCameraFitter.cs">MazeCameraFitter.cs</a>。<code>LateUpdate</code> 在关卡切换和 Game 视图比例变化后仍会重新适配。</p>
+    <div class="callout tip">
+      <span class="label">为什么取最大值</span>
+      <p>垂直方向至少容纳地图高度，水平方向至少容纳地图宽度。两个约束同时满足时，正交尺寸必须取较大的那个。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">08</span><h2>测试跨场景流程</h2></div>
+    <ol>
+      <li>Play 当前 Level_FlowTest，拿材料到出口：结算显示 MAYA 台词和“下一关”。</li>
+      <li>点击“下一关”：场景重载，Maze 生成 Level_05，HUD 资源重置，整个地图与出口进入镜头。</li>
+      <li>在 Level_05 暂停后点重开：仍然加载 Level_05，而不是跳回 Level_FlowTest。</li>
+      <li>完成 Level_05：没有 NextLevel，下一关按钮隐藏，MAYA 显示旅程暂告一段落。</li>
+      <li>失败：下一关按钮隐藏，R/重开留在当前关。</li>
+      <li>停止 Play 再重新 Play：GameSession 清空，回到 Inspector 里设置的初始 Level_FlowTest。</li>
+    </ol>
+    <div class="callout warn">
+      <span class="label">如果下一关没切换</span>
+      <p>依次检查：LevelDefinition.NextLevel 是否绑定、LevelFlowController.Maze 是否绑定、GameSession 是否被其他代码覆盖、Main 是否在 Build Profiles 场景列表。地图显示不全时，再检查 MazeCameraFitter 的 Maze 引用。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">09</span><h2>提交与日志</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "feat(level): add MAYA next-level flow"</code></pre>
+    </div>
+    <p>新建 <code>docs/devlog/2026-10-22-next-level.md</code>：</p>
+    <pre><code># 2026-10-22 · MAYA 与下一关
+
+## 今天做了什么
+- 完成关卡后显示 MAYA 线索。
+- 通过 GameSession 保留当前关卡，支持下一关和当前关重开。
+
+## 卡在哪里 / 怎么解决
+- 切换 Level_05 后发现相机正交尺寸固定为 5，15 行地图被裁切；新增 MazeCameraFitter，按关卡宽高和窗口比例计算正交尺寸。
+
+## 下次先做什么
+- 把 MAYA 对话扩展成独立场景或正式对话面板。</code></pre>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习</h2>
+    <p>先不要往上翻。</p>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">1. 为什么场景重载后还需要 GameSession？</p>
+      <div class="options">
+        <button class="option" type="button">让音效自动循环</button>
+        <button class="option" type="button">减少场景中的对象</button>
+        <button class="option" type="button">保留选中的关卡</button>
+        <button class="option" type="button">自动生成美术素材</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>场景重载会重建对象；静态 GameSession 让后续场景仍知道当前 LevelDefinition。</p>
+    </div>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">2. 最后一关没有 NextLevel 时应该怎样？</p>
+      <div class="options">
+        <button class="option" type="button">自动回到第一关</button>
+        <button class="option" type="button">隐藏下一关按钮</button>
+        <button class="option" type="button">删除结算面板</button>
+        <button class="option" type="button">重新加载同一关十次</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>CanAdvance 为 false，UI 显示旅程暂告一段落，不提供下一关入口。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">3. GameSession 与正式存档的区别是什么？</p>
+      <div class="options">
+        <button class="option" type="button">GameSession 会写入数据库</button>
+        <button class="option" type="button">两者完全相同</button>
+        <button class="option" type="button">GameSession 会永久保存金币</button>
+        <button class="option" type="button">GameSession 只活在一次运行</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>它只解决场景重载时的当前关卡选择；持久化要在后面的存档课实现。</p>
+    </div>
+
+    <div class="quiz" data-answer="0">
+      <p class="q">4. 下一关按钮应该在哪里可见？</p>
+      <div class="options">
+        <button class="option" type="button">完成后且有下一关</button>
+        <button class="option" type="button">失败后总是可见</button>
+        <button class="option" type="button">暂停时总是可见</button>
+        <button class="option" type="button">游戏刚开始时</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>只有 Completed 且 CanAdvance 时才显示下一关；失败和暂停不显示。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>下一关按钮不出现</td><td>LevelDefinition.NextLevel 是否绑定，State 是否 Completed。</td></tr>
+          <tr><td>点击后回到原关</td><td>GameSession.CurrentLevel 是否在 reload 前赋值。</td></tr>
+          <tr><td>重开跳到错误关</td><td>GameSession 是否保存当前关；Maze Awake 是否读取它。</td></tr>
+          <tr><td>最后一关仍显示按钮</td><td>CanAdvance 的 NextLevel 检查是否漏了。</td></tr>
+          <tr><td>失败也显示下一关</td><td>GameHud 是否只在 Completed 时启用按钮。</td></tr>
+          <tr><td>停止 Play 后仍保留旧关</td><td>GameSession 的 SubsystemRegistration Reset 是否缺失。</td></tr>
+          <tr><td>Level_05 上下被裁切</td><td>MazeCameraFitter 是否挂到 Camera，并绑定 Maze。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料</h2>
+    <p><a href="https://docs.unity3d.com/ScriptReference/SceneManagement.SceneManager.LoadScene.html">Unity: SceneManager.LoadScene</a> · <a href="https://docs.unity3d.com/ScriptReference/RuntimeInitializeOnLoadMethodAttribute.html">RuntimeInitializeOnLoadMethod</a> · <a href="https://docs.unity3d.com/ScriptReference/Camera-orthographicSize.html">Camera.orthographicSize</a> · <a href="https://docs.unity3d.com/ScriptReference/Camera-aspect.html">Camera.aspect</a></p>
+    <p>参考实现：<a href="../solutions/0013/LevelFlowController.cs">LevelFlowController.cs</a> · <a href="../solutions/0013/GameSession.cs">GameSession.cs</a></p>
+  </section>
+
+  <p class="ask">如果下一关按钮出现但点击无效、关卡始终回到旧资产，或者停止 Play 后仍保留旧关卡，把 Console 和三个 Inspector 绑定发我。下一课把 MAYA 对话扩展成正式场景。</p>
+
+  <nav class="footer-nav">
+    <a href="0009e-pause-menu.html">上一课：暂停菜单</a>
+    <a href="../reference/0014-level-flow-and-next-level-cheatsheet.html">参考卡：关卡流与下一关</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

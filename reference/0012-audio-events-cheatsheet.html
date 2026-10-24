@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 12 · 音效事件速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 12</div>
+    <h1>音效事件速查</h1>
+    <p class="lede">短音效绑定事件，不绑定帧。成功一次，反馈一次；背景音乐单独使用 AudioSource。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>AudioSource</span>
+      <span>PlayOneShot</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>事件映射</h2>
+      <pre><code>Pickup       → pickup_material.ogg
+ChestOpen    → chest_open.ogg
+StoneBreak   → stone_break.ogg
+Portal       → portal_enter.ogg
+UiConfirm    → ui_confirm.ogg
+LevelComplete→ level_complete.ogg
+UiError      → ui_error.ogg
+Damage       → damage.ogg</code></pre>
+      <p>事件失败也要有边界：无材料出口用 UiError，不用过关音。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>AudioManager</h2>
+      <pre><code>[SerializeField] private AudioSource source;
+[SerializeField] private AudioClip pickup;
+
+private void Play(AudioClip clip)
+{
+    if (clip == null || source == null)
+        return;
+
+    source.PlayOneShot(clip);
+}</code></pre>
+      <p>2D 音效：<code>source.spatialBlend = 0f</code>，<code>playOnAwake = false</code>。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>调用点</h2>
+      <pre><code>if (maze.TryBreakStone(target))
+    audio.PlayStoneBreak();
+
+if (maze.TryOpenChest(cell))
+    audio.PlayChestOpen();
+
+if (maze.TryCollectMaterial(cell))
+    audio.PlayPickup();</code></pre>
+      <p>只在返回 true 的成功分支播放；不要放在 Update 或碰撞持续回调里。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>流程事件</h2>
+      <pre><code>if (hasMaterial)
+{
+    SetState(Completed);
+    audio.PlayLevelComplete();
+}
+else
+{
+    audio.PlayUiError();
+    HintShown?.Invoke("还需要找到材料。");
+}</code></pre>
+      <p>死亡时播放 Damage；UI 确认音留给暂停/按钮。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>Inspector 绑定</h2>
+      <ul>
+        <li>GameManager：Audio Source + AudioManager。</li>
+        <li>AudioManager：8 个 Clip 字段。</li>
+        <li>PlayerGridMover：Audio 字段拖 GameManager。</li>
+        <li>LevelFlowController：Audio 字段拖 GameManager。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>Play vs PlayOneShot</h2>
+      <dl class="term">
+        <dt>Play()</dt>
+        <dd>适合背景音乐/持续音；会复用当前播放。</dd>
+      </dl>
+      <dl class="term">
+        <dt>PlayOneShot()</dt>
+        <dd>适合短反馈，可叠加多个，不打断其他声音。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Loop</dt>
+        <dd>仅用于音乐/环境音；短事件音效不要循环。</dd>
+      </dl>
+    </section>
+
+    <section class="ref-block">
+      <h2>测试清单</h2>
+      <ul>
+        <li>8 个 Clip 字段均已绑定。</li>
+        <li>每个事件只响一次。</li>
+        <li>无材料出口播放错误音，不播放过关音。</li>
+        <li>过关播放完成音，死亡播放伤害音。</li>
+        <li>AudioSource 不 Mute，AudioListener 存在。</li>
+        <li>拾取音不会打断后续音乐。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>完全无声</dt>
+        <dd>检查 AudioListener、Mute、Volume、Game 视图音频开关。</dd>
+      </dl>
+      <dl class="term">
+        <dt>部分无声</dt>
+        <dd>对应 Clip 为空，或事件没有进入成功分支。过关无声时先查 Level Complete 字段。</dd>
+      </dl>
+      <dl class="term">
+        <dt>爆音/连续响</dt>
+        <dd>把调用移出 Update；每个成功事件调用一次。</dd>
+      </dl>
+      <dl class="term">
+        <dt>音乐被打断</dt>
+        <dd>音乐与短音效不要共用 AudioSource。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Audio 为空</dt>
+        <dd>GameManager 没有拖入 PlayerGridMover/Flow 的 Audio 字段。</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0009d-audio-events.html">课程 09d · 事件发生了，声音才该响</a></p>
+    <p>许可记录：<a href="../Color%20Maze/THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0009d-audio-events.html">回到课程 09d</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

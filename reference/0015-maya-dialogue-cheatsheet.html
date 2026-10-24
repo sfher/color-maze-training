@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 15 · MAYA 对话与逐字显示速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 15</div>
+    <h1>MAYA 对话与逐字显示</h1>
+    <p class="lede">对白是数据，推进是状态，逐字是表现。三者分开以后，新增台词、跳过动画和结束剧情都不会互相打架。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>IEnumerator</span>
+      <span>对话 UI</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>职责分工</h2>
+      <pre><code>LevelDefinition
+  → MAYA 对白数据
+
+MayaDialogueView
+  → 当前句与逐字动画
+
+GameHud
+  → 输入与结算按钮
+
+LevelFlowController
+  → Completed / Failed 时机</code></pre>
+      <p>台词不要写在 GameHud；GameHud 只决定什么时候把台词交给对话视图。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>四个状态</h2>
+      <pre><code>string[] _lines
+int _lineIndex
+bool _lineIsComplete
+bool IsShowing</code></pre>
+      <p>数组保存内容，索引定位句子，两个布尔值分别管当前句和整段对话。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>推荐推进规则</h2>
+      <ol>
+        <li>正在打字：补全当前一句。</li>
+        <li>当前句完整：进入下一句。</li>
+        <li>最后一句完整：结束对话。</li>
+        <li>对话结束：触发 Finished 事件。</li>
+      </ol>
+      <p>快速点击最多补全当前句，不会一次略过整段剧情。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>协程核心</h2>
+      <pre><code>visible += charactersPerSecond
+    * Time.unscaledDeltaTime;
+
+int count = Mathf.Min(
+    line.Length,
+    Mathf.FloorToInt(visible));
+
+text = line.Substring(0, count);
+yield return null;</code></pre>
+      <p>每帧多显示一些字符，然后等到下一帧；不是后台线程。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>完成分支</h2>
+      <pre><code>endPanel.SetActive(true);
+restartButton.gameObject.SetActive(false);
+nextLevelButton.gameObject.SetActive(false);
+dialogue.Show(
+    flow.CurrentLevel.CompletionDialogue);</code></pre>
+      <p>先隐藏操作按钮，最后一句结束的 Finished 回调再开放可用操作。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>失败分支</h2>
+      <pre><code>dialogue.HideImmediate();
+restartButton.gameObject.SetActive(true);
+nextLevelButton.gameObject.SetActive(false);
+endHintText.text = "按 R 或按钮重开。";</code></pre>
+      <p>失败不是剧情节点。不要播放通关对白，也不显示下一关。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>结束分支</h2>
+      <pre><code>endTitleText.text = "关卡完成";
+restartButton.gameObject.SetActive(true);
+nextLevelButton.gameObject.SetActive(
+    flow.CanAdvance);</code></pre>
+      <p>对话结束后面板进入结算态，不能继续显示“通讯接入”。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>文字区域</h2>
+      <ul>
+        <li>Vertical Alignment：Top。</li>
+        <li>尺寸约 540 × 120。</li>
+        <li>标题与正文之间留出间距。</li>
+        <li>不要用 Bottom 对齐承载动态行数。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>输入清单</h2>
+      <ul>
+        <li>左键：推进对话。</li>
+        <li>空格：推进对话。</li>
+        <li>Enter：推进对话。</li>
+        <li>R：已完成或失败时重开。</li>
+        <li>只有 <code>IsShowing</code> 时读取推进输入。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>验收清单</h2>
+      <ul>
+        <li>第一句自动逐字出现。</li>
+        <li>点击一次只补全当前句。</li>
+        <li>再次输入才切换下一句。</li>
+        <li>最后一句读完才出现按钮。</li>
+        <li>失败不出现 MAYA 通关台词。</li>
+        <li>重开和下一关后没有旧文字残留。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>文字空白</dt>
+        <dd>Body Text 未绑定，或关卡对白数组为空。</dd>
+      </dl>
+      <dl class="term">
+        <dt>跳句太猛</dt>
+        <dd>打字中与完整句使用了同一条推进路径。</dd>
+      </dl>
+      <dl class="term">
+        <dt>停在一半</dt>
+        <dd>跳过协程后没有立即补全当前句。</dd>
+      </dl>
+      <dl class="term">
+        <dt>正文突然上移</dt>
+        <dd>动态文本使用 Bottom 对齐，新增提示行把正文向上顶。</dd>
+      </dl>
+      <dl class="term">
+        <dt>按钮提前</dt>
+        <dd>Show 之前没有隐藏重开与下一关。</dd>
+      </dl>
+      <dl class="term">
+        <dt>失败出对白</dt>
+        <dd>Failed 分支没有提前 return，落进了 Completed 逻辑。</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程与资料</h2>
+    <p><a href="../lessons/0010b-maya-dialogue.html">课程 10b · MAYA 开口以后</a></p>
+    <p><a href="https://docs.unity3d.com/6000.0/Documentation/Manual/Coroutines.html">Unity Manual: Coroutines</a> · <a href="https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Time-unscaledDeltaTime.html">Time.unscaledDeltaTime</a> · <a href="https://docs.unity3d.com/6000.0/Documentation/ScriptReference/MonoBehaviour.StopCoroutine.html">MonoBehaviour.StopCoroutine</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0010b-maya-dialogue.html">回到课程 10b</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

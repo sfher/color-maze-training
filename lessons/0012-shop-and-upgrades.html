@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 12 · MAYA 补给站 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 12</div>
+    <h1>MAYA 补给站</h1>
+    <p class="lede">宝箱里的金币终于有用途了。关卡完成后打开补给站，用本轮运行累计的金币购买强化；强化在下一关生效，并在场景重载后保留，但关闭游戏后仍会清零。</p>
+    <div class="meta">
+      <span>60–90 分钟</span>
+      <span>ScriptableObject · PurchaseResult · 字典</span>
+      <span>产出：可消费的 MAYA 补给站</span>
+    </div>
+  </header>
+
+  <section class="callout warn">
+    <span class="label">暂时搁置</span>
+    <p>本课保留但不继续实现。金币暂不购买数值强化；先完成主题、图片、额外关卡等可购买内容，再回来重建商店。</p>
+  </section>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0012">
+      <li><label><input type="checkbox"><span>强化类型、名称、满级、基础价格与每次涨价都由资产配置。</span></label></li>
+      <li><label><input type="checkbox"><span><code>TryPurchase</code> 返回明确结果，不再只返回 bool。</span></label></li>
+      <li><label><input type="checkbox"><span>金币不足时不扣钱，按钮禁用，域逻辑仍有二次保护。</span></label></li>
+      <li><label><input type="checkbox"><span>满级时不扣钱，价格与等级显示立即刷新。</span></label></li>
+      <li><label><input type="checkbox"><span>生命、氧气、炸弹升级在下一关根据玩家进度生效。</span></label></li>
+      <li><label><input type="checkbox"><span>停止 Play 后金币与强化清零；磁盘存档留到课程 13。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码、开发日志；测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>购买是一次可能失败的交易</h2>
+    <p>只返回 <code>bool</code>，调用方只知道“失败”，却不知道是余额不足、已经满级，还是强化资产忘了绑定。补给站需要能显示准确的反馈，所以购买结果应该是一个小枚举。</p>
+    <div class="concept-grid">
+      <div class="concept">
+        <span class="tag">DATA</span>
+        <h3>强化是资产</h3>
+        <p>名称、类型、满级与价格阶梯放在 ScriptableObject 中。</p>
+      </div>
+      <div class="concept">
+        <span class="tag">MODEL</span>
+        <h3>交易只改进度</h3>
+        <p>PlayerProgress 验证余额和等级，并原子地扣费、升级。</p>
+      </div>
+      <div class="concept">
+        <span class="tag">VIEW</span>
+        <h3>界面显示结果</h3>
+        <p>PurchaseResult 决定成功、余额不足、满级或配置错误文案。</p>
+      </div>
+    </div>
+
+    <div class="economy-demo">
+      <div class="economy-balance">
+        <span>本次运行金币</span>
+        <strong data-economy-coins>6</strong>
+        <div class="economy-statline">
+          氧气上限 <b data-economy-oxygen>3</b>
+        </div>
+      </div>
+      <div class="economy-actions">
+        <button class="economy-buy" type="button" data-economy-buy>氧气上限 +1 · 3 金币</button>
+        <button class="economy-reset" type="button" data-economy-reset>重置交易</button>
+        <p class="economy-status" data-economy-status>购买一次，再让余额不足或升级满级。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>定义强化类型与结果</h2></div>
+    <p>先建立三个很小的领域类型，不依附于任何 UI：</p>
+    <div class="code">
+      <div class="code-head"><span>UpgradeType.cs / PurchaseResult.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public enum UpgradeType
+{
+    MaxHealth,
+    OxygenCapacity,
+    StartingBombs
+}
+
+public enum PurchaseResult
+{
+    Purchased,
+    NotEnoughCoins,
+    MaxLevel,
+    InvalidUpgrade
+}</code></pre>
+    </div>
+    <p>枚举让调用方使用有限、可读的状态，不再比较数字或猜测失败原因。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>让强化内容成为资产</h2></div>
+    <p>新增 <code>UpgradeDefinition</code>。每个资产配置一种强化，并提供按当前等级计算价格的方法：</p>
+    <div class="code">
+      <div class="code-head"><span>UpgradeDefinition.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[CreateAssetMenu(
+    menuName = "Color Maze/Upgrade Definition")]
+public class UpgradeDefinition : ScriptableObject
+{
+    [SerializeField] private UpgradeType type;
+    [SerializeField] private string displayName;
+    [SerializeField, Min(0)] private int maxLevel = 2;
+    [SerializeField, Min(0)] private int baseCost = 3;
+    [SerializeField, Min(0)] private int costStep = 2;
+
+    public int CostFor(int currentLevel)
+    {
+        return baseCost +
+            Mathf.Max(0, currentLevel) * costStep;
+    }
+}</code></pre>
+    </div>
+    <p>在 Project 中创建三份资产：生命上限、氧气上限、初始炸弹。价格可以先用生命 4/6、氧气 3/5、炸弹 2/4。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>把金币和等级放进 PlayerProgress</h2></div>
+    <p><code>PlayerProgress</code> 不继承 MonoBehaviour，只保存本轮运行的数据：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerProgress.cs · 状态</span><button class="copy" type="button">复制</button></div>
+      <pre><code>private readonly Dictionary&lt;UpgradeType, int&gt;
+    _levels = new Dictionary&lt;UpgradeType, int&gt;();
+
+public event Action Changed;
+public int Coins { get; private set; }
+
+public int GetLevel(UpgradeType type)
+{
+    return _levels.TryGetValue(type, out int level)
+        ? level
+        : 0;
+}</code></pre>
+    </div>
+    <p>每个强化只保存当前等级，不保存“最终生命值”。新关卡应该先重新生成完整基础属性，再应用等级加成。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>写出不会半成功的 TryPurchase</h2></div>
+    <p>购买顺序固定为：验证资产 → 验证满级 → 验证金币 → 扣费并升级 → 发布变化。</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerProgress.cs · TryPurchase</span><button class="copy" type="button">复制</button></div>
+      <pre><code>if (upgrade == null)
+    return PurchaseResult.InvalidUpgrade;
+
+int level = GetLevel(upgrade);
+if (level &gt;= upgrade.MaxLevel)
+    return PurchaseResult.MaxLevel;
+
+int cost = upgrade.CostFor(level);
+if (Coins &lt; cost)
+    return PurchaseResult.NotEnoughCoins;
+
+Coins -= cost;
+_levels[upgrade.Type] = level + 1;
+Changed?.Invoke();
+return PurchaseResult.Purchased;</code></pre>
+    </div>
+    <div class="callout warn">
+      <span class="label">失败分支不扣钱</span>
+      <p>所有 <code>return</code> 都发生在 <code>Coins -= cost</code> 之前。新增失败原因时也必须保持这个顺序。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>用运行会话保留跨关进度</h2></div>
+    <p>GameSession 持有一个 PlayerProgress，停止 Play 时创建新实例：</p>
+    <div class="code">
+      <div class="code-head"><span>GameSession.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public static PlayerProgress Progress { get; private set; }
+    = new PlayerProgress();
+
+private static void ResetOnPlay()
+{
+    CurrentLevel = null;
+    Progress = new PlayerProgress();
+}</code></pre>
+    </div>
+    <p>PlayerStats 不再自己保存金币，而是从 <code>GameSession.Progress</code> 读取，并在下一关 Awake 时应用强化等级。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>PlayerStats 只计算当前属性</h2></div>
+    <p>把固定的上限改成计算属性：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerStats.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public int MaxHealth =&gt;
+    StartingMaxHealth +
+    GameSession.Progress.GetLevel(
+        UpgradeType.MaxHealth);
+
+public int MaxOxygen =&gt;
+    StartingMaxOxygen +
+    GameSession.Progress.GetLevel(
+        UpgradeType.OxygenCapacity);</code></pre>
+    </div>
+    <p>Awake 时让生命与氧气以新上限填满，并让初始炸弹等于基础值加购买等级。GameHud 改成读取 <code>playerStats.MaxHealth</code>、<code>playerStats.MaxOxygen</code> 和 <code>playerStats.Coins</code>。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">07</span><h2>生成可重复的强化行</h2></div>
+    <p><code>UpgradeShop</code> 持有可由 Inspector 配置的 <code>UpgradeRow[]</code>。每一行绑定强化资产、按钮和 TMP 标签：</p>
+    <div class="code">
+      <div class="code-head"><span>UpgradeShop.cs · 行数据</span><button class="copy" type="button">复制</button></div>
+      <pre><code>[Serializable]
+private class UpgradeRow
+{
+    [SerializeField] private UpgradeDefinition definition;
+    [SerializeField] private Button button;
+    [SerializeField] private TMP_Text label;
+}</code></pre>
+    </div>
+    <p>Awake 中统一注册按钮，OnDestroy 中统一移除。不要在 Inspector 里为每个按钮手绑不同代码入口。</p>
+    <div class="callout warn">
+      <span class="label">为什么用 Awake，不是 Start</span>
+      <p>GameHud 在 Start 中可能立刻隐藏 ShopPanel。若 UpgradeShop 也在 Start 才注册按钮，组件可能先被关闭，无法保证 Start 已经执行。Awake 在对象首次激活时必定先于所有 Start。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">08</span><h2>刷新等级、价格与结果</h2></div>
+    <p>每行显示当前等级、当前价格和下一关效果。未满级时，按钮还要检查金币：</p>
+    <div class="code">
+      <div class="code-head"><span>UpgradeShop.cs · Refresh</span><button class="copy" type="button">复制</button></div>
+      <pre><code>int level = progress.GetLevel(row.Definition);
+int cost = row.Definition.CostFor(level);
+
+row.Label.text =
+    $"{row.Definition.DisplayName}\n" +
+    $"Lv.{level}/{row.Definition.MaxLevel}" +
+    $" · {cost} 金币";
+
+row.Button.interactable =
+    progress.Coins &gt;= cost;</code></pre>
+    </div>
+    <p>点击后把 <code>PurchaseResult</code> 映射为反馈文案；按钮禁用只是提示，<code>TryPurchase</code> 仍是最终防线。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">09</span><h2>接入结算面板并测试</h2></div>
+    <p>创建全屏 <code>UpgradeShopPanel</code>，包含钱包、结果文本、三行强化和关闭按钮。场景初始保持面板激活，让 UpgradeShop 的 Awake 完成注册；GameHud 启动后和失败/重开时调用 <code>Hide()</code>，对话结束时调用 <code>Show()</code>。</p>
+    <ol>
+      <li>金币不足：按钮不可点；直接调用模型仍返回 NotEnoughCoins，余额不变。</li>
+      <li>购买炸弹：金币减少、等级 +1、下一关炸弹增加。</li>
+      <li>连续购买直到满级：按钮禁用，余额不再减少。</li>
+      <li>关闭补给站：重开与下一关按钮可点击。</li>
+      <li>进入下一关：生命、氧气、炸弹按购买等级初始化。</li>
+      <li>停止 Play 再进入：金币、等级与强化全部归零。</li>
+    </ol>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习</h2>
+    <p>先不要往上翻。</p>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">1. 为什么购买结果使用枚举？</p>
+      <div class="options">
+        <button class="option" type="button">让金币自动变成整数</button>
+        <button class="option" type="button">让按钮自动绑定文本</button>
+        <button class="option" type="button">区分失败原因与成功状态</button>
+        <button class="option" type="button">让强化资产自动创建</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>只返回 bool 会把余额不足、满级和配置错误混成同一种失败。</p>
+    </div>
+
+    <div class="quiz" data-answer="0">
+      <p class="q">2. TryPurchase 在哪一步修改金币？</p>
+      <div class="options">
+        <button class="option" type="button">全部验证成功后扣费</button>
+        <button class="option" type="button">读取资产后立即扣费</button>
+        <button class="option" type="button">满级分支里继续扣费</button>
+        <button class="option" type="button">界面刷新完成后再扣费</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>失败交易必须在进入修改阶段前返回。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">3. 为什么保存强化等级而不是最终生命值？</p>
+      <div class="options">
+        <button class="option" type="button">让敌人自动降低攻击力</button>
+        <button class="option" type="button">让金币绕过价格计算</button>
+        <button class="option" type="button">让商店忽略最大等级</button>
+        <button class="option" type="button">让新关卡从满状态重新计算</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>场景重建应恢复满资源，再叠加购买等级；旧伤害值不应跨关携带。</p>
+    </div>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">4. UpgradeShop 为何在 Awake 注册按钮？</p>
+      <div class="options">
+        <button class="option" type="button">让按钮自动播放背景音乐</button>
+        <button class="option" type="button">避免被父级隐藏后错过 Start</button>
+        <button class="option" type="button">让所有强化自动变成满级</button>
+        <button class="option" type="button">绕过脚本启用状态的检查</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>Awake 在首次激活时执行；隐藏顺序不应使按钮监听丢失。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>金币不足仍能点</td><td>Refresh 是否检查 Coins；TryPurchase 是否仍先验证余额。</td></tr>
+          <tr><td>失败却扣了金币</td><td>Coins 修改是否发生在所有 return 之后。</td></tr>
+          <tr><td>满级仍能点</td><td>GetLevel 与 MaxLevel 的比较是否在扣费前。</td></tr>
+          <tr><td>购买后 HUD 不更新</td><td>PlayerProgress.Changed 是否转发到 PlayerStats.StatsChanged。</td></tr>
+          <tr><td>下一关没有强化</td><td>PlayerStats.Awake 是否读取 GameSession.Progress。</td></tr>
+          <tr><td>补给站按钮无响应</td><td>UpgradeShop 是否被父级隐藏后才执行 Start；初始化应在 Awake。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">10</span><h2>提交与开发日志</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add Assets
+git commit -m "feat(shop): add coin upgrades and validation"</code></pre>
+    </div>
+    <p>日志写清：失败的购买分支为什么不扣钱、为什么保存强化等级、为什么对象隐藏前要在 Awake 完成初始化。</p>
+  </section>
+
+  <section class="source">
+    <h2>主资料</h2>
+    <p><a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/enum">Microsoft Learn: enum</a> · <a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/collections">Microsoft Learn: collections</a> · <a href="https://docs.unity3d.com/ScriptReference/MonoBehaviour.Awake.html">MonoBehaviour.Awake</a></p>
+    <p>完整参考：<a href="../solutions/0016/PlayerProgress.cs">PlayerProgress.cs</a> · <a href="../solutions/0016/UpgradeDefinition.cs">UpgradeDefinition.cs</a> · <a href="../solutions/0016/UpgradeShop.cs">UpgradeShop.cs</a> · <a href="../solutions/0016/PlayerStats.cs">PlayerStats.cs</a></p>
+  </section>
+
+  <p class="ask">如果金币被扣但等级没变、满级仍可购买，或下一关加成丢失，把 PurchaseResult 日志和三份 UpgradeDefinition 资产截图发我。下一课把金币、强化、音量和窗口设置保存到磁盘。</p>
+
+  <nav class="footer-nav">
+    <a href="0011-feedback-layer.html">上一课：反馈层</a>
+    <a href="../reference/0017-shop-upgrades-cheatsheet.html">参考卡：金币与购买校验</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+<script src="../assets/economy-demo.js"></script>
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 07 · 宝箱不是装饰，是资源入口 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 07</div>
+    <h1>宝箱不是装饰<br>是资源入口</h1>
+    <p class="lede">上一课炸弹只能靠初始数量。今天加金色宝箱：走上去打开，获得金币和炸弹，宝箱变成地板，奖励只发一次。</p>
+    <div class="meta">
+      <span>45–60 分钟</span>
+      <span>交互 · 资源 · 运行时替换</span>
+      <span>产出：宝箱与金币循环</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0007">
+      <li><label><input type="checkbox"><span>给 <code>TileType</code> 增加 <code>Chest</code>，给地图增加 <code>C</code> 符号和金色显示。</span></label></li>
+      <li><label><input type="checkbox"><span><code>MazeBootstrapper</code> 支持打开宝箱，并把宝箱变成地板。</span></label></li>
+      <li><label><input type="checkbox"><span><code>PlayerStats</code> 保存金币，能增加金币与炸弹，HUD 显示金币。</span></label></li>
+      <li><label><input type="checkbox"><span>玩家走上宝箱后获得 <code>+3 金币、+1 炸弹</code>。</span></label></li>
+      <li><label><input type="checkbox"><span>同一宝箱只奖励一次；停止 Play 后关卡资产里的 C 仍在。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码与日志，测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>本课的交互选择</h2>
+    <p>宝箱可以做成“按 F 打开”，也可以做成“走上去自动打开”。原型阶段先用后者：少一个输入键，能更快验证资源循环。以后要加开箱动画、音效或确认框，再把交互拆成独立步骤也不迟。</p>
+    <div class="concept-grid">
+      <article class="concept">
+        <span class="tag">Step</span>
+        <h3>进入宝箱格</h3>
+        <p>玩家移动成功后检查当前格。宝箱可通行，但进入后触发一次开箱。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">Replace</span>
+        <h3>变成地板</h3>
+        <p>开箱后把运行时格子改成 Floor，并更新渲染器颜色，保证不会重复奖励。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">Reward</span>
+        <h3>资源入账</h3>
+        <p>金币和炸弹都归 PlayerStats 管理，HUD 只负责显示。</p>
+      </article>
+    </div>
+    <div class="callout">
+      <span class="label">原型阶段先固定掉落</span>
+      <p>本课所有宝箱都固定给 <code>+3 金币、+1 炸弹</code>。等之后做道具表或掉落配置，再把固定值换成数据驱动。先验证“打开一次、入账一次、资源可用”。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">00</span><h2>在 Level_01 放一个宝箱</h2></div>
+    <p>在上一课的石头旁边放一个宝箱。把 <code>Level_01</code> 的最后第二行改成：</p>
+    <pre><code>#.SC..#</code></pre>
+    <p>完整测试地图：</p>
+    <pre><code>#######
+#.....#
+#.RR..#
+#.....#
+#..BB.#
+#.SC..#
+#######</code></pre>
+    <p>起点是 <code>(1,1)</code>，石头在 <code>(2,1)</code>，宝箱在 <code>(3,1)</code>。测试路径：D 撞石头 → E 炸开 → D 进入石头格 → D 进入宝箱。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>增加 Chest 类型和显示</h2></div>
+    <p><code>TileType.cs</code>：</p>
+    <div class="code">
+      <div class="code-head"><span>TileType.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public enum TileType
+{
+    Floor,
+    Wall,
+    Lava,
+    Water,
+    Stone,
+    Chest
+}</code></pre>
+    </div>
+    <p><code>LevelDefinition.GetTileType</code> 加入 <code>C</code> 映射：</p>
+    <div class="code">
+      <div class="code-head"><span>LevelDefinition.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>case 'C': return TileType.Chest;</code></pre>
+    </div>
+    <p><code>MazeBootstrapper.ColorFor</code> 加入金色：</p>
+    <div class="code">
+      <div class="code-head"><span>MazeBootstrapper.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>case TileType.Chest: return new Color(0.95f, 0.72f, 0.18f);</code></pre>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>把“替换格子”抽成一个方法</h2></div>
+    <p>上一课的 <code>TryBreakStone</code> 已经会“检查目标 → 改运行时格子 → 更新颜色”。宝箱也是同一件事，所以抽成公共方法，避免复制：</p>
+    <div class="code">
+      <div class="code-head"><span>MazeBootstrapper.cs · 替换逻辑</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public bool TryBreakStone(Vector2Int cell)
+{
+    return TryReplace(cell, TileType.Stone, TileType.Floor);
+}
+
+public bool TryOpenChest(Vector2Int cell)
+{
+    return TryReplace(cell, TileType.Chest, TileType.Floor);
+}
+
+private bool TryReplace(
+    Vector2Int cell,
+    TileType expected,
+    TileType replacement)
+{
+    if (GetTileType(cell) != expected)
+    {
+        return false;
+    }
+
+    _tiles[cell.x, cell.y] = replacement;
+    _renderers[cell.x, cell.y].color = ColorFor(replacement);
+    return true;
+}</code></pre>
+    </div>
+    <p>宝箱开完变成 Floor，所以第二次进入时 <code>GetTileType</code> 不再是 Chest，奖励不会重复发放。运行时副本仍然不改动 LevelDefinition 资产。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>给 PlayerStats 加金币</h2></div>
+    <p>在炸弹属性下面加入金币，以及两个增加资源的方法：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerStats.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public int Coins { get; private set; }
+
+public void AddBombs(int amount)
+{
+    Bombs += Mathf.Max(0, amount);
+}
+
+public void AddCoins(int amount)
+{
+    Coins += Mathf.Max(0, amount);
+}</code></pre>
+    </div>
+    <p>HUD 盒子高度改成 <code>168</code>，并在炸弹下面加金币：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerStats.cs · HUD</span><button class="copy" type="button">复制</button></div>
+      <pre><code>GUI.Box(new Rect(12f, 12f, 260f, 168f), "");
+
+GUI.Label(
+    new Rect(24f, 130f, 236f, 30f),
+    $"金币: {Coins}",
+    _labelStyle);</code></pre>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>走上宝箱时开箱</h2></div>
+    <p>在 <code>PlayerGridMover.cs</code> 里加两个常量，并修改移动成功后的处理：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerGridMover.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>private const int ChestCoins = 3;
+private const int ChestBombs = 1;
+
+// TryMove 末尾，更新位置之后
+if (maze.GetTileType(currentCell) == TileType.Chest)
+{
+    if (maze.TryOpenChest(currentCell))
+    {
+        stats.AddCoins(ChestCoins);
+        stats.AddBombs(ChestBombs);
+        Debug.Log("宝箱: 金币 +3，炸弹 +1");
+    }
+
+    stats.ApplyTile(TileType.Floor);
+    return;
+}
+
+stats.ApplyTile(maze.GetTileType(currentCell));</code></pre>
+    </div>
+    <p>宝箱不是危险格，开箱后按地板处理，所以氧气会正常恢复。只有 <code>TryOpenChest</code> 返回 true 才发奖励；这是“先确认交互成功，再提交资源”的同一原则。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>测试资源循环</h2></div>
+    <ol>
+      <li>Play，HUD 应显示 <code>金币: 0</code>、<code>炸弹: 1</code>。</li>
+      <li>D 撞石头，E 炸开：炸弹 1 → 0。</li>
+      <li>D 进入石头格，再 D 进入宝箱：金币 0 → 3，炸弹 0 → 1。</li>
+      <li>离开宝箱格再回来：金币和炸弹不再增加。</li>
+      <li>停止 Play，确认 <code>Level_01</code> 里的 <code>C</code> 还在；再次 Play，宝箱和金币都回到初始状态。</li>
+    </ol>
+    <div class="callout tip">
+      <span class="label">本课验证的是“循环”</span>
+      <p>炸弹开路 → 宝箱补充炸弹 → 可以继续开路。金币先只显示，商店消费会在元循环阶段加入。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>提交与日志</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "feat: add chests and coins"</code></pre>
+    </div>
+    <p>新建 <code>docs/devlog/2026-10-21-chests.md</code>：</p>
+    <pre><code># 2026-10-21 · 宝箱与金币
+
+## 今天做了什么
+- 宝箱可打开，获得金币与炸弹。
+- 宝箱只奖励一次，关卡资产保持为模板。
+
+## 卡在哪里 / 怎么解决
+- ...
+
+## 下次先做什么
+- 成对传送门与公平性测试。</code></pre>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>git add .
+git commit -m "docs: add lesson 07 devlog"</code></pre>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习：合上资料再答</h2>
+    <p>先不要往上翻。答错没关系，努力回忆本身就在加固记忆。</p>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">1. 本课宝箱如何触发？</p>
+      <div class="options">
+        <button class="option" type="button">按下 R 键时</button>
+        <button class="option" type="button">走上宝箱格子</button>
+        <button class="option" type="button">进入关卡时候</button>
+        <button class="option" type="button">生命归零之后</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>原型阶段用“走上格子自动开箱”，减少一个交互键；以后可以改成独立交互。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">2. 怎样保证宝箱只奖励一次？</p>
+      <div class="options">
+        <button class="option" type="button">把关卡资产删除了</button>
+        <button class="option" type="button">每次重置玩家生命</button>
+        <button class="option" type="button">关闭所有玩家脚本</button>
+        <button class="option" type="button">开箱之后变成地板</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>运行时格子从 Chest 变成 Floor，第二次进入就不会再满足开箱条件。</p>
+    </div>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">3. 金币数量应该由谁保存？</p>
+      <div class="options">
+        <button class="option" type="button">迷宫渲染组件</button>
+        <button class="option" type="button">关卡数据资产</button>
+        <button class="option" type="button">玩家状态组件</button>
+        <button class="option" type="button">主摄像机组件</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>金币是玩家这一局的状态，归 PlayerStats；关卡资产只保存模板数据。</p>
+    </div>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">4. 开箱后为什么调用 <code>ApplyTile(Floor)</code>？</p>
+      <div class="options">
+        <button class="option" type="button">让玩家直接回复血量</button>
+        <button class="option" type="button">重置所有的炸弹数量</button>
+        <button class="option" type="button">恢复氧气并刷新状态</button>
+        <button class="option" type="button">关闭游戏的失败界面</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>宝箱开完就是地板，按地板规则恢复氧气；同时避免把宝箱当成危险格。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>最可能原因</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>宝箱是洋红色</td><td>ColorFor 没有 Chest 分支</td><td>加入金色，并确认 LevelDefinition 的 C 映射。</td></tr>
+          <tr><td>走进宝箱没奖励</td><td>TryMove 没检查 Chest</td><td>确认移动成功后调用 <code>TryOpenChest</code>。</td></tr>
+          <tr><td>金币不显示</td><td>HUD 没加行或盒子高度不够</td><td>盒子改 168，加入 Coins 标签。</td></tr>
+          <tr><td>宝箱重复给奖励</td><td>开箱后没有变成 Floor</td><td>检查 <code>TryReplace</code> 是否执行。</td></tr>
+          <tr><td>停止 Play 后 C 消失</td><td>改了 LevelDefinition 资产</td><td>只改 <code>_tiles</code> 运行时副本。</td></tr>
+          <tr><td>宝箱走不进去</td><td>IsWalkable 把 Chest 排除了</td><td>只拦 Wall 和 Stone；Chest 应该可通行。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料（课后 10–15 分钟）</h2>
+    <p><a href="https://docs.unity3d.com/Manual/class-ScriptableObject.html">Unity Manual: ScriptableObject</a>——再次确认“数据资产”和“运行时状态”的边界。</p>
+    <p><a href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/object-oriented/objects">Microsoft Learn: Objects</a>——复习对象如何封装自己的状态，例如 PlayerStats 自己管理金币与炸弹。</p>
+    <p>参考实现：<a href="../solutions/0007/MazeBootstrapper.cs">MazeBootstrapper.cs</a> · <a href="../solutions/0007/PlayerGridMover.cs">PlayerGridMover.cs</a></p>
+  </section>
+
+  <p class="ask">如果宝箱能打开但资源不增加、重复给奖励，或者停止 Play 后 C 消失，把 Console 和 Level_01 的 Rows 发我。下一课做成对传送门，并讨论“玩家不知道对应关系”是否公平。</p>
+
+  <nav class="footer-nav">
+    <a href="0006-bombs-and-stone.html">上一课：炸弹与灰石</a>
+    <a href="0007b-portals-and-fairness.html">下一课：成对传送门</a>
+    <a href="../reference/0007-chests-and-coins-cheatsheet.html">参考卡：宝箱与金币</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

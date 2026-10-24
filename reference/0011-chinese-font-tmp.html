@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 11 · 中文字体与 TMP Font Asset | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 11</div>
+    <h1>中文字体与 TMP Font Asset</h1>
+    <p class="lede">TMP 显示的是 Font Asset 里的字形，不是系统字体。缺中文就缺字形；换字体资产才是修复。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>Fusion Pixel</span>
+      <span>OFL 1.1</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>推荐字体</h2>
+      <p><strong>Fusion Pixel Font</strong>：泛中日韩像素字体，支持简体中文，提供 8/10/12px、等宽/比例模式。</p>
+      <ul>
+        <li>字体许可：SIL OFL 1.1。</li>
+        <li>仓库代码：MIT。</li>
+        <li>来源：GitHub TakWolf/fusion-pixel-font。</li>
+        <li>版本：记录 release tag，例如 2026.10.16。</li>
+      </ul>
+      <p>备用：Noto Sans SC（OFL，非像素）。Zpix 个人/教育免费，但商业产品要付费，不能默认当免费商用。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>文件结构</h2>
+      <pre><code>Assets/
+└── ThirdParty/
+    └── Fonts/
+        └── FusionPixel/
+            ├── fusion-pixel-...ttf
+            ├── OFL.txt
+            ├── LICENSES/
+            ├── FusionPixel SDF.asset
+            └── ...atlas / material</code></pre>
+      <p>字体、许可、TMP 资产、Atlas、Material 和 .meta 都要提交。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>生成 Font Asset</h2>
+      <ol>
+        <li>Window → TextMeshPro → Font Asset Creator。</li>
+        <li>Source Font File：选中 TTF。</li>
+        <li>Atlas Resolution：先 1024×1024。</li>
+        <li>Padding：5。</li>
+        <li>Atlas Population Mode：Dynamic；Creator 没此项时生成后在 Inspector 改。</li>
+        <li>Character Set：Custom Characters 填当前 HUD 字符，或使用动态字形。</li>
+        <li>Generate Font Atlas → 保存为 FusionPixel SDF.asset。</li>
+      </ol>
+    </section>
+
+    <section class="ref-block">
+      <h2>接入方式</h2>
+      <pre><code>Project Settings
+  → TextMesh Pro
+  → Settings
+  → Fallback Font Assets
+  → add FusionPixel SDF</code></pre>
+      <p>也可以给每个 TMP Text 直接指定 Font Asset。全局 fallback 更不容易漏，但需要确认 fallback 真的生效。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>字号</h2>
+      <pre><code>10px font → 20 / 30 / 40
+12px font → 24 / 36 / 48</code></pre>
+      <p>使用整数倍减少模糊。像素字体不是任意字号都清晰。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>来源记录</h2>
+      <pre><code>| Font-01 | Fusion Pixel Font |
+| TakWolf | GitHub release |
+| OFL 1.1 | 2026.10.16 |
+| Converted to TMP dynamic |
+| Keep OFL.txt + LICENSES/ |</code></pre>
+      <p>写入项目根目录 <code>THIRD_PARTY_NOTICES.md</code>，保留原始许可文本。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>调试</h2>
+      <dl class="term">
+        <dt>仍有方框</dt>
+        <dd>Text 的 Font Asset 或 Material 不是同一套中文字体；Glyph Table 也可能缺字。</dd>
+      </dl>
+      <dl class="term">
+        <dt>只有部分字</dt>
+        <dd>Atlas 已满时 Dynamic 不会自动扩容；开启 Multi Atlas，或降低 sampling point size 重新生成。</dd>
+      </dl>
+      <dl class="term">
+        <dt>状态栏正常、结算方框</dt>
+        <dd>典型 Material 不匹配：Font Asset 换了，Material 仍是默认字体材质。</dd>
+      </dl>
+      <dl class="term">
+        <dt>图集约 1013/1024</dt>
+        <dd>已满；Multi Atlas Textures 关闭时无法补字。开启后再重新加载字体资产。</dd>
+      </dl>
+      <dl class="term">
+        <dt>字体模糊</dt>
+        <dd>字号不是 12/10 的整数倍，或 Canvas 缩放不匹配。</dd>
+      </dl>
+      <dl class="term">
+        <dt>打包后缺字</dt>
+        <dd>动态字体的源字体/Atlas 未随项目打包；检查引用。</dd>
+      </dl>
+      <dl class="term">
+        <dt>许可疑问</dt>
+        <dd>保留 OFL.txt 和 LICENSES/，按 OFL 要求署名/分发；不删原作者信息。</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0009b-chinese-font-tmp.html">课程 09b · 让中文 HUD 真正显示</a></p>
+    <p><a href="https://github.com/TakWolf/fusion-pixel-font">Fusion Pixel Font</a> · <a href="https://github.com/TakWolf/fusion-pixel-font/releases">Releases</a> · <a href="https://openfontlicense.org/">OFL</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0009b-chinese-font-tmp.html">回到课程 09b</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

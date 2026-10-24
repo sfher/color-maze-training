@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 02 · 让方块在网格上走一步 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 02</div>
+    <h1>让方块在网格上<br>走一步</h1>
+    <p class="lede">第一屏已经能显示颜色规则，但还不能玩。今天只做一件事：一个黄色方块每次按键移动一格，撞墙停下。</p>
+    <div class="meta">
+      <span>45–60 分钟</span>
+      <span>C# · Input System · 网格</span>
+      <span>产出：可移动的玩家</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0002">
+      <li><label><input type="checkbox"><span>给 <code>MazeBootstrapper</code> 增加 <code>IsWalkable</code> 与 <code>CellToWorld</code>。</span></label></li>
+      <li><label><input type="checkbox"><span>创建 <code>Assets/Scripts/PlayerGridMover.cs</code>。</span></label></li>
+      <li><label><input type="checkbox"><span>场景里创建 <code>Player</code>，并在 Inspector 中绑定 <code>Maze</code>。</span></label></li>
+      <li><label><input type="checkbox"><span>W/A/S/D 或方向键每次移动一格，撞墙不动。</span></label></li>
+      <li><label><input type="checkbox"><span>提交代码与开发日志，测验至少答对 3 / 4 题。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>先预测：谁来决定“能不能走”</h2>
+    <p>按下 W 时，玩家脚本应该自己判断前面是不是墙，还是去问迷宫？先停三秒，想一个答案再往下看。</p>
+    <p>如果玩家自己保存一份地图，那么地图一改，玩家和迷宫就会各有一份“真相”，迟早对不上。更稳的分工是：玩家只负责“想走”，迷宫负责回答“这里能不能走”。</p>
+    <blockquote class="callout tip">
+      <span class="label">本课的分工</span>
+      <p><strong>Player 负责想走，Maze 负责哪里能走，Transform 负责显示在哪。</strong></p>
+    </blockquote>
+    <div class="concept-grid">
+      <article class="concept">
+        <span class="tag">Input</span>
+        <h3>读取输入</h3>
+        <p><code>Keyboard.current</code> 告诉我们这一帧有没有按下 W/A/S/D 或方向键。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">Rule</span>
+        <h3>查询规则</h3>
+        <p><code>MazeBootstrapper.IsWalkable</code> 回答目标格子是不是墙、有没有越界。</p>
+      </article>
+      <article class="concept">
+        <span class="tag">Presentation</span>
+        <h3>更新显示</h3>
+        <p><code>CellToWorld</code> 把格子坐标换成世界坐标，再写入 <code>transform.position</code>。</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>给 Maze 增加两个公开方法</h2></div>
+    <p>打开 <code>Assets/Scripts/MazeBootstrapper.cs</code>。在 <code>Start()</code> 后面加入下面四个方法。前两个给玩家用，后两个是本文件内部的辅助方法。</p>
+    <div class="code">
+      <div class="code-head"><span>MazeBootstrapper.cs · 新增方法</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public bool IsWalkable(Vector2Int cell)
+{
+    if (cell.x &lt; 0 || cell.x &gt;= Width ||
+        cell.y &lt; 0 || cell.y &gt;= Height)
+    {
+        return false;
+    }
+
+    return TileAt(cell) != '#';
+}
+
+public Vector3 CellToWorld(Vector2Int cell)
+{
+    return transform.TransformPoint(CellToLocal(cell));
+}
+
+private char TileAt(Vector2Int cell)
+{
+    int index = (Height - 1 - cell.y) * Width + cell.x;
+    return MazeMap[index];
+}
+
+private Vector3 CellToLocal(Vector2Int cell)
+{
+    return new Vector3(
+        cell.x - (Width - 1) * 0.5f,
+        cell.y - (Height - 1) * 0.5f,
+        0f);
+}</code></pre>
+    </div>
+
+    <p>然后把 <code>CreateCell</code> 里计算世界坐标的三行，替换成一次本地坐标赋值：</p>
+    <div class="code">
+      <div class="code-head"><span>CreateCell 中的坐标写法</span><button class="copy" type="button">复制</button></div>
+      <pre><code>// 替换前
+cell.transform.position = new Vector3(
+    x - (Width - 1) * 0.5f,
+    y - (Height - 1) * 0.5f,
+    0f);
+
+// 替换后
+cell.transform.localPosition = CellToLocal(new Vector2Int(x, y));</code></pre>
+    </div>
+    <p>这样格子生成和玩家定位使用同一个坐标公式，不会各算各的。<code>IsWalkable</code> 目前只把 <code>#</code> 当墙；岩浆和水暂时可以走，规则会在后面几课逐步加进来。</p>
+    <div class="callout">
+      <span class="label">为什么先查边界</span>
+      <p><code>TileAt</code> 用索引访问字符串，坐标越界会直接抛异常。先在 <code>IsWalkable</code> 里挡住非法坐标，后面的索引才是安全的。这是“先验证，再使用”的常见工程习惯。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>写 PlayerGridMover.cs</h2></div>
+    <p>在 Unity 的 Project 窗口右键 <code>Assets/Scripts</code>，选择 <strong>Create → C# Script</strong>，命名为 <code>PlayerGridMover</code>。双击打开，替换为：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerGridMover.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class PlayerGridMover : MonoBehaviour
+{
+    [SerializeField] private MazeBootstrapper maze;
+    [SerializeField] private Vector2Int startCell = new Vector2Int(1, 1);
+
+    private Vector2Int currentCell;
+
+    private void Start()
+    {
+        if (maze == null)
+        {
+            Debug.LogError(
+                "PlayerGridMover: 请在 Inspector 里把 Maze 引用拖进来。",
+                this);
+            enabled = false;
+            return;
+        }
+
+        currentCell = startCell;
+        transform.position = maze.CellToWorld(currentCell);
+    }
+
+    private void Update()
+    {
+        Vector2Int direction = ReadDirection();
+
+        if (direction != Vector2Int.zero)
+        {
+            TryMove(direction);
+        }
+    }
+
+    private Vector2Int ReadDirection()
+    {
+        Keyboard keyboard = Keyboard.current;
+
+        if (keyboard == null)
+        {
+            return Vector2Int.zero;
+        }
+
+        if (keyboard.wKey.wasPressedThisFrame ||
+            keyboard.upArrowKey.wasPressedThisFrame)
+        {
+            return Vector2Int.up;
+        }
+
+        if (keyboard.sKey.wasPressedThisFrame ||
+            keyboard.downArrowKey.wasPressedThisFrame)
+        {
+            return Vector2Int.down;
+        }
+
+        if (keyboard.aKey.wasPressedThisFrame ||
+            keyboard.leftArrowKey.wasPressedThisFrame)
+        {
+            return Vector2Int.left;
+        }
+
+        if (keyboard.dKey.wasPressedThisFrame ||
+            keyboard.rightArrowKey.wasPressedThisFrame)
+        {
+            return Vector2Int.right;
+        }
+
+        return Vector2Int.zero;
+    }
+
+    private void TryMove(Vector2Int direction)
+    {
+        Vector2Int targetCell = currentCell + direction;
+
+        if (!maze.IsWalkable(targetCell))
+        {
+            return;
+        }
+
+        currentCell = targetCell;
+        transform.position = maze.CellToWorld(currentCell);
+    }
+}</code></pre>
+    </div>
+    <p>你的工程已经启用新 Input System，所以这里直接用 <code>Keyboard.current</code>。如果以后要做按键重绑定，再把输入搬到 Input Actions；原型阶段不必提前复杂化。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>在场景里创建 Player</h2></div>
+    <ol>
+      <li>菜单 <strong>GameObject → 2D Object → Sprites → Square</strong>，把新对象命名为 <code>Player</code>。</li>
+      <li>在 Sprite Renderer 里把 Color 调成醒目的黄色，例如 RGB <code>(1.0, 0.78, 0.16)</code>。</li>
+      <li>把 Transform 的 Scale 设为 <code>(0.8, 0.8, 1)</code>，这样能看到它下面的格子。</li>
+      <li>把 Sprite Renderer 的 <strong>Sorting Order</strong> 设为 <code>10</code>，避免被地板盖住。</li>
+      <li>给 Player 添加 <code>PlayerGridMover</code> 组件。</li>
+      <li>把场景里挂了 <code>MazeBootstrapper</code> 脚本的对象拖到 <strong>Maze</strong> 字段。注意拖的是有脚本的那个对象，不是外层空对象 <code>Maze</code>。</li>
+      <li>确认 <strong>Start Cell</strong> 是 <code>(1, 1)</code>。</li>
+    </ol>
+    <div class="callout warn">
+      <span class="label">Inspector 里的引用</span>
+      <p><code>[SerializeField] private MazeBootstrapper maze;</code> 的意思是“这个字段是私有的，但请把它显示在 Inspector 里”。如果 Maze 字段显示 <code>None</code>，运行后就会报 NullReferenceException，所以先把引用拖好。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>Play，然后只走一步</h2></div>
+    <p>点击 Game 视图让它获得焦点，按 <code>W/A/S/D</code> 或方向键。预期行为：</p>
+    <ul>
+      <li>每按一次键，玩家移动一个格子；按住不放不会连续冲出去。</li>
+      <li>向左或向上撞到黑色外墙时，玩家停在原地。</li>
+      <li>岩浆和水目前仍可走，因为规则还没实现。</li>
+    </ul>
+    <p>建议测试顺序：从 <code>(1,1)</code> 连续按两次 W，玩家应到 <code>(1,3)</code>；再按 A，应该被左侧墙挡住；再按两次 D，应到 <code>(3,3)</code>。</p>
+    <div class="callout">
+      <span class="label">为什么用 wasPressedThisFrame</span>
+      <p><code>wasPressedThisFrame</code> 只在按下的那一帧为真，所以一次按键只产生一步。若用 <code>isPressed</code>，按住期间每帧都触发，玩家会像滑行一样连续移动。网格游戏通常要的是前者。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>读懂这几行</h2>
+    <ul>
+      <li><code>Update()</code> 每帧执行，但 <code>ReadDirection()</code> 在没有新按键时返回 <code>Vector2Int.zero</code>，所以不会移动。</li>
+      <li><code>Vector2Int</code> 存的是整数格子坐标；<code>Vector3</code> 是世界空间位置。两者不要混用。</li>
+      <li><code>targetCell = currentCell + direction</code> 先算出“想去哪”，再问 <code>IsWalkable</code>；只有答案是可走，才更新 <code>currentCell</code>。这叫“先验证，再提交”。</li>
+      <li><code>CellToWorld</code> 用 <code>transform.TransformPoint</code>，所以以后移动或缩放 Maze 根对象，玩家仍然会对齐格子。</li>
+      <li>不要用方块颜色来判断规则。颜色是表现，地图字符才是数据；以后岩浆、水、灰石的规则都应该加在数据/规则层。</li>
+    </ul>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>提交，并留下记录</h2></div>
+    <p>在 <code>Color Maze</code> 工程根目录执行：</p>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "feat: add grid-based player movement"</code></pre>
+    </div>
+    <p>在 <code>Color Maze/docs/devlog/2026-10-20.md</code> 写三行：</p>
+    <pre><code># 2026-10-20 · 网格移动
+
+## 今天做了什么
+- 玩家可以按格移动，撞墙和越界都会停下。
+
+## 卡在哪里 / 怎么解决
+- ...
+
+## 下次先做什么
+- 让岩浆扣生命、水耗氧气。</code></pre>
+    <p>再提交一次：</p>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>git add .
+git commit -m "docs: add lesson 02 devlog"</code></pre>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习：合上资料再答</h2>
+    <p>先不要往上翻。答错没关系，努力回忆本身就在加固记忆。</p>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">1. <code>Update()</code> 最适合承担下面哪件事？</p>
+      <div class="options">
+        <button class="option" type="button">创建全部对象</button>
+        <button class="option" type="button">保存关卡文件</button>
+        <button class="option" type="button">读取每帧输入</button>
+        <button class="option" type="button">编译整个项目</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden><code>Update</code> 每帧调用，适合读取输入、更新表现；对象初始化通常放 <code>Start</code> 或 <code>Awake</code>。</p>
+    </div>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">2. <code>Vector2Int</code> 最适合表示什么？</p>
+      <div class="options">
+        <button class="option" type="button">屏幕像素颜色</button>
+        <button class="option" type="button">整数格子坐标</button>
+        <button class="option" type="button">三维世界位置</button>
+        <button class="option" type="button">音频播放时间</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>网格坐标是整数，用 <code>Vector2Int</code> 可以避免浮点误差；世界位置用 <code>Vector3</code>。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">3. <code>wasPressedThisFrame</code> 的作用是？</p>
+      <div class="options">
+        <button class="option" type="button">按住时持续触发</button>
+        <button class="option" type="button">每帧都自动移动</button>
+        <button class="option" type="button">检测鼠标的位置</button>
+        <button class="option" type="button">只在按下那一帧</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>它只在按下的那一帧为真，适合“一次按键走一格”的离散移动。</p>
+    </div>
+
+    <div class="quiz" data-answer="0">
+      <p class="q">4. 为什么先调用 <code>IsWalkable</code> 再改 <code>currentCell</code>？</p>
+      <div class="options">
+        <button class="option" type="button">避免进入不可通行格</button>
+        <button class="option" type="button">让玩家移动得更快些</button>
+        <button class="option" type="button">减少脚本的总行数啊</button>
+        <button class="option" type="button">让方块颜色更鲜艳些</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>先验证目标格，再提交状态，才能保证逻辑坐标不会进入墙或越界位置。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>报错急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>现象</th><th>最可能原因</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>按 W 没反应</td><td>Game 视图没焦点，或输入系统未启用</td><td>先点击 Game 视图；检查 Project Settings → Player → Active Input Handling。</td></tr>
+          <tr><td>玩家连续移动</td><td>用了 <code>isPressed</code></td><td>改成 <code>wasPressedThisFrame</code>。</td></tr>
+          <tr><td>NullReferenceException</td><td><code>maze</code> 字段没绑定</td><td>把挂了 <code>MazeBootstrapper</code> 的对象拖到 Player 的 Maze 字段。</td></tr>
+          <tr><td>玩家被地板盖住</td><td>Sorting Order 太低</td><td>把 Player 的 Sprite Renderer Sorting Order 设为 <code>10</code>。</td></tr>
+          <tr><td>玩家不在格心</td><td>Sprite 轴心或 CellToWorld 偏移</td><td>确认 Square 的 Pivot 是 Center；Maze 对象保持在原点。</td></tr>
+          <tr><td>撞墙还能走</td><td>没有调用 <code>IsWalkable</code></td><td>检查 <code>TryMove</code> 里是否有 <code>if (!maze.IsWalkable(targetCell)) return;</code>。</td></tr>
+          <tr><td>找不到 InputSystem</td><td>包未安装或缺少 using</td><td>Package Manager 确认 <code>com.unity.inputsystem</code>；文件顶部有 <code>using UnityEngine.InputSystem;</code>。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料（课后 10–15 分钟）</h2>
+    <p><a href="https://docs.unity3d.com/Packages/com.unity.inputsystem@1.19/manual/Keyboard.html">Unity Input System: Keyboard</a>——重点看 <code>Keyboard.current</code> 与按键状态；你的工程已经使用这套输入系统。</p>
+    <p>补充：<a href="https://docs.unity3d.com/ScriptReference/Vector2Int.html">Vector2Int</a> 和 <a href="https://docs.unity3d.com/ScriptReference/MonoBehaviour.Update.html">MonoBehaviour.Update</a>。读完后做个小实验：把 Start Cell 改成 <code>(4,4)</code>，看看玩家出生在哪里。</p>
+    <p>卡住时对照参考实现：<a href="../solutions/0002/PlayerGridMover.cs">solutions/0002/PlayerGridMover.cs</a>。</p>
+  </section>
+
+  <p class="ask">如果玩家不动、移动方向不对、或者撞墙判断失效，把 Console 红字和 Player 的 Inspector 截图/文字描述发我。下一课会开始让岩浆扣生命、水耗氧气。</p>
+
+  <nav class="footer-nav">
+    <a href="0001-first-color-grid.html">上一课：第一屏彩色迷宫</a>
+    <a href="0003-level-data-asset.html">下一课：把关卡搬进数据资产</a>
+    <a href="../reference/0002-grid-movement-cheatsheet.html">参考卡：网格移动速查</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

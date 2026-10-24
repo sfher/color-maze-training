@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab 09c · 找素材不是搜图片 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / Lab 09c</div>
+    <h1>找素材<br>不是搜图片</h1>
+    <p class="lede">素材查找是需求、授权、来源和导入的组合技能。今天给 HUD 找一套可追溯的字体、图标和音效，并留下能交给团队的来源记录。</p>
+    <div class="meta">
+      <span>60–90 分钟</span>
+      <span>License · Provenance · Import</span>
+      <span>产出：可追溯的 UI 素材包</span>
+    </div>
+  </header>
+
+  <section class="win">
+    <h2>本 Lab 的胜利条件</h2>
+    <ul class="checklist" data-key="lab-asset-sourcing">
+      <li><label><input type="checkbox"><span>写清一个素材需求：字体、2 个图标、1 个音效。</span></label></li>
+      <li><label><input type="checkbox"><span>至少比较两个来源，并说明选择理由。</span></label></li>
+      <li><label><input type="checkbox"><span>把选中素材放进 <code>Assets/ThirdParty/</code>，保留原始许可文件。</span></label></li>
+      <li><label><input type="checkbox"><span>创建 <code>THIRD_PARTY_NOTICES.md</code>，记录作者、来源、许可证、修改。</span></label></li>
+      <li><label><input type="checkbox"><span>至少把一项素材实际用到 HUD 或游戏反馈中。</span></label></li>
+      <li><label><input type="checkbox"><span>完成导入设置检查，并提交素材、许可和记录。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>先写需求，再打开搜索</h2>
+    <p>直接搜“像素素材”会得到一堆风格、比例和授权都不一致的东西。先写一张小规格表：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>素材</th><th>需求</th><th>硬性约束</th></tr></thead>
+        <tbody>
+          <tr><td>字体</td><td>像素风 UI 字体，适合 12–28 px</td><td>必须覆盖 HUD 中实际出现的字符；确认许可允许游戏内嵌入</td></tr>
+          <tr><td>图标 2 个</td><td>炸弹、材料/宝箱，透明背景</td><td>64×64 或整数倍；风格一致；CC0 或 CC BY</td></tr>
+          <tr><td>音效 1 个</td><td>短促的拾取/开箱声</td><td>WAV/OGG；时长短；来源与许可清晰</td></tr>
+          <tr><td>整体</td><td>像素、明亮、未来/治愈</td><td>颜色数量克制；不抢功能方块的辨识度</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout warn">
+      <span class="label">中文字体先查字形覆盖</span>
+      <p>很多英文像素字体没有中文字形。UI 里写中文时，先确认字体包含需要显示的汉字；如果找不到合适字体，暂时保留 TMP 默认字体，只替换图标和音效。不要用一个只有拉丁字母的字体硬套中文。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>高信任素材源</h2>
+    <div class="ref-grid">
+      <article class="ref-block">
+        <h2>UI / 像素素材</h2>
+        <ul>
+          <li><a href="https://kenney.nl/assets">Kenney Assets</a>：大量 CC0 素材，适合原型；仍需逐包核对许可。</li>
+          <li><a href="https://opengameart.org/">OpenGameArt</a>：授权混合，必须逐个素材看许可证。</li>
+          <li><a href="https://itch.io/game-assets/free">itch.io Free Assets</a>：质量高但授权差异大，只看明确标注。</li>
+          <li><a href="https://game-icons.net/">Game-icons.net</a>：图标常用 CC BY 3.0，通常需要署名。</li>
+        </ul>
+      </article>
+      <article class="ref-block">
+        <h2>字体 / 音频 / 3D</h2>
+        <ul>
+          <li><a href="https://fonts.google.com/">Google Fonts</a>：多为 OFL，先查字体许可和字形覆盖。</li>
+          <li><a href="https://freesound.org/">Freesound</a>：按 CC0/CC BY 筛选，逐条看音频许可。</li>
+          <li><a href="https://polyhaven.com/">Poly Haven</a>：3D 环境素材，常见 CC0。</li>
+          <li><a href="https://quaternius.com/">Quaternius</a>：低多边形 3D，常见 CC0，逐包核对。</li>
+        </ul>
+      </article>
+    </div>
+    <p>Unity Asset Store 的素材也可以使用，但它受 Asset Store EULA 约束，通常不等于可以随意转载或重新分发原始文件；使用前读许可页面。</p>
+  </section>
+
+  <section>
+    <h2>关键词怎么搜：三轮查询法</h2>
+    <p>搜索不到，通常不是“素材不存在”，而是查询词太抽象。把需求拆成四段：</p>
+    <pre><code>对象/动作 + 风格 + 载体/格式 + 用途
+
+例：coin + 8-bit + ogg + pickup
+例：pixel font + simplified chinese + ttf + HUD
+例：stone break + retro + wav + bomb impact</code></pre>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>目标</th><th>第一轮：宽泛</th><th>第二轮：具体</th><th>第三轮：加约束</th></tr></thead>
+        <tbody>
+          <tr><td>材料/金币拾取音效</td><td><code>coin pickup</code></td><td><code>8 bit coin pickup</code></td><td><code>8 bit coin pickup short CC0</code></td></tr>
+          <tr><td>开宝箱音效</td><td><code>chest open</code></td><td><code>retro chest open sfx</code></td><td><code>chest open 8 bit under 1 second</code></td></tr>
+          <tr><td>破石音效</td><td><code>stone break</code></td><td><code>rock crack game sfx</code></td><td><code>stone impact wav CC0</code></td></tr>
+          <tr><td>传送门音效</td><td><code>portal sound</code></td><td><code>teleport whoosh sci fi</code></td><td><code>portal whoosh ogg under 1 second</code></td></tr>
+          <tr><td>像素图标</td><td><code>pixel icon</code></td><td><code>pixel bomb icon 16x16</code></td><td><code>pixel icon pack CC0 transparent</code></td></tr>
+          <tr><td>中文像素字体</td><td><code>pixel font chinese</code></td><td><code>pixel font simplified chinese ttf</code></td><td><code>12px pixel font zh-hans OFL</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>每轮只改变一个维度：先确认东西是否存在，再加风格，最后加许可证、时长、分辨率或格式。不要一开始就搜“适合色彩迷宫的治愈未来像素音效”，这种查询没有站点能理解。</p>
+    <div class="callout tip">
+      <span class="label">搜索卡住时的三个动作</span>
+      <p>换同义词（如 <code>pickup / collect / coin / reward</code>）；换载体词（<code>sfx / sound / audio / ui</code>）；换需求（“必须像某游戏”改成“短促、明亮、无混响”）。如果两轮都没有结果，换来源或改需求，不要继续刷新同一页。</p>
+    </div>
+    <p>本项目已经准备好一份音效搜索 brief：<a href="../Color%20Maze/docs/AUDIO_SEARCH.md">Color Maze/docs/AUDIO_SEARCH.md</a>。先用它挑一个拾取音效，不要一次找完整套音频。</p>
+    <p>目前项目里已经放入一套可直接试听的 Kenney CC0 starter set：8 个短音效，位于 <code>Assets/ThirdParty/Audio/Kenney/</code>，并保留了三份原始许可。先试听并选择是否采用，不要因为“已经下载”就默认全部接入。</p>
+  </section>
+
+  <section>
+    <h2>许可证先看，不要先下载</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>许可证</th><th>常见含义</th><th>你需要做什么</th></tr></thead>
+        <tbody>
+          <tr><td><a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a></td><td>放弃版权，通常可商用和修改</td><td>仍记录来源，方便追溯</td></tr>
+          <tr><td><a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></td><td>可商用/修改，但必须署名</td><td>保留作者、标题、来源、许可链接和修改说明</td></tr>
+          <tr><td><a href="https://openfontlicense.org/">OFL 1.1</a></td><td>常见字体许可，可随游戏嵌入</td><td>保留版权与许可文本；确认字体是否覆盖所需字形</td></tr>
+          <tr><td>MIT</td><td>常见代码许可</td><td>保留版权与许可声明</td></tr>
+          <tr><td>Asset Store EULA</td><td>在项目中使用，不等于可重新分发原始素材</td><td>读具体许可，不把原始包当素材库分享</td></tr>
+          <tr><td>“免费下载”</td><td>不是许可证</td><td>没有明确许可就不使用</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <span class="label">重要边界</span>
+      <p>这里不是法律意见。许可证原文优先；商用、修改、再分发、署名方式有疑问时，选择更明确的素材，或向作者确认。拿不准就不要用。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>比较两个来源</h2></div>
+    <p>对每类素材至少看两个来源，用这个评分表做选择：</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>维度</th><th>要问的问题</th></tr></thead>
+        <tbody>
+          <tr><td>授权</td><td>许可证明确吗？允许商用和修改吗？需要署名吗？</td></tr>
+          <tr><td>风格</td><td>和现有颜色、分辨率、像素比例一致吗？</td></tr>
+          <tr><td>字形/内容</td><td>字体是否覆盖中文？图标是否有透明背景？音频是否干净？</td></tr>
+          <tr><td>技术</td><td>格式能导入 Unity 吗？文件尺寸合理吗？命名是否清楚？</td></tr>
+          <tr><td>维护</td><td>来源稳定吗？作者是否明确？许可文件是否随包提供？</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>“看起来最酷”排在最后。先过授权和技术约束，再比较美术偏好。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>建立可追溯的来源记录</h2></div>
+    <p>在 <code>Color Maze/THIRD_PARTY_NOTICES.md</code> 创建记录。可以从这个模板开始：</p>
+    <div class="code">
+      <div class="code-head"><span>THIRD_PARTY_NOTICES.md</span><button class="copy" type="button">复制</button></div>
+      <pre><code># Third-Party Notices
+
+| ID | Asset | Author | Source | License | Date | Modified | Attribution |
+|---|---|---|---|---|---|---|---|
+| UI-Font-01 | ... | ... | ... | OFL 1.1 | 2026-10-21 | No | ... |
+| UI-Icon-01 | ... | ... | ... | CC0 | 2026-10-21 | Recolored | Not required |
+
+## License Texts
+
+Place the original license files or links here.
+
+## Notes
+
+- Asset folder: Assets/ThirdParty/...
+- Changes: ...
+- Questions: ...</code></pre>
+    </div>
+    <p>素材放在 <code>Assets/ThirdParty/&lt;PackName&gt;/</code>，原始 <code>LICENSE</code> / <code>README</code> 不要删。改名要记录；同一素材的不同版本也要能追溯。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>导入 Unity 的检查清单</h2></div>
+    <h3>2D / UI 图标</h3>
+    <ul>
+      <li>Texture Type：<strong>Sprite (2D and UI)</strong>。</li>
+      <li>像素风：Filter Mode <strong>Point</strong>，Compression <strong>None</strong>，Generate Mip Maps 关闭。</li>
+      <li>确认 Pixels Per Unit 与项目格子一致；UI Image 勾选 Preserve Aspect。</li>
+    </ul>
+    <h3>字体</h3>
+    <ul>
+      <li>先确认中文字形覆盖，再创建 TMP Font Asset。</li>
+      <li>保留原始字体文件和 OFL 文本；不要只留下生成的 Atlas。</li>
+      <li>字形不够时使用动态字体或换字体，不要用缺字字体硬做。</li>
+    </ul>
+    <h3>音效</h3>
+    <ul>
+      <li>短音效优先 WAV；确认采样率、声道和响度。</li>
+      <li>在 AudioSource 上实际试听，避免爆音或过长。</li>
+      <li>记录来源和许可，不把素材包原始文件散落到多个目录。</li>
+    </ul>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>实际使用一项素材</h2></div>
+    <p>选择至少一项落到游戏里：</p>
+    <ul>
+      <li>把 UI 图标用在炸弹/材料/宝箱的数字旁边，或做成道具栏。</li>
+      <li>把确认支持中文的像素字体用于 HUD；若字体不支持中文，保留默认字体。</li>
+      <li>把短音效接到拾取或开箱事件上（音效系统还未做时，先记录到下一步）。</li>
+    </ul>
+    <p>不要只把文件拖进项目就算完成。素材必须被场景或预制体实际引用，才能验证导入设置、尺寸和视觉效果。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>提交素材与许可</h2></div>
+    <div class="code">
+      <div class="code-head"><span>PowerShell · Color Maze 工程根目录</span><button class="copy" type="button">复制</button></div>
+      <pre><code>cd "D:\WorkSpace\学习\AI课程\Unity项目实训\Color Maze"
+git add .
+git commit -m "assets: add licensed UI assets and notices"</code></pre>
+    </div>
+    <p>提交前检查：<code>THIRD_PARTY_NOTICES.md</code> 有记录；<code>Assets/ThirdParty</code> 有许可文件；素材在场景中被引用；没有把不明来源的图片直接塞进项目。</p>
+  </section>
+
+  <section>
+    <h2>AI 生成素材的处理</h2>
+    <p>AI 生成素材不是自动禁用，也不是自动可用。使用前要确认工具条款、商用许可、是否允许修改，并记录工具、提示词和日期。不要生成/使用模仿受版权保护角色、真实人物肖像或声音克隆的内容。对“来源不明”的 AI 资源，按“无许可素材”处理。</p>
+    <div class="callout tip">
+      <span class="label">一条团队规则</span>
+      <p><strong>任何外部素材进入项目，都必须同时进入来源记录。</strong>没有记录，就等于未来无法安全发布。</p>
+    </div>
+  </section>
+
+  <section id="quiz">
+    <h2>检索练习</h2>
+    <p>先不要往上翻。</p>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">1. CC BY 素材通常需要你做什么？</p>
+      <div class="options">
+        <button class="option" type="button">完全不用署名</button>
+        <button class="option" type="button">只能用于教育</button>
+        <button class="option" type="button">保留作者与许可</button>
+        <button class="option" type="button">自动获得版权</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>CC BY 允许使用和修改，但必须按许可要求署名、标明来源和修改。</p>
+    </div>
+
+    <div class="quiz" data-answer="3">
+      <p class="q">2. “免费下载”通常意味着什么？</p>
+      <div class="options">
+        <button class="option" type="button">可以随便转载的</button>
+        <button class="option" type="button">一定是CC0授权</button>
+        <button class="option" type="button">不需要记录来源</button>
+        <button class="option" type="button">不一定能商用啊</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>免费不等于授权明确；能否商用、修改、再分发必须看许可证原文。</p>
+    </div>
+
+    <div class="quiz" data-answer="1">
+      <p class="q">3. 中文像素字体选型要先确认什么？</p>
+      <div class="options">
+        <button class="option" type="button">文件是不是最大</button>
+        <button class="option" type="button">中文字形是否齐全</button>
+        <button class="option" type="button">颜色是不是最多</button>
+        <button class="option" type="button">作者是不是名人</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>字形覆盖是硬约束；字体再好看，缺字也无法完成中文界面。</p>
+    </div>
+
+    <div class="quiz" data-answer="2">
+      <p class="q">4. 外部素材应该放在哪并留下什么？</p>
+      <div class="options">
+        <button class="option" type="button">只放在系统桌面上</button>
+        <button class="option" type="button">直接改名后使用啊</button>
+        <button class="option" type="button">第三方目录加许可</button>
+        <button class="option" type="button">不需要记录来源啊</button>
+      </div>
+      <p class="quiz-feedback" hidden></p>
+      <p class="quiz-why" hidden>集中放在 ThirdParty，保留许可并在 THIRD_PARTY_NOTICES.md 记录来源和修改。</p>
+    </div>
+  </section>
+
+  <section id="troubleshooting">
+    <h2>素材工作流急救</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>问题</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td>找不到中文字体</td><td>保留默认字体，先替换图标/音效；不要用缺字字体。</td></tr>
+          <tr><td>图标糊</td><td>Point Filter、关闭压缩、确认 PPU 和尺寸。</td></tr>
+          <tr><td>许可看不懂</td><td>查原文、作者 FAQ；仍不确定就换素材。</td></tr>
+          <tr><td>来源页消失</td><td>保存标题、作者、下载日期和许可文本快照。</td></tr>
+          <tr><td>素材风格不统一</td><td>先定调色板/像素比例，再筛选；不要混多个包。</td></tr>
+          <tr><td>提交后无法发布</td><td>回查 notices、许可原文和素材引用关系。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="source">
+    <h2>主资料</h2>
+    <p><a href="https://kenney.nl/assets">Kenney Assets</a> · <a href="https://opengameart.org/">OpenGameArt</a> · <a href="https://freesound.org/">Freesound</a> · <a href="https://fonts.google.com/">Google Fonts</a></p>
+    <p>许可原文：<a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0</a> · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> · <a href="https://openfontlicense.org/">OFL</a> · <a href="https://unity.com/legal/as-terms">Asset Store Terms</a></p>
+    <p>项目内记录模板：<a href="../Color%20Maze/THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a> · <a href="../Color%20Maze/docs/AUDIO_SEARCH.md">Audio Search Brief</a></p>
+  </section>
+
+  <p class="ask">如果你找到两个候选素材拿不准，把来源、许可证和用途贴给我；我们一起判断，不要先下载一堆来源不明的文件。</p>
+
+  <nav class="footer-nav">
+    <a href="0009b-chinese-font-tmp.html">上一课：中文字体与 TMP</a>
+    <a href="0009d-audio-events.html">下一课：音效事件接入</a>
+    <a href="../reference/0010-asset-sourcing-and-licensing.html">参考卡：素材来源与许可</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

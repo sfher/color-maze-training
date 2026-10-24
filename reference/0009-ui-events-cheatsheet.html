@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 09 · UI 与事件速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 09</div>
+    <h1>UI 与事件</h1>
+    <p class="lede">UI 是状态的观察者，不是状态的拥有者。状态变化发事件，界面收到后刷新；按钮只发出意图。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>Canvas / TMP</span>
+      <span>发布订阅</span>
+    </div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>数据流</h2>
+      <pre><code>PlayerStats.StatsChanged
+        ↓
+GameHud.RefreshStats()
+        ↓
+StatsText.text
+
+LevelFlowController.StateChanged
+        ↓
+GameHud.HandleStateChanged()
+        ↓
+EndPanel.SetActive(...)</code></pre>
+      <p>UI 不修改生命、金币或材料；它只读取状态并显示。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>Canvas 基础</h2>
+      <ul>
+        <li>Render Mode：Screen Space - Overlay。</li>
+        <li>Canvas Scaler：Scale With Screen Size。</li>
+        <li>Reference Resolution：1920 × 1080。</li>
+        <li>Match：0.5。</li>
+        <li>Canvas 下放 StatsPanel、EndPanel、HintText。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>RectTransform</h2>
+      <dl class="term">
+        <dt>Anchor</dt>
+        <dd>相对父容器的位置。左上角状态栏用 Anchor Min/Max (0,1)。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Pivot</dt>
+        <dd>自身旋转和定位的基准点。左上角面板用 (0,1)。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Stretch</dt>
+        <dd>四边拉伸，适合面板内部的文字；设置边距而不是写死宽高。</dd>
+      </dl>
+      <dl class="term">
+        <dt>Pos X/Y</dt>
+        <dd>相对锚点的偏移。左上角面板常见 Pos (32, -32)。</dd>
+      </dl>
+    </section>
+
+    <section class="ref-block">
+      <h2>事件订阅</h2>
+      <pre><code>void Start()
+{
+    playerStats.StatsChanged += RefreshStats;
+    flow.StateChanged += HandleStateChanged;
+    flow.HintShown += ShowHint;
+}
+
+void OnDestroy()
+{
+    playerStats.StatsChanged -= RefreshStats;
+    flow.StateChanged -= HandleStateChanged;
+    flow.HintShown -= ShowHint;
+}</code></pre>
+      <p>订阅和取消订阅成对出现；避免对象销毁后还被事件引用。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>按钮</h2>
+      <pre><code>restartButton.onClick.AddListener(flow.Restart);
+
+// OnDestroy
+restartButton.onClick.RemoveListener(flow.Restart);</code></pre>
+      <p>按钮调用的是流程方法，不是直接改生命或重载场景。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>提示计时</h2>
+      <pre><code>yield return new WaitForSecondsRealtime(2f);</code></pre>
+      <p>使用 Realtime，暂停时提示也能正常计时；普通 <code>WaitForSeconds</code> 会受到 timeScale 影响。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>UI 测试清单</h2>
+      <ul>
+        <li>初始数值正确。</li>
+        <li>受伤、耗氧、拾取、开箱后数值更新。</li>
+        <li>没材料出口出现提示。</li>
+        <li>完成和失败面板显示。</li>
+        <li>按钮与 R 都能重开。</li>
+        <li>调整窗口比例，布局不跑位。</li>
+        <li>Console 没有引用为空。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>两套 HUD</dt>
+        <dd>旧的 PlayerStats/LevelFlowController OnGUI 没删。</dd>
+      </dl>
+      <dl class="term">
+        <dt>按钮无效</dt>
+        <dd>场景缺少 EventSystem 或 InputSystemUIInputModule。</dd>
+      </dl>
+      <dl class="term">
+        <dt>文字看不清</dt>
+        <dd>TMP 字体材质、颜色、Canvas 排序或面板透明度。</dd>
+      </dl>
+      <dl class="term">
+        <dt>数值不动</dt>
+        <dd>StatsChanged 没在状态修改后触发。</dd>
+      </dl>
+      <dl class="term">
+        <dt>面板不显示</dt>
+        <dd>StateChanged 没触发，或 EndPanel 引用为空。</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程</h2>
+    <p><a href="../lessons/0009-formal-hud.html">课程 09 · 把调试 HUD 换成真正的界面</a></p>
+    <p>官方查证：<a href="https://docs.unity3d.com/Packages/com.unity.ugui@2.0/manual/UIHowTos.html">UGUI How-Tos</a> · <a href="https://docs.unity3d.com/Packages/com.unity.ugui@2.0/api/UnityEngine.UI.Button.html">Button API</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0009-formal-hud.html">回到课程 09</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>

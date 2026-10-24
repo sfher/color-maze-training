@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 17 · 金币与购买校验速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 17</div>
+    <h1>金币与购买校验</h1>
+    <p class="lede">强化内容是资产，金币与等级是运行进度，购买是一次会返回明确结果的交易。三者分开，UI 才能准确显示“为什么买不了”。</p>
+    <div class="meta">
+      <span>打印友好</span>
+      <span>PurchaseResult</span>
+      <span>Economy</span>
+    </div>
+  </header>
+
+  <section class="callout warn">
+    <span class="label">暂时搁置</span>
+    <p>购买校验知识仍然有效，但当前经济方向改为购买主题、图片与关卡。等内容目录完成后重做商店课。</p>
+  </section>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>领域类型</h2>
+      <pre><code>UpgradeType
+  MaxHealth
+  OxygenCapacity
+  StartingBombs
+
+PurchaseResult
+  Purchased
+  NotEnoughCoins
+  MaxLevel
+  InvalidUpgrade</code></pre>
+      <p>结果枚举让 UI 能区分失败原因，不需要猜测。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>强化资产</h2>
+      <pre><code>Type
+DisplayName
+MaxLevel
+BaseCost
+CostStep
+
+CostFor(currentLevel) =
+    BaseCost
+    + currentLevel * CostStep</code></pre>
+      <p>新增强化时创建新资产，不复制新的购买脚本。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>运行进度</h2>
+      <pre><code>PlayerProgress
+  Coins
+  Dictionary&lt;UpgradeType, int&gt;
+  event Action Changed</code></pre>
+      <p>只存余额和强化等级，不存上一关受伤后的生命与氧气。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>交易顺序</h2>
+      <ol>
+        <li>Upgrade 是否为空？</li>
+        <li>是否已经满级？</li>
+        <li>Coins 是否足够？</li>
+        <li>扣除 Coins。</li>
+        <li>等级 +1。</li>
+        <li>发布 Changed。</li>
+      </ol>
+      <p>所有失败返回必须发生在扣费之前。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>TryPurchase</h2>
+      <pre><code>if (Coins &lt; cost)
+    return PurchaseResult.NotEnoughCoins;
+
+Coins -= cost;
+_levels[upgrade.Type] = level + 1;
+Changed?.Invoke();
+return PurchaseResult.Purchased;</code></pre>
+      <p>成功路径只有一条，余额和等级一起变化。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>新关卡属性</h2>
+      <pre><code>MaxHealth =
+    StartingMaxHealth
+    + UpgradeLevel(MaxHealth)
+
+MaxOxygen =
+    StartingMaxOxygen
+    + UpgradeLevel(OxygenCapacity)
+
+Bombs =
+    StartingBombs
+    + UpgradeLevel(StartingBombs)</code></pre>
+      <p>场景重建后从满资源开始，再应用强化。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>商店刷新</h2>
+      <pre><code>cost = definition.CostFor(level);
+label = name + level + cost;
+button.interactable =
+    level &lt; maxLevel
+    &amp;&amp; Coins &gt;= cost;</code></pre>
+      <p>按钮禁用只是提示，模型里的 TryPurchase 仍是最终校验。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>生命周期</h2>
+      <ul>
+        <li>UpgradeShop 在 Awake 注册行按钮。</li>
+        <li>GameHud 可能在 Start 立即隐藏面板。</li>
+        <li>隐藏不能导致按钮监听永远未注册。</li>
+        <li>OnDestroy 移除相同监听。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>持久范围</h2>
+      <ul>
+        <li>同一次 Play：金币与强化跨场景保留。</li>
+        <li>停止 Play：PlayerProgress 重建。</li>
+        <li>文件存档：课程 13。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>报错急救</h2>
+      <dl class="term">
+        <dt>出现负金币</dt>
+        <dd>余额修改发生在验证之前。</dd>
+      </dl>
+      <dl class="term">
+        <dt>满级仍扣钱</dt>
+        <dd>MaxLevel 检查缺失或顺序错误。</dd>
+      </dl>
+      <dl class="term">
+        <dt>下一关丢失</dt>
+        <dd>PlayerStats 没读取 GameSession.Progress。</dd>
+      </dl>
+      <dl class="term">
+        <dt>商店按钮无响应</dt>
+        <dd>Start 因对象被隐藏而未执行，改在 Awake 注册。</dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="source">
+    <h2>对应课程与资料</h2>
+    <p><a href="../lessons/0012-shop-and-upgrades.html">课程 12 · MAYA 补给站</a></p>
+    <p><a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/enum">Microsoft Learn: enum</a> · <a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/concepts/collections">Microsoft Learn: collections</a> · <a href="https://docs.unity3d.com/ScriptReference/MonoBehaviour.Awake.html">MonoBehaviour.Awake</a></p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0012-shop-and-upgrades.html">回到课程 12</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+
+</main>
+</body>
+</html>
