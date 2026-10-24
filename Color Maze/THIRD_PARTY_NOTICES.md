@@ -16,8 +16,8 @@ original license texts.
 | kenney-rpg-audio | RPG Audio | Kenney (Kenney Vleugels) | [RPG Audio](https://kenney.nl/assets/rpg-audio) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-21 | Selected pickup, chest latch, stone impact; renamed | Not required; credit appreciated |
 | kenney-digital-audio | Digital Audio | Kenney (Kenney Vleugels) | [Digital Audio](https://kenney.nl/assets/digital-audio) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-21 | Selected portal/phaser sound; renamed | Not required; credit appreciated |
 | freesound-drowning-02 | Cartoon Drowning 02.wav | LilMati | [Freesound 657930](https://freesound.org/s/657930/) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-23 | Imported original WAV for drowning damage | Not required; credit appreciated |
-| kenney-roguelike-rpg | Roguelike/RPG Pack (selected tiles) | Kenney (Kenney Vleugels) | [Roguelike/RPG Pack](https://kenney.nl/assets/roguelike-rpg-pack) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-24 | Cropped chest/exit tiles from packed spritesheet; no pixel edits | Not required; credit appreciated |
-| kenney-roguelike-caves | Roguelike Caves & Dungeons (selected tiles) | Kenney (Kenney Vleugels) | [Roguelike Caves & Dungeons](https://kenney.nl/assets/roguelike-caves-dungeons) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-24 | Cropped floor/wall/water/material tiles from packed spritesheet; no pixel edits | Not required; credit appreciated |
+| kenney-roguelike-rpg | Roguelike/RPG Pack (selected tiles) | Kenney (Kenney Vleugels) | [Roguelike/RPG Pack](https://kenney.nl/assets/roguelike-rpg-pack) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-24 | Cropped chest/exit tiles from spritesheet; composited onto project-made floor background | Not required; credit appreciated |
+| kenney-roguelike-caves | Roguelike Caves & Dungeons (selected tiles) | Kenney (Kenney Vleugels) | [Roguelike Caves & Dungeons](https://kenney.nl/assets/roguelike-caves-dungeons) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-24 | Cropped water/material tiles from spritesheet; material composited onto project-made floor background | Not required; credit appreciated |
 
 ## Local Files
 
@@ -71,22 +71,28 @@ Cell coordinates are (column,row) in the packed spritesheet; tiles are
 
 | Project file | Source pack | Sheet cell | Use |
 |---|---|---|---|
-| `tile_floor.png` | Roguelike Caves & Dungeons | (8,0) | Floor `.` |
-| `tile_wall.png` | Roguelike Caves & Dungeons | (14,1) | Wall `#` |
 | `tile_water.png` | Roguelike Caves & Dungeons | (1,15) | Water `B` |
-| `tile_material.png` | Roguelike Caves & Dungeons | (15,13) | Material `M` |
-| `tile_chest.png` | Roguelike/RPG Pack | (54,2) | Chest `C` |
-| `tile_exit.png` | Roguelike/RPG Pack | (44,0) | Exit `E` |
+| `tile_material.png` | Roguelike Caves & Dungeons | (15,13) | Material `M`, composited onto floor background |
+| `tile_chest.png` | Roguelike/RPG Pack | (54,2) | Chest `C`, composited onto floor background |
+| `tile_exit.png` | Roguelike/RPG Pack | (44,0) | Exit `E`, composited onto floor background |
 
 ## Original Art
 
+- `Assets/Art/Tiles/tile_floor.png` — 2026-10-24, drawn with Aseprite batch
+  scripting. Near-flat light tile designed to tile seamlessly; replaced the
+  Kenney cave floor whose baked-in cracks pattern looked noisy when tiled.
+- `Assets/Art/Tiles/tile_wall.png` — 2026-10-24, drawn with Aseprite batch
+  scripting. Dark raised block with bevel edges; replaced the Kenney cave
+  wall that was hard to distinguish from the floor.
 - `Assets/Art/Tiles/tile_lava.png` — 2026-10-24, drawn with Aseprite batch
   scripting for this project. Neither Kenney pack ships a lava tile.
 - `Assets/Art/Tiles/tile_portal.png` — 2026-10-24, drawn with Aseprite batch
-  scripting. A white spiral designed to be tinted per portal id at runtime.
+  scripting. A white spiral on a dark pad: the whole sprite is tinted per
+  portal id at runtime, and the dark pad keeps the spiral readable after
+  tinting (a floor-colored pad would wash out the contrast).
 - `Assets/Art/Tiles/tile_stone.png` — 2026-10-24, drawn with Aseprite batch
-  scripting. Neither Kenney pack ships a round boulder (candidates were
-  columns, stalactites and window frames).
+  scripting. Round boulder on a baked floor background. Neither Kenney pack
+  ships a round boulder (candidates were columns, stalactites and frames).
 - `Assets/Art/Player/player_*.png` — 2026-10-24, 8 hooded-adventurer skins
   (default/orange/yellow/green/teal/blue/purple/rose) drawn with Aseprite
   batch scripting from one template; intended as purchasable player skins.
