@@ -239,7 +239,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15dfd5abaaebbb54cb1362f7f71789be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MazeBootstrapper
-  level: {fileID: 11400000, guid: 2c81e944ac986b2449f578b1f782ab2d, type: 2}
+  level: {fileID: 11400000, guid: 6f494dbc2382fea4cadf551f962f23ec, type: 2}
+  visuals: {fileID: 11400000, guid: 10d0b6ce3799abb41af5e833f105e8fe, type: 2}
 --- !u!1 &124644421
 GameObject:
   m_ObjectHideFlags: 0
@@ -2111,8 +2112,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 10
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 1, g: 0.89879227, b: 0, a: 1}
+  m_Sprite: {fileID: 21300000, guid: a20fa0f9a08b4cb8948612a78451c33f, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -4820,6 +4821,7 @@ MonoBehaviour:
   audio: {fileID: 1552829966}
   screenFlash: {fileID: 1650552392}
   damageColor: {r: 0.75, g: 0.12, b: 0.1, a: 0.22}
+  drownColor: {r: 0.1, g: 0.4, b: 0.9, a: 0.2}
   gainColor: {r: 1, g: 0.78, b: 0.18, a: 0.12}
   portalColor: {r: 0.52, g: 0.22, b: 0.72, a: 0.16}
 --- !u!114 &1552829969

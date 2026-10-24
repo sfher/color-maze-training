@@ -4,6 +4,7 @@ using UnityEngine;
 public class MazeBootstrapper : MonoBehaviour
 {
     [SerializeField] private LevelDefinition level;
+    [SerializeField] private TileVisuals visuals;
 
     private TileType[,] _tiles;
     private int[,] _portalIds;
@@ -39,10 +40,21 @@ public class MazeBootstrapper : MonoBehaviour
             return;
         }
 
+        if (visuals == null)
+        {
+            Debug.LogError(
+                "MazeBootstrapper: 请在 Inspector 里指定 Tile Visuals。",
+                this);
+            enabled = false;
+            return;
+        }
+
         _tiles = new TileType[Width, Height];
         _portalIds = new int[Width, Height];
         _renderers = new SpriteRenderer[Width, Height];
 
+        // 地砖改用 TileVisuals 的像素贴图；
+        // 白方块只留给炸弹标记 CreateBombMarker 使用。
         _squareSprite = CreateSquareSprite();
 
         for (int y = 0; y < Height; y++)
@@ -55,8 +67,7 @@ public class MazeBootstrapper : MonoBehaviour
 
                 _tiles[x, y] = tile;
                 _portalIds[x, y] = portalId;
-                _renderers[x, y] =
-                    CreateCell(_squareSprite, x, y, tile);
+                _renderers[x, y] = CreateCell(x, y, tile);
 
                 if (tile == TileType.Portal)
                 {
@@ -172,7 +183,11 @@ public class MazeBootstrapper : MonoBehaviour
         }
 
         _tiles[cell.x, cell.y] = replacement;
-        _renderers[cell.x, cell.y].color = ColorFor(replacement);
+        _renderers[cell.x, cell.y].sprite =
+            visuals.GetSprite(replacement);
+        // color 是乘法 tint：换成新地砖后必须归白，
+        // 否则地板会带上石头灰、水蓝等旧颜色。
+        _renderers[cell.x, cell.y].color = Color.white;
         return true;
     }
 
@@ -208,7 +223,6 @@ public class MazeBootstrapper : MonoBehaviour
     }
 
     private SpriteRenderer CreateCell(
-        Sprite square,
         int x,
         int y,
         TileType tile)
@@ -218,8 +232,8 @@ public class MazeBootstrapper : MonoBehaviour
         cell.transform.localPosition = CellToLocal(new Vector2Int(x, y));
 
         SpriteRenderer spriteRenderer = cell.AddComponent<SpriteRenderer>();
-        spriteRenderer.sprite = square;
-        spriteRenderer.color = ColorFor(tile);
+        spriteRenderer.sprite = visuals.GetSprite(tile);
+        spriteRenderer.color = Color.white;
         return spriteRenderer;
     }
 
@@ -228,23 +242,6 @@ public class MazeBootstrapper : MonoBehaviour
         return _knownPortalIds.Contains(id)
             ? new Color(0.78f, 0.55f, 0.95f)
             : new Color(0.52f, 0.22f, 0.72f);
-    }
-
-    private Color ColorFor(TileType tile)
-    {
-        switch (tile)
-        {
-            case TileType.Wall: return new Color(0.10f, 0.10f, 0.12f);
-            case TileType.Floor: return new Color(0.93f, 0.92f, 0.88f);
-            case TileType.Lava: return new Color(0.82f, 0.22f, 0.20f);
-            case TileType.Water: return new Color(0.16f, 0.45f, 0.86f);
-            case TileType.Stone: return new Color(0.45f, 0.45f, 0.48f);
-            case TileType.Chest: return new Color(0.95f, 0.72f, 0.18f);
-            case TileType.Portal: return new Color(0.52f, 0.22f, 0.72f);
-            case TileType.Material: return new Color(0.20f, 0.95f, 0.75f);
-            case TileType.Exit: return new Color(0.18f, 0.65f, 0.35f);
-            default: return Color.magenta;
-        }
     }
 
     private Sprite CreateSquareSprite()
