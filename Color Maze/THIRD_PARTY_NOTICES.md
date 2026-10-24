@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-Last updated: 2026-10-23
+Last updated: 2026-10-24
 
 This file records the provenance and license of external assets used in the
 Color Maze Unity project. It is an inventory, not a replacement for the
@@ -16,6 +16,8 @@ original license texts.
 | kenney-rpg-audio | RPG Audio | Kenney (Kenney Vleugels) | [RPG Audio](https://kenney.nl/assets/rpg-audio) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-21 | Selected pickup, chest latch, stone impact; renamed | Not required; credit appreciated |
 | kenney-digital-audio | Digital Audio | Kenney (Kenney Vleugels) | [Digital Audio](https://kenney.nl/assets/digital-audio) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-21 | Selected portal/phaser sound; renamed | Not required; credit appreciated |
 | freesound-drowning-02 | Cartoon Drowning 02.wav | LilMati | [Freesound 657930](https://freesound.org/s/657930/) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-23 | Imported original WAV for drowning damage | Not required; credit appreciated |
+| kenney-roguelike-rpg | Roguelike/RPG Pack (selected tiles) | Kenney (Kenney Vleugels) | [Roguelike/RPG Pack](https://kenney.nl/assets/roguelike-rpg-pack) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-24 | Cropped chest/exit tiles from packed spritesheet; no pixel edits | Not required; credit appreciated |
+| kenney-roguelike-caves | Roguelike Caves & Dungeons (selected tiles) | Kenney (Kenney Vleugels) | [Roguelike Caves & Dungeons](https://kenney.nl/assets/roguelike-caves-dungeons) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | 2026-10-24 | Cropped floor/wall/water/material tiles from packed spritesheet; no pixel edits | Not required; credit appreciated |
 
 ## Local Files
 
@@ -24,9 +26,13 @@ original license texts.
 - Icons: `Assets/ThirdParty/Icons/`
 - Audio: `Assets/ThirdParty/Audio/Kenney/`
 - Additional audio: `Assets/ThirdParty/Sounds/`
+- Pixel tiles: `Assets/ThirdParty/Art/Kenney/RoguelikeCavesDungeons/`
+  and `Assets/ThirdParty/Art/Kenney/RoguelikeRpg/`
 - Original Kenney license copies:
   `License-InterfaceSounds.txt`, `License-RPGAudio.txt`,
-  `License-DigitalAudio.txt`
+  `License-DigitalAudio.txt`, and `License.txt` in each pixel tile folder
+- Project-made art (not third-party): `Assets/Art/Tiles/` and
+  `Assets/Art/Player/`
 
 ## Needs Review
 
@@ -41,8 +47,8 @@ No outstanding unverified files were found in
   original pack.
 - 1-bit Pixel Icons: CC0 1.0. No attribution is required, but the source
   page and author are recorded here for provenance.
-- Kenney audio packs: CC0 1.0. Original license copies are kept in the
-  imported audio folder.
+- Kenney audio packs and pixel tile packs: CC0 1.0. Original license copies
+  are kept in the imported folders.
 
 ## Selected Audio
 
@@ -58,6 +64,33 @@ No outstanding unverified files were found in
 | `damage.ogg` | Interface Sounds | `error_003.ogg` | Damage/failure feedback |
 | `657930__lilmati__cartoon-drowning-02.wav` | Freesound 657930 | `657930__lilmati__cartoon-drowning-02.wav` | Drowning health damage |
 
+## Selected Art
+
+Cell coordinates are (column,row) in the packed spritesheet; tiles are
+16×16 with 1px spacing (stride 17), origin at top-left.
+
+| Project file | Source pack | Sheet cell | Use |
+|---|---|---|---|
+| `tile_floor.png` | Roguelike Caves & Dungeons | (8,0) | Floor `.` |
+| `tile_wall.png` | Roguelike Caves & Dungeons | (14,1) | Wall `#` |
+| `tile_water.png` | Roguelike Caves & Dungeons | (1,15) | Water `B` |
+| `tile_material.png` | Roguelike Caves & Dungeons | (15,13) | Material `M` |
+| `tile_chest.png` | Roguelike/RPG Pack | (54,2) | Chest `C` |
+| `tile_exit.png` | Roguelike/RPG Pack | (44,0) | Exit `E` |
+
+## Original Art
+
+- `Assets/Art/Tiles/tile_lava.png` — 2026-10-24, drawn with Aseprite batch
+  scripting for this project. Neither Kenney pack ships a lava tile.
+- `Assets/Art/Tiles/tile_portal.png` — 2026-10-24, drawn with Aseprite batch
+  scripting. A white spiral designed to be tinted per portal id at runtime.
+- `Assets/Art/Tiles/tile_stone.png` — 2026-10-24, drawn with Aseprite batch
+  scripting. Neither Kenney pack ships a round boulder (candidates were
+  columns, stalactites and window frames).
+- `Assets/Art/Player/player_*.png` — 2026-10-24, 8 hooded-adventurer skins
+  (default/orange/yellow/green/teal/blue/purple/rose) drawn with Aseprite
+  batch scripting from one template; intended as purchasable player skins.
+
 ## Suggested Credits
 
 These credits are optional for CC0, but useful for transparency:
@@ -66,6 +99,7 @@ These credits are optional for CC0, but useful for transparency:
 1-bit Pixel Icons by Nikoichu (CC0 1.0)
 Fusion Pixel Font by TakWolf (SIL OFL 1.1)
 Kenney audio packs by Kenney (CC0 1.0)
+Kenney Roguelike/RPG Pack and Roguelike Caves & Dungeons by Kenney (CC0 1.0)
 LilMati on Freesound for Cartoon Drowning 02 (CC0 1.0)
 ```
 
@@ -75,6 +109,8 @@ LilMati on Freesound for Cartoon Drowning 02 (CC0 1.0)
 - [x] Font license file retained
 - [x] Selected icon files are under `Assets/ThirdParty/Icons/`
 - [x] Kenney audio licenses retained under `Assets/ThirdParty/Audio/Kenney/`
+- [x] Kenney pixel tile pack licenses verified as CC0 1.0 and retained
+- [x] Cropped tile provenance recorded in Selected Art
 - [x] Modifications and source URLs recorded
 - [ ] Confirm this file is included in the release build/notices
 
