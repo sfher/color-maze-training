@@ -52,12 +52,23 @@ public class GameHud : MonoBehaviour
 
     private void Update()
     {
+        Keyboard keyboard = Keyboard.current;
+
+        // Enter：与“下一关”按钮同一启用条件——对话结束后才生效。
+        if (flow.State == LevelState.Completed &&
+            nextLevelButton.gameObject.activeSelf &&
+            keyboard != null &&
+            keyboard.enterKey.wasPressedThisFrame)
+        {
+            flow.AdvanceToNextLevel();
+            return;
+        }
+
         if (dialogue == null || !dialogue.IsShowing)
         {
             return;
         }
 
-        Keyboard keyboard = Keyboard.current;
         Mouse mouse = Mouse.current;
         bool advance =
             (keyboard != null &&
@@ -194,13 +205,16 @@ public class GameHud : MonoBehaviour
             return;
         }
 
-        endTitleText.text = "关卡完成";
-        endHintText.text =
+        string summary =
             playerStats.Health == PlayerStats.MaxHealth
                 ? $"满血完成 · 使用 {flow.StepLimit - flow.StepsRemaining} 步"
                 : $"完成但残血 · 生命 {playerStats.Health} / {PlayerStats.MaxHealth}";
+        endTitleText.text = "关卡完成";
         restartButton.gameObject.SetActive(true);
         nextLevelButton.gameObject.SetActive(flow.CanAdvance);
+        endHintText.text = flow.CanAdvance
+            ? $"{summary}\n按 Enter 或按钮进入下一关。"
+            : summary;
     }
 
     private void ShowHint(string message)

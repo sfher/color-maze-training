@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f77adcefb44f4a42a26958891d6dfb5, type: 3}
+  m_Name: content_theme_deepsea
+  m_EditorClassIdentifier: Assembly-CSharp::ContentEntry
+  id: theme-deepsea
+  displayName: 深海
+  contentType: 1
+  price: 30
+  previewSprite: {fileID: 21300000, guid: 319913c224924a57ac6750c1e94f32cf, type: 3}
+  skinSprite: {fileID: 0}
+  themeVisuals: {fileID: 11400000, guid: 50d25f6c58df406f8c44cf6794cbf5ef, type: 2}
+  level: {fileID: 0}

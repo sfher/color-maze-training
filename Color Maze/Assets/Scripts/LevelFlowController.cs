@@ -7,6 +7,7 @@ public class LevelFlowController : MonoBehaviour
     [SerializeField] private PlayerStats playerStats;
     [SerializeField] private AudioManager audio;
     [SerializeField] private MazeBootstrapper maze;
+    [SerializeField] private ProgressService progress;
 
     public event System.Action StateChanged;
     public event System.Action<string> HintShown;
@@ -91,6 +92,15 @@ public class LevelFlowController : MonoBehaviour
         if (hasMaterial)
         {
             audio.PlayLevelComplete();
+            // 金币结算与首通奖励在进入 Completed 时发生一次；
+            // 失败/重开路径不会走到这里，天然防刷。
+            if (progress != null)
+            {
+                progress.SettleLevelComplete(
+                    CurrentLevel,
+                    playerStats);
+            }
+
             SetState(LevelState.Completed);
             return;
         }
@@ -160,6 +170,13 @@ public class LevelFlowController : MonoBehaviour
             SceneManager.GetActiveScene().buildIndex);
     }
 
+    /// <summary>回主菜单（build index 0）。临时入口：暂停中按 M。</summary>
+    public void ReturnToMenu()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(0);
+    }
+
     public void AdvanceToNextLevel()
     {
         if (!CanAdvance)
@@ -208,8 +225,12 @@ public class LevelFlowController : MonoBehaviour
     {
         Keyboard keyboard = Keyboard.current;
 
-        if (keyboard != null &&
-            keyboard.escapeKey.wasPressedThisFrame &&
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        if (keyboard.escapeKey.wasPressedThisFrame &&
             (State == LevelState.Playing ||
              State == LevelState.Paused))
         {
@@ -217,14 +238,15 @@ public class LevelFlowController : MonoBehaviour
             return;
         }
 
-        if (State != LevelState.Completed &&
-            State != LevelState.Failed)
+        if (State == LevelState.Paused &&
+            keyboard.mKey.wasPressedThisFrame)
         {
+            ReturnToMenu();
             return;
         }
 
-        if (keyboard != null &&
-            keyboard.rKey.wasPressedThisFrame)
+        // R：任意状态直接重开——关内、暂停中、结算后行为一致。
+        if (keyboard.rKey.wasPressedThisFrame)
         {
             Restart();
         }

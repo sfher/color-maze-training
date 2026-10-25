@@ -4,7 +4,7 @@ using UnityEngine;
 
 public static class SaveService
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     private const string FileName = "save.json";
     private const string TempName = "save.tmp";
