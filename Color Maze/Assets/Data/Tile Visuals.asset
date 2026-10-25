@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed8a458a109f6d44e80daedd95dc6325, type: 3}
   m_Name: Tile Visuals
   m_EditorClassIdentifier: Assembly-CSharp::TileVisuals
-  floor: {fileID: 21300000, guid: 1fe2e70d748c45ab9fedd262e1f6670a, type: 3}
-  wall: {fileID: 21300000, guid: 28afa99be5ca436fa6b210e3de445ebf, type: 3}
+  floor: {fileID: 21300000, guid: fe9c8051aca0420ab22de984bd6382ce, type: 3}
+  wall: {fileID: 21300000, guid: c1d4689911f24a709b7795d0523862f0, type: 3}
   stone: {fileID: 21300000, guid: db89dd8e99754af8a08998ebd1545d2d, type: 3}
   water: {fileID: 21300000, guid: d204f8f3935c43018bd7bb3e389de069, type: 3}
   lava: {fileID: 21300000, guid: b26593eb136a460cbfd9f09752752bac, type: 3}

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed8a458a109f6d44e80daedd95dc6325, type: 3}
+  m_Name: TileVisuals_deepsea
+  m_EditorClassIdentifier: Assembly-CSharp::TileVisuals
+  floor: {fileID: 21300000, guid: 02176bbe803a47d2aba8910f8d966951, type: 3}
+  wall: {fileID: 21300000, guid: 6ea24e4626284b90a2a40a6ccea36481, type: 3}
+  stone: {fileID: 21300000, guid: eab24abd816447b9ac1965a94247920d, type: 3}
+  water: {fileID: 21300000, guid: d204f8f3935c43018bd7bb3e389de069, type: 3}
+  lava: {fileID: 21300000, guid: b26593eb136a460cbfd9f09752752bac, type: 3}
+  chest: {fileID: 21300000, guid: 05adde1c832541cb954d8972bd3fb973, type: 3}
+  material: {fileID: 21300000, guid: fa5d1e07170547749a99dc29c12fbde5, type: 3}
+  exit: {fileID: 21300000, guid: 4fab69190b6e4b06868f030a3baf9689, type: 3}
+  portalBase: {fileID: 21300000, guid: 53d81ca252fe4edfb55f59ba098fd2ea, type: 3}

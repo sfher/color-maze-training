@@ -240,7 +240,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MazeBootstrapper
   level: {fileID: 11400000, guid: 6f494dbc2382fea4cadf551f962f23ec, type: 2}
-  visuals: {fileID: 11400000, guid: 10d0b6ce3799abb41af5e833f105e8fe, type: 2}
+  defaultVisuals: {fileID: 11400000, guid: 10d0b6ce3799abb41af5e833f105e8fe, type: 2}
+  cosmeticsCatalog: {fileID: 11400000, guid: 5f7767e479184206a6ac3d2ef6422266, type: 2}
 --- !u!1 &124644421
 GameObject:
   m_ObjectHideFlags: 0
@@ -2028,7 +2029,11 @@ MonoBehaviour:
         m_SelectedSource:
           rid: -2
         m_Provider2DCache:
-          rid: -2
+          rid: 7024890314503749709
+    - rid: 7024890314503749709
+      type: {class: 'Provider2DCache`1[[UnityEngine.Rendering.Universal.Light2DProvider, Unity.RenderPipelines.Universal.2D.Runtime]]', ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.2D.Runtime}
+      data:
+        m_Cache: []
 --- !u!4 &619394802
 Transform:
   m_ObjectHideFlags: 0
@@ -4687,6 +4692,7 @@ MonoBehaviour:
   playerStats: {fileID: 625583095}
   audio: {fileID: 1552829966}
   maze: {fileID: 107581995}
+  progress: {fileID: 0}
 --- !u!114 &1552829966
 MonoBehaviour:
   m_ObjectHideFlags: 0

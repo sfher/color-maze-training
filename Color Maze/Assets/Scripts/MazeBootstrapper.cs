@@ -4,12 +4,15 @@ using UnityEngine;
 public class MazeBootstrapper : MonoBehaviour
 {
     [SerializeField] private LevelDefinition level;
-    [SerializeField] private TileVisuals visuals;
+    [SerializeField] private TileVisuals defaultVisuals;
+    [SerializeField] private ContentCatalog cosmeticsCatalog;
 
     private TileType[,] _tiles;
     private int[,] _portalIds;
     private SpriteRenderer[,] _renderers;
+    private SpriteRenderer[,] _overlays;
     private Sprite _squareSprite;
+    private TileVisuals _activeVisuals;
     private readonly HashSet<int> _knownPortalIds = new HashSet<int>();
 
     public LevelDefinition CurrentLevel => level;
@@ -40,7 +43,7 @@ public class MazeBootstrapper : MonoBehaviour
             return;
         }
 
-        if (visuals == null)
+        if (defaultVisuals == null)
         {
             Debug.LogError(
                 "MazeBootstrapper: 请在 Inspector 里指定 Tile Visuals。",
@@ -49,11 +52,25 @@ public class MazeBootstrapper : MonoBehaviour
             return;
         }
 
+        // 装备主题在进关时生效：解析不到主题（未购买/未装备）用默认视觉。
+        _activeVisuals = defaultVisuals;
+
+        if (cosmeticsCatalog != null)
+        {
+            TileVisuals themed = cosmeticsCatalog.ResolveVisuals(
+                GameSession.EquippedThemeId);
+
+            if (themed != null)
+            {
+                _activeVisuals = themed;
+            }
+        }
+
         _tiles = new TileType[Width, Height];
         _portalIds = new int[Width, Height];
         _renderers = new SpriteRenderer[Width, Height];
+        _overlays = new SpriteRenderer[Width, Height];
 
-        // 地砖改用 TileVisuals 的像素贴图；
         // 白方块只留给炸弹标记 CreateBombMarker 使用。
         _squareSprite = CreateSquareSprite();
 
@@ -69,9 +86,17 @@ public class MazeBootstrapper : MonoBehaviour
                 _portalIds[x, y] = portalId;
                 _renderers[x, y] = CreateCell(x, y, tile);
 
-                if (tile == TileType.Portal)
+                // 物件格（石/箱/材料/出口/传送门）：底图是主题地板，
+                // 物件本体作为透明底 overlay 叠在其上——主题换色不需要
+                // 为物件重烤任何素材。
+                if (IsOverlayTile(tile))
                 {
-                    _renderers[x, y].color = PortalColor(portalId);
+                    _overlays[x, y] = CreateOverlay(x, y, tile);
+
+                    if (tile == TileType.Portal)
+                    {
+                        _overlays[x, y].color = PortalColor(portalId);
+                    }
                 }
             }
         }
@@ -146,9 +171,9 @@ public class MazeBootstrapper : MonoBehaviour
         {
             for (int x = 0; x < Width; x++)
             {
-                if (_portalIds[x, y] == id)
+                if (_portalIds[x, y] == id && _overlays[x, y] != null)
                 {
-                    _renderers[x, y].color = PortalColor(id);
+                    _overlays[x, y].color = PortalColor(id);
                 }
             }
         }
@@ -183,11 +208,13 @@ public class MazeBootstrapper : MonoBehaviour
         }
 
         _tiles[cell.x, cell.y] = replacement;
-        _renderers[cell.x, cell.y].sprite =
-            visuals.GetSprite(replacement);
-        // color 是乘法 tint：换成新地砖后必须归白，
-        // 否则地板会带上石头灰、水蓝等旧颜色。
-        _renderers[cell.x, cell.y].color = Color.white;
+
+        // 底图本来就是主题地板：物件被移除 = 关掉 overlay 即可。
+        if (_overlays[cell.x, cell.y] != null)
+        {
+            _overlays[cell.x, cell.y].enabled = false;
+        }
+
         return true;
     }
 
@@ -214,6 +241,15 @@ public class MazeBootstrapper : MonoBehaviour
         return marker;
     }
 
+    private static bool IsOverlayTile(TileType tile)
+    {
+        return tile == TileType.Stone ||
+               tile == TileType.Chest ||
+               tile == TileType.Material ||
+               tile == TileType.Exit ||
+               tile == TileType.Portal;
+    }
+
     private Vector3 CellToLocal(Vector2Int cell)
     {
         return new Vector3(
@@ -231,9 +267,31 @@ public class MazeBootstrapper : MonoBehaviour
         cell.transform.SetParent(transform);
         cell.transform.localPosition = CellToLocal(new Vector2Int(x, y));
 
+        // 物件格的底图固定为主题地板。
+        TileType baseTile = IsOverlayTile(tile)
+            ? TileType.Floor
+            : tile;
+
         SpriteRenderer spriteRenderer = cell.AddComponent<SpriteRenderer>();
-        spriteRenderer.sprite = visuals.GetSprite(tile);
+        spriteRenderer.sprite = _activeVisuals.GetSprite(baseTile);
         spriteRenderer.color = Color.white;
+        return spriteRenderer;
+    }
+
+    private SpriteRenderer CreateOverlay(
+        int x,
+        int y,
+        TileType tile)
+    {
+        GameObject overlay = new GameObject($"Cell_{x}_{y}_Overlay");
+        overlay.transform.SetParent(transform, false);
+        overlay.transform.localPosition = CellToLocal(new Vector2Int(x, y));
+
+        SpriteRenderer spriteRenderer =
+            overlay.AddComponent<SpriteRenderer>();
+        spriteRenderer.sprite = _activeVisuals.GetSprite(tile);
+        spriteRenderer.color = Color.white;
+        spriteRenderer.sortingOrder = 1;
         return spriteRenderer;
     }
 

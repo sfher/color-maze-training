@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed8a458a109f6d44e80daedd95dc6325, type: 3}
+  m_Name: TileVisuals_lava_heart
+  m_EditorClassIdentifier: Assembly-CSharp::TileVisuals
+  floor: {fileID: 21300000, guid: a588c64884794d19942d2b57fee423ec, type: 3}
+  wall: {fileID: 21300000, guid: 5c4f1e42c0124645abffc2224653fcb8, type: 3}
+  stone: {fileID: 21300000, guid: 0eec2957f7584ab5a73c4751debeb5be, type: 3}
+  water: {fileID: 21300000, guid: d204f8f3935c43018bd7bb3e389de069, type: 3}
+  lava: {fileID: 21300000, guid: b26593eb136a460cbfd9f09752752bac, type: 3}
+  chest: {fileID: 21300000, guid: 05adde1c832541cb954d8972bd3fb973, type: 3}
+  material: {fileID: 21300000, guid: fa5d1e07170547749a99dc29c12fbde5, type: 3}
+  exit: {fileID: 21300000, guid: 4fab69190b6e4b06868f030a3baf9689, type: 3}
+  portalBase: {fileID: 21300000, guid: 53d81ca252fe4edfb55f59ba098fd2ea, type: 3}
