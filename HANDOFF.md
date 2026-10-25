@@ -1,6 +1,6 @@
 # 色彩迷宫课程 · 会话迁移交接
 
-最后更新：2026-10-24（第二次：14b–14d 工具实现）
+最后更新：2026-10-25（16 系列收尾：面板空白修复、分组提交）
 
 ## 工作区
 
@@ -101,6 +101,13 @@
 - [15b · 把方块换成像素地砖](lessons/0015b-pixel-tile-swap.html) + [参考卡 22](reference/0022-pixel-tile-swap-cheatsheet.html)：新建 `TileVisuals` ScriptableObject（未来商店主题挂点），`MazeBootstrapper.CreateCell` 改取像素地砖、`TryReplace` 换 sprite 并重置 color（本课核心坑），传送门白螺旋沿用 `PortalColor` 染色与记忆机制，Player 场景换 `player_default` + 颜色归白（order 10 不动）。用户实现，助手只做局部提示。
 - 提交建议：`feat(visuals): swap runtime squares for pixel tiles`，含 `Main.unity`（本次场景变化是功能本体）。
 
+课程 16 系列（内容商店）需求已对齐（2026-10-24 grill-with-docs），基准文档：`Color Maze/docs/CONTENT_SHOP_SPEC.md`、根 `GLOSSARY.md`、`docs/adr/0001`、追踪 issue [#1](https://github.com/sfher/color-maze-training/issues/1)：
+
+- [16a · 内容商店的地基](lessons/0016a-content-shop-core.html) + [参考卡 23](reference/0023-content-shop-cheatsheet.html)：ContentEntry/Catalog/ProgressService（吸收 SaveCoordinator）、存档 v2、金币结算防刷、皮肤/主题应用链——**用户实现**，参考 `solutions/0020/`（11 文件编译 0/0）。
+- 16b 主菜单场景/场景流/开场通讯（助手做）、16c 商店与选关 UI（助手做）——待 16a 完成后推进。
+- 助手配套待办：三款主题资产（深海/熔岩之心/赛博朋克）、回廊与水世界重置的地图设计文本（用户用画笔落资产）、开场通讯草稿已写在 spec 附录待用户定稿。
+- 分工原则：元玩法代码用户写（完整代码课风格）；UI/场景/美术生成助手做。
+
 ## 当前游戏状态
 
 已工作的部分：
@@ -146,10 +153,10 @@ Git 根目录是教学工作区，提交永远走显式路径，不要 `git add 
 
 ## 下一会话从哪里开始
 
-1. 14b–14d 工具与 `requiredMaterials` 已提交（`e843871` docs、`e78c5e8` feat）；如 Unity 内人工验收仍有遗漏项，按需补。
-2. 用户实现课程 15b（TileVisuals 换装），提交 `feat(visuals)`；`Level_05/06.asset` 未提交改动需先确认归属。
-3. 15b 之后：16（性能与 Windows 构建）或按用户意愿先做皮肤/主题商店接口——8 款皮肤与 TileVisuals 已为商店留好挂点。
-4. 用户随时对照 14b–14d / 15a / 15b 课程材料提问，助手做局部讲解，不重复授课。
+1. 用户实现课程 16a（内容商店地基，solutions/0020 参考），Play + save.json 验收后提交 `feat(shop)`。
+2. 助手依次交付：三款主题资产 → 16b 主菜单场景 → 16c 商店/选关 UI；地图设计文本（回廊 + 水世界重置）随 16b 前给出。
+3. 15b 若验收仍有余项（像素地砖全流程清单）一并补完。
+4. 用户随时对照课程材料提问，助手做局部讲解，不重复授课。
 
 参考实现：
 
@@ -177,6 +184,16 @@ Git 根目录是教学工作区，提交永远走显式路径，不要 `git add 
 - `solutions/0017/SaveCoordinator.cs`
 
 课程 14d 完成后，下一课回到素材与商店内容管线。
+
+## 16 系列（内容商店，收尾模式）
+
+2026-10-24 三轮需求对齐（ADR-0001：金币只买内容）；2026-10-25 实施与验收：
+
+- 16a 商店核心：用户主笔 + 助手修错（ContentEntry/ContentCatalog/ProgressService、存档 v2、购买与单选装备、结算首通 +10 防刷接线）。
+- 三主题资产 + overlay 架构：深海/熔岩之心/赛博朋克；物件格 = 主题地板 + 透明底 overlay（sortingOrder 1），共享素材不烘焙皮肤相关底图。
+- 16b/16c 主菜单与商店/选关面板：`MainMenuSceneBuilder` 一键建场景并注入引用；已修三坑——字体路径、Canvas 漏 GraphicRaycaster、Viewport Mask+透明图导致面板空白（改 RectMask2D）；用户 Play 验收通过（2026-10-25）。
+- `GameBuilder` 一键构建（Color Maze/Build/Windows 64-bit → Builds/Windows64/ColorMaze.exe）。
+- 待办：Windows 构建冒烟（Unity 内点菜单项）；回廊 + 水世界重置设计文本（用户落资产）；推送 GitHub；根层误生成的 Packages/、ProjectSettings/、THIRD_PARTY_NOTICES.md、空文件 润色方案.md 待用户确认删除。
 
 ## 关键文档
 
