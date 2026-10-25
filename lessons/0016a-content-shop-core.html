@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课 16a · 内容商店的地基 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 开发实训 / 课程 16a</div>
+    <h1>内容商店的<br>地基</h1>
+    <p class="lede">需求已经对齐（见 <code>Color Maze/docs/CONTENT_SHOP_SPEC.md</code>）。今天不画任何界面：先把内容条目、购买判定、金币结算和存档升级做出来——商店和主菜单（16b/16c）都盖在这层地基上。完整代码在页面里，参考实现在 <code>solutions/0020/</code>（已编译验证 0 警告 0 错误）。</p>
+    <div class="meta"><span>60–90 分钟</span><span>ScriptableObject · 存档迁移</span><span>产出：可购买的元玩法核心</span></div>
+  </header>
+
+  <section class="win">
+    <h2>本课胜利条件</h2>
+    <ul class="checklist" data-key="lesson-0016a">
+      <li><label><input type="checkbox"><span><code>ContentEntry</code> / <code>ContentCatalog</code> 资产能描述皮肤、主题、关卡三类内容。</span></label></li>
+      <li><label><input type="checkbox"><span><code>ProgressService</code> 接管存档：购买、装备、解锁判定、删档全部经过它。</span></label></li>
+      <li><label><input type="checkbox"><span>通关结算写入金币与首通奖励；失败/重开不写（防刷）。</span></label></li>
+      <li><label><input type="checkbox"><span>存档升级到 v2：新字段带默认值迁移，旧档不改也能玩。</span></label></li>
+      <li><label><input type="checkbox"><span>皮肤按存档装备换装；主题条目留好挂点（资产 16b 生成）。</span></label></li>
+      <li><label><input type="checkbox"><span>用记事本打开 <code>save.json</code> 验证过每一项写入。</span></label></li>
+    </ul>
+    <p class="progress" aria-live="polite"></p>
+  </section>
+
+  <section>
+    <h2>三层结构与数据流</h2>
+    <div class="code">
+      <div class="code-head"><span>架构</span><button class="copy" type="button">复制</button></div>
+      <pre><code>ContentEntry（资产）    一条商品：id / 名称 / 类型 / 价格 / 载体引用
+ContentCatalog（资产）  货架：全部条目 + 查询 + 换装/换皮解析
+ProgressService（场景） 唯一的存档持有者：
+                          TryPurchase → 扣金币 + 解锁
+                          Equip       → 写装备位
+                          SettleLevelComplete → 金币结算 + 首通
+                          IsLevelPlayable     → 顺序解锁 / 购买解锁</code></pre>
+    </div>
+    <p>为什么存档只能有一个持有者：设置面板、商店、结算都会改存档，如果各自加载/保存，后写的会把先写的覆盖掉。所以本课把 13 课的 <code>SaveCoordinator</code> <strong>升级</strong>成 <code>ProgressService</code>——设置读写逻辑原样保留，新职责全部加在这里。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">01</span><h2>存档 v2（完整代码）</h2></div>
+    <p><code>GameSaveData.cs</code> 整个替换（新增 4 个字段；旧档读取时缺失字段自动取这里的默认值——这就是迁移）：</p>
+    <div class="code">
+      <div class="code-head"><span>GameSaveData.cs · 完整</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using System;
+
+[Serializable]
+public class GameSaveData
+{
+    public int version = SaveService.CurrentVersion;
+    public int coins;
+    public string[] unlockedContentIds = Array.Empty&lt;string&gt;();
+    public float masterVolume = 0.8f;
+    public bool fullscreen = true;
+    public int screenWidth = 1280;
+    public int screenHeight = 720;
+
+    // v2：内容商店与关卡进度
+    public string equippedSkinId = "skin-default";
+    public string equippedThemeId = "";
+    public string lastLevelId = "";
+    public string[] completedLevelIds = Array.Empty&lt;string&gt;();
+}</code></pre>
+    </div>
+    <p><code>SaveService.cs</code> 只改一行：<code>CurrentVersion = 2</code>。版本门检查（<code>version &gt; 0 &amp;&amp; &lt;= CurrentVersion</code>）让 v1 旧档照常读入。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">02</span><h2>内容条目与货架（完整代码）</h2></div>
+    <p>四个新文件，直接照抄：</p>
+    <div class="code">
+      <div class="code-head"><span>ContentType.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public enum ContentType
+{
+    Skin,
+    Theme,
+    Level
+}</code></pre>
+    </div>
+    <div class="code">
+      <div class="code-head"><span>PurchaseOutcome.cs</span><button class="copy" type="button">复制</button></div>
+      <pre><code>public enum PurchaseOutcome
+{
+    Purchased,
+    NotEnoughCoins,
+    AlreadyOwned,
+    InvalidEntry
+}</code></pre>
+    </div>
+    <p><code>ContentEntry.cs</code>（完整代码见 <a href="../solutions/0020/ContentEntry.cs">solutions/0020</a>）：一个 ScriptableObject，字段为 <code>id / displayName / contentType / price / previewSprite / skinSprite / themeVisuals / level</code>。同一类型只会用到对应载体字段。<strong>id 一经发布不要改名</strong>——存档里记的是 id 字符串。</p>
+    <p><code>ContentCatalog.cs</code>（完整代码见 solutions）：<code>Find(id)</code>、<code>GetByType(type)</code>、<code>ResolveSkin(id)</code>、<code>ResolveVisuals(id)</code>。后两个是应用层的查询口：皮肤换装取 sprite、主题取整套 <code>TileVisuals</code>；查不到返回 null，调用方保留默认外观。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">03</span><h2>ProgressService：唯一的存档持有者（完整代码）</h2></div>
+    <p>这是本课的主体，完整文件在 <a href="../solutions/0020/ProgressService.cs">solutions/0020/ProgressService.cs</a>。要点逐个讲：</p>
+    <ul>
+      <li><strong>接管 SaveCoordinator</strong>：场景里把 SaveCoordinator 组件换成 ProgressService，<code>settings</code> 引用重绑。<code>Save()</code> 仍然是"先 CaptureTo 再写盘"，设置面板零改动。</li>
+      <li><strong>TryPurchase</strong>：判定顺序 Invalid → AlreadyOwned → NotEnoughCoins → 扣币 + 解锁 + 立即写盘 + 发 <code>Changed</code> 事件（16c 的商店 UI 靠它刷新）。</li>
+      <li><strong>Equip</strong>：只允许装备已解锁条目；写存档的同时同步 <code>GameSession</code>，这样下一局开场就能应用。</li>
+      <li><strong>SettleLevelComplete</strong>：本局 <code>PlayerStats.Coins</code> 入档 + 首通 +10（用 <code>completedLevelIds</code> 判重）+ <code>lastLevelId</code> 推进到下一关（尽头保持当前关）。</li>
+      <li><strong>IsLevelPlayable</strong>：目录里有条目的关卡按购买判定；主线按"通关 N 解锁 N+1"沿 <code>NextLevel</code> 链走。</li>
+      <li><strong>DeleteSave</strong>：删磁盘档（含 backup）+ 内存重置，16b 主菜单的"清空存档"直接调它。</li>
+    </ul>
+    <div class="callout warn">
+      <span class="label">防刷的关键是位置</span>
+      <p>结算只挂在"进入 Completed 状态"这一条路径上（下一步的 ReachExit）——失败、重开、步数耗尽都不会经过它，所以不需要任何额外的防重复计数。别把结算挪到 Update 或 UI 事件里。</p>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">04</span><h2>装备的应用链（完整代码）</h2></div>
+    <p><code>GameSession.cs</code> 加两个静态属性（并在 <code>ResetOnPlay</code> 里重置）：</p>
+    <pre><code>public static string EquippedSkinId { get; set; } = "skin-default";
+public static string EquippedThemeId { get; set; } = "";</code></pre>
+    <p>新组件 <code>PlayerSkinApplier.cs</code>（挂在 Player 上）：</p>
+    <div class="code">
+      <div class="code-head"><span>PlayerSkinApplier.cs · 完整</span><button class="copy" type="button">复制</button></div>
+      <pre><code>using UnityEngine;
+
+public class PlayerSkinApplier : MonoBehaviour
+{
+    [SerializeField] private ContentCatalog catalog;
+    [SerializeField] private SpriteRenderer spriteRenderer;
+
+    private void Start()
+    {
+        if (catalog == null || spriteRenderer == null)
+        {
+            return;
+        }
+
+        Sprite skin =
+            catalog.ResolveSkin(GameSession.EquippedSkinId);
+
+        if (skin != null)
+        {
+            spriteRenderer.sprite = skin;
+        }
+    }
+}</code></pre>
+    </div>
+    <p><code>MazeBootstrapper.cs</code> 两处改动（完整版在 solutions/0020）：字段 <code>visuals</code> 改名 <code>defaultVisuals</code>、新增 <code>[SerializeField] ContentCatalog cosmeticsCatalog</code> 与私有 <code>_activeVisuals</code>；<code>Start</code> 判空之后加主题解析：</p>
+    <pre><code>_activeVisuals = defaultVisuals;
+
+if (cosmeticsCatalog != null)
+{
+    TileVisuals themed = cosmeticsCatalog.ResolveVisuals(
+        GameSession.EquippedThemeId);
+
+    if (themed != null)
+    {
+        _activeVisuals = themed;
+    }
+}</code></pre>
+    <p>之后 <code>CreateCell</code> / <code>TryReplace</code> 全部读 <code>_activeVisuals</code>。主题<strong>下一局生效</strong>就是这句的语义：进关时解析一次。</p>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">05</span><h2>结算接线（完整方法）</h2></div>
+    <p><code>LevelFlowController.cs</code>：加字段 <code>[SerializeField] private ProgressService progress;</code>，<code>ReachExit</code> 成功分支变成：</p>
+    <pre><code>if (hasMaterial)
+{
+    audio.PlayLevelComplete();
+
+    // 金币结算与首通奖励在进入 Completed 时发生一次；
+    // 失败/重开路径不会走到这里，天然防刷。
+    if (progress != null)
+    {
+        progress.SettleLevelComplete(
+            CurrentLevel,
+            playerStats);
+    }
+
+    SetState(LevelState.Completed);
+    return;
+}</code></pre>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">06</span><h2>Unity 里的资产与接线</h2></div>
+    <ol>
+      <li>在 <code>Assets/Data/</code> 建三个 <code>Content Entry</code>：<code>content_skin_default</code>（id=<code>skin-default</code>，price=0，skinSprite=player_default）、<code>content_skin_blue</code>（20，player_blue）、<code>content_skin_purple</code>（40，player_purple）。previewSprite 填同一张图。</li>
+      <li>建 <code>ContentCatalog</code> 资产，拖入三条。主题/关卡条目等 16b 配套资产生成后再加。</li>
+      <li>场景：SaveCoordinator 对象换 ProgressService 组件（重绑 settings）；Maze 的 <code>Default Visuals</code> 拖现有 <code>Tile Visuals</code>、<code>Cosmetics Catalog</code> 拖新目录；LevelFlowController 绑 Progress；Player 挂 PlayerSkinApplier（catalog + 自己的 SpriteRenderer）。</li>
+    </ol>
+  </section>
+
+  <section class="step">
+    <div class="step-head"><span class="step-no">07</span><h2>验收与提交</h2></div>
+    <p>存档路径：<code>%USERPROFILE%\AppData\LocalLow\&lt;公司名&gt;\色彩迷宫\save.json</code>。每步用记事本验证：</p>
+    <ol>
+      <li>无档 Play：Level_01 开箱 1 个通关 → json 里 <code>coins</code> = 3+10=13（宝箱数自定），<code>completedLevelIds</code> 含 <code>Level_01</code>，<code>lastLevelId</code> = <code>Level_02</code>。</li>
+      <li>再通一次同关 → coins 只加本局宝箱数，不加 10。</li>
+      <li>中途按 R 重开再失败 → coins 不变。</li>
+      <li>手改 json：<code>"equippedSkinId": "skin-blue"</code> → 重进 Play，玩家是蓝兜帽。</li>
+      <li>回归：R/ESC/Enter 热键、像素地砖一切如旧。</li>
+    </ol>
+    <pre><code>git add Assets/Scripts &amp;&amp; git commit -m \
+  "feat(shop): content catalog, progress service and coin settlement"</code></pre>
+    <p>卡住时报"哪一步、预期、实际、save.json 内容"。16b（主菜单，助手做）会直接消费你这里的 <code>IsLevelPlayable</code> / <code>lastLevelId</code> / <code>DeleteSave</code>。</p>
+  </section>
+
+  <nav class="footer-nav">
+    <a href="0015b-pixel-tile-swap.html">上一课：像素地砖</a>
+    <a href="../reference/0023-content-shop-cheatsheet.html">参考卡：内容商店</a>
+    <a href="../CURRICULUM.md">课程路线图</a>
+  </nav>
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

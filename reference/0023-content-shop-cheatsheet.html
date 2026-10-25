@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>参考卡 23 · 内容商店核心速查 | 色彩迷宫</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main class="page ref-page">
+  <header class="masthead">
+    <div class="kicker">色彩迷宫 · 参考卡 23</div>
+    <h1>内容商店核心</h1>
+    <p class="lede">条目是资产、货架是资产、存档只有一个持有者；结算只挂在进入 Completed 的那一条路径上。</p>
+    <div class="meta"><span>打印友好</span><span>ScriptableObject</span><span>Save v2</span></div>
+  </header>
+
+  <div class="ref-grid">
+    <section class="ref-block">
+      <h2>三层结构</h2>
+      <pre><code>ContentEntry   一条商品
+ContentCatalog 货架 + Resolve 查询
+ProgressService 唯一存档持有者
+  TryPurchase / Equip /
+  SettleLevelComplete /
+  IsLevelPlayable / DeleteSave</code></pre>
+    </section>
+
+    <section class="ref-block">
+      <h2>购买判定顺序</h2>
+      <pre><code>InvalidEntry    entry == null
+AlreadyOwned    id 在 unlockedContentIds
+NotEnoughCoins  coins &lt; price
+Purchased       扣币 + 解锁 + 写盘</code></pre>
+      <p>每次成功修改都立即 Save 并发 Changed 事件。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>存档 v2 新字段</h2>
+      <pre><code>equippedSkinId    默认 "skin-default"
+equippedThemeId   默认 ""（= 默认视觉）
+lastLevelId       读取存档的落点
+completedLevelIds 首通判重 + 顺序解锁</code></pre>
+      <p>v1 旧档缺失字段自动取默认值，无需迁移代码。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>结算规则</h2>
+      <pre><code>通关: coins += 本局宝箱币
+      首通: coins += 10
+      completedLevelIds += 关名
+      lastLevelId = 下一关 ?? 当前关
+失败/重开: 不结算</code></pre>
+      <p>关卡 id 用资产名（LevelDefinition.name）。</p>
+    </section>
+
+    <section class="ref-block">
+      <h2>解锁判定</h2>
+      <pre><code>目录有条目 → 按购买状态
+主线关卡 → 首关开
+            通关 N 解锁 N+1（沿 NextLevel 链）</code></pre>
+    </section>
+
+    <section class="ref-block">
+      <h2>装备应用</h2>
+      <ul>
+        <li>Equip 写存档 + 同步 GameSession。</li>
+        <li>皮肤：PlayerSkinApplier 进关换 sprite。</li>
+        <li>主题：MazeBootstrapper 进关解析 _activeVisuals，下一局生效。</li>
+      </ul>
+    </section>
+
+    <section class="ref-block">
+      <h2>定价表（初值，17 课平衡）</h2>
+      <pre><code>皮肤  blue 20 / purple 40 / default 免费
+主题  深海 30 / 熔岩之心 50 / 赛博朋克 70
+关卡  水世界 40 / 回廊 60</code></pre>
+    </section>
+
+    <section class="ref-block">
+      <h2>故障速查</h2>
+      <ul>
+        <li>买了没解锁 → id 拼写不一致（存档记的是 entry.id）。</li>
+        <li>金币忽多忽少 → 有第二处在 Save（只允许 ProgressService.Save）。</li>
+        <li>首通重复发 → 结算被挂到了会重复触发的地方。</li>
+        <li>皮肤不换 → PlayerSkinApplier 的 catalog/renderer 没绑。</li>
+        <li>主题不生效 → 正常，下一局才生效。</li>
+      </ul>
+    </section>
+  </div>
+
+  <nav class="footer-nav">
+    <a href="../lessons/0016a-content-shop-core.html">课程 16a</a>
+    <a href="0022-pixel-tile-swap-cheatsheet.html">参考卡 22</a>
+    <a href="../../Color%20Maze/docs/CONTENT_SHOP_SPEC.html">需求共识</a>
+  </nav>
+</main>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>
