@@ -202,7 +202,7 @@ public class PlayerGridMover : MonoBehaviour
         else if (tile == TileType.Exit)
         {
             stats.ApplyTile(TileType.Floor);
-            flow.ReachExit(stats.HasMaterial);
+            flow.ReachExit(stats.Materials);
         }
         else
         {

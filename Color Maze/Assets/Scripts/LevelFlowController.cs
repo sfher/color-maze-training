@@ -82,14 +82,18 @@ public class LevelFlowController : MonoBehaviour
         }
     }
 
-    public void ReachExit(bool hasMaterial)
+    public void ReachExit(int materials)
     {
         if (State != LevelState.Playing)
         {
             return;
         }
 
-        if (hasMaterial)
+        int required = CurrentLevel != null
+            ? CurrentLevel.RequiredMaterials
+            : 1;
+
+        if (materials >= required)
         {
             audio.PlayLevelComplete();
             // 金币结算与首通奖励在进入 Completed 时发生一次；
@@ -106,7 +110,7 @@ public class LevelFlowController : MonoBehaviour
         }
 
         audio.PlayUiError();
-        HintShown?.Invoke("还需要找到材料。");
+        HintShown?.Invoke($"还需要 {required - materials} 个材料。");
     }
 
     public bool TryUseStep()

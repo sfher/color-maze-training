@@ -132,7 +132,7 @@ y=0  #######
 
 预留规则：多余材料未来可以用于辅助通关，例如解锁机关或交换帮助。当前版本只预留这一设计空间，不实现材料消耗、兑换或机关接口；多余材料目前拾取后只增加计数。
 
-> 过渡期限制：`requiredMaterials` 字段与校验已落地——`LevelValidator` 要求地图材料数不少于该值，允许更多。但当前运行时仍以“至少持有 1 个材料”判断出口（HUD 也按 /1 显示）。运行时迁移完成前，`requiredMaterials > 1` 的关卡可以通过校验、可以先设计，但不能标记为已可玩；正式主线关卡仍应保持 `requiredMaterials = 1`。
+> 实装说明（2026-10-25）：`requiredMaterials` 已全链路生效——运行时出口判定按该值比较（材料不足时提示还差几个），HUD 材料行显示 `已收集 / 所需`，`LevelValidator` 要求地图材料数不少于该值。`requiredMaterials > 1` 的关卡现在完整可玩。
 
 ### 4.4 传送门成对
 
@@ -243,7 +243,7 @@ Level_Clockwork_03
 3. 使用约定的文件名。
 4. 在 Inspector 中设置 `Rows`。
 5. 确认每一行长度一致。
-6. 设置 `Step Limit`，并用实际路线验证足够完成；`Required Materials` 在运行时迁移前保持 1（见过渡期限制）。
+6. 设置 `Step Limit`，并用实际路线验证足够完成；`Required Materials` 可设为 1 以上的整数（运行时已实装，见 4.3 实装说明）。
 7. 侧关卡把 `Next Level` 留为 `None`。
 8. `Completion Dialogue` 写 1–4 句 MAYA 台词。
 

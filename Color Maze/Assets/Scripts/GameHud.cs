@@ -145,12 +145,15 @@ public class GameHud : MonoBehaviour
 
     private void RefreshStats()
     {
+        int requiredMaterials = flow.CurrentLevel != null
+            ? flow.CurrentLevel.RequiredMaterials
+            : 1;
         statsText.text =
             $"生命  {playerStats.Health} / {PlayerStats.MaxHealth}\n" +
             $"氧气  {playerStats.Oxygen} / {PlayerStats.MaxOxygen}\n" +
             $"炸弹  {playerStats.Bombs}\n" +
             $"金币  {playerStats.Coins}\n" +
-            $"材料  {playerStats.Materials} / 1\n" +
+            $"材料  {playerStats.Materials} / {requiredMaterials}\n" +
             $"步数  {flow.StepsRemaining} / {flow.StepLimit}";
     }
 
