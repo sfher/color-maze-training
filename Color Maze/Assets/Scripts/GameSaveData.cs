@@ -13,7 +13,7 @@ public class GameSaveData
 
     // v2：内容商店与关卡进度
     public string equippedSkinId = "skin-default";
-    public string equippedThemeId = "";
+    public string equippedThemeId = "theme-default";
     public string lastLevelId = "";
     public string[] completedLevelIds = Array.Empty<string>();
 }

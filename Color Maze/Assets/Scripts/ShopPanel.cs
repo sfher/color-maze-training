@@ -177,7 +177,15 @@ public class ShopPanel : MonoBehaviour
     {
         return entry.ContentType == ContentType.Skin
             ? _progress.Data.equippedSkinId == entry.Id
-            : _progress.Data.equippedThemeId == entry.Id;
+            : NormalizeThemeId(
+                _progress.Data.equippedThemeId) == entry.Id;
+    }
+
+    private static string NormalizeThemeId(string themeId)
+    {
+        return string.IsNullOrEmpty(themeId)
+            ? "theme-default"
+            : themeId;
     }
 
     private static string ActionLabel(

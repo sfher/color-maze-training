@@ -9,10 +9,31 @@ public class PlayerSkinApplier : MonoBehaviour
     [SerializeField] private ContentCatalog catalog;
     [SerializeField] private SpriteRenderer spriteRenderer;
 
+    private void Awake()
+    {
+        if (spriteRenderer == null)
+        {
+            spriteRenderer = GetComponent<SpriteRenderer>();
+        }
+    }
+
     private void Start()
     {
+        if (catalog == null)
+        {
+            MazeBootstrapper maze =
+                FindAnyObjectByType<MazeBootstrapper>();
+            if (maze != null)
+            {
+                catalog = maze.CosmeticsCatalog;
+            }
+        }
+
         if (catalog == null || spriteRenderer == null)
         {
+            Debug.LogError(
+                "PlayerSkinApplier: catalog 或 SpriteRenderer 未绑定。",
+                this);
             return;
         }
 
@@ -22,6 +43,7 @@ public class PlayerSkinApplier : MonoBehaviour
         if (skin != null)
         {
             spriteRenderer.sprite = skin;
+            spriteRenderer.color = Color.white;
         }
     }
 }

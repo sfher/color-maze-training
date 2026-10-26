@@ -53,11 +53,18 @@ public static class ReleaseUiSetup
                 LevelFlowController>();
         GameHud hud =
             UnityEngine.Object.FindAnyObjectByType<GameHud>();
+        MazeBootstrapper maze =
+            UnityEngine.Object.FindAnyObjectByType<
+                MazeBootstrapper>();
+        PlayerGridMover player =
+            UnityEngine.Object.FindAnyObjectByType<
+                PlayerGridMover>();
 
-        if (flow == null || hud == null)
+        if (flow == null || hud == null ||
+            maze == null || player == null)
         {
             throw new InvalidOperationException(
-                "Main scene is missing LevelFlowController or GameHud.");
+                "Main scene is missing a core gameplay component.");
         }
 
         SaveCoordinator legacy =
@@ -85,6 +92,24 @@ public static class ReleaseUiSetup
             flow,
             "progress",
             progress);
+
+        PlayerSkinApplier skinApplier =
+            player.GetComponent<PlayerSkinApplier>();
+        if (skinApplier == null)
+        {
+            skinApplier =
+                player.gameObject.AddComponent<
+                    PlayerSkinApplier>();
+        }
+
+        SetReference(
+            skinApplier,
+            "catalog",
+            maze.CosmeticsCatalog);
+        SetReference(
+            skinApplier,
+            "spriteRenderer",
+            player.GetComponent<SpriteRenderer>());
 
         GameObject pausePanel =
             GetReference<GameObject>(hud, "pausePanel");

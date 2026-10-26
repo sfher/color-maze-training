@@ -2061,6 +2061,7 @@ GameObject:
   - component: {fileID: 625583092}
   - component: {fileID: 625583094}
   - component: {fileID: 625583095}
+  - component: {fileID: 625583096}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -2171,6 +2172,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 923bfe7e80f987e40af62f1a20b19f37, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStats
+--- !u!114 &625583096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 625583091}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adfe3d401f3be4a4fba335a0aa107ffe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSkinApplier
+  catalog: {fileID: 11400000, guid: 5f7767e479184206a6ac3d2ef6422266, type: 2}
+  spriteRenderer: {fileID: 625583092}
 --- !u!1 &653526260
 GameObject:
   m_ObjectHideFlags: 0

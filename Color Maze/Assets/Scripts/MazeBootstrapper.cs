@@ -16,6 +16,7 @@ public class MazeBootstrapper : MonoBehaviour
     private readonly HashSet<int> _knownPortalIds = new HashSet<int>();
 
     public LevelDefinition CurrentLevel => level;
+    public ContentCatalog CosmeticsCatalog => cosmeticsCatalog;
 
     private int Width => level != null ? level.Width : 0;
     private int Height => level != null ? level.Height : 0;

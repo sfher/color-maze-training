@@ -67,6 +67,12 @@ public class ProgressService : MonoBehaviour
 
     public bool IsUnlocked(string contentId)
     {
+        if (contentId == "skin-default" ||
+            contentId == "theme-default")
+        {
+            return true;
+        }
+
         return Array.IndexOf(
             Data.unlockedContentIds,
             contentId) >= 0;
@@ -237,6 +243,10 @@ public class ProgressService : MonoBehaviour
             string.IsNullOrEmpty(Data.equippedSkinId)
                 ? "skin-default"
                 : Data.equippedSkinId;
+        Data.equippedThemeId =
+            string.IsNullOrEmpty(Data.equippedThemeId)
+                ? "theme-default"
+                : Data.equippedThemeId;
         GameSession.EquippedThemeId = Data.equippedThemeId;
     }
 
