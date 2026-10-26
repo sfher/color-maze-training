@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: Level_06
   m_EditorClassIdentifier: Assembly-CSharp::LevelDefinition
   rows:
-  - 3#M#.B.SC7CSM6MSR
+  - 3#M#.B.SC#CSM6MSR
   - B#B#B#.BSCSBSMSCR
   - B.B.BS.#.SBBBSCCR
   - '#####MRRRSB.BSCCR'
   - RRR2RRCRCB.B.BCCR
-  - .BB.SSS3B#BBB#CCR
+  - .B..SSS3B#BBB#CCR
   - BRCSB2BS#R#4#R#CR
   - .B#BRBB#RRR#RRR#R
   - '#BBB1RB#RRRCRRR#R'
@@ -29,11 +29,12 @@ MonoBehaviour:
   - BB#.BBBS#.RBR....
   - BB.#R.S.SS.R.....
   - ..1..S.SSS....5E.
-  - R7RRRCSCRRRRRRRRR
-  nextLevel: {fileID: 0}
+  - RRRRRCSCRRRRRRRRR
+  nextLevel: {fileID: 11400000, guid: 5bfa89a001fa411ba4f3b82b6bb04c9f, type: 2}
   completionDialogue:
   - "\u3010\u7761\u773C\u60FA\u5FEA\u3011\u65E9\u4E0A\u597D\u2026\u2026"
   - "\u55EF\uFF1F\uFF01\u4F60\u7684\u610F\u601D\u662F\u4F60\u4E00\u4E2A\u4EBA\u901A\u8FC7\u4E86\u521A\u624D\u90A3\u4E00\u5173\uFF1F\uFF01"
   - "\u55EF\u55EF\uFF0C\u90A3\u6211\u53EF\u4EE5\u6BEB\u65E0\u987E\u5FCC\u5730\u7EE7\u7EED\u7761\u5566~\u2026\u2026\u5F00\u73A9\u7B11\u7684"
-  stepLimit: 140
+  - "\u52A0\u6CB9\u5662\uFF0C\u9A6C\u4E0A\u5C31\u662F\u6700\u540E\u7684\u6311\u6218\u4E86"
+  stepLimit: 84
   requiredMaterials: 1

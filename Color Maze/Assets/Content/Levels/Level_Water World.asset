@@ -12,26 +12,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d56df6da890dae54fa1059256e1a3658, type: 3}
   m_Name: Level_Water World
   m_EditorClassIdentifier: Assembly-CSharp::LevelDefinition
-  stepLimit: 70
   rows:
-  - '###############'
-  - '#CBBBCBBBMSMBE#'
-  - '#BB#BBBSBBS#BB#'
-  - '#2.BBBBBBB3.BB#'
-  - '#BB#BBBBBBB#BB#'
-  - '#BBBBBB.BBBBBB#'
-  - '#BB#BBSBBB#BBB#'
-  - '#BB.BBBBBBBB.B#'
-  - '#1BBB#BBB#BBB2#'
-  - '#BBBBB.BBBBBBB#'
-  - '#BB#BBBSBBB#BB#'
-  - '#B.3BBBBBBBB.B#'
-  - '#BB#BBBBBBB#BB#'
-  - '#.BBBBCBB.BBB1#'
-  - '###############'
+  - '#########################'
+  - '#B.CBSBBB#BC#BS.B.B.B.B.#'
+  - '#.RBSSBB#B.#BBSBSSSSSSSB#'
+  - '#BBSCSB#.B#B..S.S.B.B.S.#'
+  - '#.SBBSB.B.BB..SBSBSSSBSB#'
+  - '#2.B.SSBSSSS1SS.S.SES.S.#'
+  - '#.BSBSBB.BSB.BSBSSSSSBSB#'
+  - '#.SB.BB.BSB.S.S.B.B.B.S.#'
+  - '#SBBBSBBSB.SRBSSSSSSSSSB#'
+  - '#..BBSB.B.SCB.B.B.B.B.B.#'
+  - '#SS.SSSBSSSSSSSSSSSSSSSB#'
+  - '#B.BSB.BRBSMSB.BSB.B.SB.#'
+  - '#.R.S.SSS.SB.SBS.BSBS.BR#'
+  - '#B.BSSC1CSS.SB2.BS..BB.C#'
+  - '#########################'
   nextLevel: {fileID: 0}
   completionDialogue:
   - "\u4F60\u771F\u7684\u53BB\u4E86\uFF1F\u90A3\u4E2A\u6C34\u4E16\u754C"
   - "\u2026\u2026"
   - "\u2026\u2026"
   - "\u65E0\u8BBA\u5982\u4F55\uFF0C\u8C22\u8C22\u4F60\u4E86"
+  stepLimit: 999
+  requiredMaterials: 1
