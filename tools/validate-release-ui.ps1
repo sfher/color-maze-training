@@ -53,6 +53,22 @@ if ($main -notmatch "m_Name: ReturnHomeButton") {
     throw "Pause panel is missing ReturnHomeButton."
 }
 
+$gameHud = Get-Content -Raw (
+    Join-Path $gameRoot "Assets\Scripts\GameHud.cs")
+if ($gameHud -notmatch
+        'flow\.CanAdvance \? "下一关" : "返回主页"') {
+    throw "Final level does not switch its action to return home."
+}
+
+if ($gameHud -notmatch
+        'SetActionButton\("返回主页"\);') {
+    throw "Failure screen does not offer return home."
+}
+
+if ($gameHud -notmatch 'HandleActionButton\(\)') {
+    throw "HUD action button is not routed dynamically."
+}
+
 $prices = [ordered]@{
     "content_skin_blue.asset" = 10
     "content_skin_purple.asset" = 20

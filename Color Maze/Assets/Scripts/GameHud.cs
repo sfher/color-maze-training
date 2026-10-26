@@ -22,9 +22,17 @@ public class GameHud : MonoBehaviour
     [SerializeField] private Button nextLevelButton;
 
     private Coroutine _hintRoutine;
+    private TMP_Text _actionButtonLabel;
 
     private void Start()
     {
+        if (nextLevelButton != null)
+        {
+            _actionButtonLabel =
+                nextLevelButton.GetComponentInChildren<TMP_Text>(
+                    true);
+        }
+
         if (!ValidateReferences())
         {
             enabled = false;
@@ -41,7 +49,7 @@ public class GameHud : MonoBehaviour
         resumeButton.onClick.AddListener(flow.Resume);
         pauseRestartButton.onClick.AddListener(flow.Restart);
         returnHomeButton.onClick.AddListener(flow.ReturnToMenu);
-        nextLevelButton.onClick.AddListener(flow.AdvanceToNextLevel);
+        nextLevelButton.onClick.AddListener(HandleActionButton);
 
         endPanel.SetActive(false);
         pausePanel.SetActive(false);
@@ -62,7 +70,7 @@ public class GameHud : MonoBehaviour
             keyboard != null &&
             keyboard.enterKey.wasPressedThisFrame)
         {
-            flow.AdvanceToNextLevel();
+            HandleActionButton();
             return;
         }
 
@@ -128,7 +136,7 @@ public class GameHud : MonoBehaviour
         if (nextLevelButton != null && flow != null)
         {
             nextLevelButton.onClick.RemoveListener(
-                flow.AdvanceToNextLevel);
+                HandleActionButton);
         }
     }
 
@@ -140,7 +148,8 @@ public class GameHud : MonoBehaviour
             endTitleText == null || endHintText == null ||
             restartButton == null || pausePanel == null ||
             resumeButton == null || pauseRestartButton == null ||
-            returnHomeButton == null || nextLevelButton == null)
+            returnHomeButton == null || nextLevelButton == null ||
+            _actionButtonLabel == null)
         {
             Debug.LogError(
                 "GameHud: 有引用没有绑定，请检查 Inspector。",
@@ -185,10 +194,10 @@ public class GameHud : MonoBehaviour
         {
             dialogue.HideImmediate();
             restartButton.gameObject.SetActive(true);
-            nextLevelButton.gameObject.SetActive(false);
+            SetActionButton("返回主页");
             endTitleText.text = "关卡失败";
             endHintText.text =
-                $"{flow.FailureReason}\n按 R 或按钮重开。";
+                $"{flow.FailureReason}\n按 R 重试，或返回主页逛逛商店。";
             return;
         }
 
@@ -222,10 +231,32 @@ public class GameHud : MonoBehaviour
                 : $"完成但残血 · 生命 {playerStats.Health} / {PlayerStats.MaxHealth}";
         endTitleText.text = "关卡完成";
         restartButton.gameObject.SetActive(true);
-        nextLevelButton.gameObject.SetActive(flow.CanAdvance);
+        SetActionButton(
+            flow.CanAdvance ? "下一关" : "返回主页");
         endHintText.text = flow.CanAdvance
             ? $"{summary}\n按 Enter 或按钮进入下一关。"
-            : summary;
+            : $"{summary}\n返回主页后可以逛逛商店。";
+    }
+
+    private void SetActionButton(string label)
+    {
+        nextLevelButton.gameObject.SetActive(true);
+        if (_actionButtonLabel != null)
+        {
+            _actionButtonLabel.text = label;
+        }
+    }
+
+    private void HandleActionButton()
+    {
+        if (flow.State == LevelState.Completed &&
+            flow.CanAdvance)
+        {
+            flow.AdvanceToNextLevel();
+            return;
+        }
+
+        flow.ReturnToMenu();
     }
 
     private void ShowHint(string message)
