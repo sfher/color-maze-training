@@ -15,6 +15,7 @@
 | skin-default | 红兜帽（默认） | Skin | 免费 | ready |
 | skin-blue | 蓝兜帽 | Skin | 10 | ready |
 | skin-purple | 紫兜帽 | Skin | 20 | ready |
+| theme-default | 经典（默认） | Theme | 免费 | ready |
 | theme-deepsea | 深海 | Theme | 15 | 待生成 |
 | theme-lava-heart | 熔岩之心 | Theme | 25 | 待生成 |
 | theme-cyberpunk | 赛博朋克 | Theme | 35 | 待生成 |
@@ -23,6 +24,11 @@
 
 - 皮肤共 8 款已备，其余 6 款不上架、接口可随时补。
 - 主题 = 整套 `TileVisuals` 配色资产；赛博朋克方向：电子、霓虹、色彩饱满。
+- 经典：木制矩形宝箱。
+- 深海：蓝宝石材料、冰块灰石、蓝色矩形宝箱、染蓝出口门。
+- 熔岩之心：红宝石材料、红色矩形宝箱、染红出口门。
+- 赛博朋克：CPU 材料、六边形能量护盾灰石、深蓝水流、带气泡的毒绿岩浆、
+  黑灰主体配彩色电线的矩形宝箱、机械出口门。
 - 关卡由助手出地图设计文本，用户用 Level Painter 落资产。
 
 ## 3. 主菜单（独立场景 MainMenu）
@@ -40,6 +46,7 @@
 ## 4. 商店规则
 
 - 买断制；单选装备（皮肤、主题各一个装备位）；购买即解锁进 `unlockedContentIds`。
+- 默认皮肤与默认主题始终视为已拥有；主题列表保留“经典（默认）”用于切回初始视觉。
 - 无试穿；条目静态预览（sprite 即预览）。
 - 购买结果枚举：`Purchased / NotEnoughCoins / AlreadyOwned / InvalidEntry`。
 - 装备主题**下一局生效**（进关时读 `equippedThemeId` 换 `TileVisuals`）。
