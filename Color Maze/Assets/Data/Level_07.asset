@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d56df6da890dae54fa1059256e1a3658, type: 3}
+  m_Name: Level_07
+  m_EditorClassIdentifier: Assembly-CSharp::LevelDefinition
+  rows:
+  - '###################'
+  - '#C.2#BB.R.BBB1.SM##'
+  - '#.B.#B.SMS.BBB#.S.#'
+  - '#BBRR.RBRRRR#..#C.#'
+  - '#..SBBB##.#B.B#BBB#'
+  - '##.B.S##SSB.#.#B.R#'
+  - '#.R#B#BSR.##SB.#B.#'
+  - '##.S.B1S.SSCBR..#B#'
+  - '#RR##BS#BRS#S.#B.B#'
+  - '#.BRRR.B###.SR.B5##'
+  - '#BB#SBRRRBSB#B#BSM#'
+  - '#B.S#.R.SRR##B#SB##'
+  - '#S#S###RS.RSBBBB.B#'
+  - '#2SSSB.5.BB.#RBR#.#'
+  - '#B.#.#R.R#.BB#RR.B#'
+  - '#BSR.BBB.#.#RC##B.#'
+  - '#.BB4BB.B.BB4BB..R#'
+  - '#.E.B.BB.C.BBBB.C.#'
+  - '###################'
+  nextLevel: {fileID: 0}
+  completionDialogue:
+  - "\u611F\u8C22\u4F60\uFF0C\u6750\u6599\u6536\u96C6\u8DB3\u591F\u4E86"
+  - "\u63A5\u4E0B\u6765\u5C31\u7B49\u6211\u7684\u533B\u751F\u2026\u2026\u55EF\uFF0C\u6211\u4E0D\u559C\u6B22\u5B83"
+  - "\u603B\u662F\u7528\u4E00\u4E9B\u7C97\u66B4\u7684\u624B\u6CD5\u62C6\u6389\u6211\u7684\u817F"
+  - "\u75C5\u597D\u4E4B\u540E\uFF0C\u6211\u8BF7\u4F60\u53BB\u91CC\u6B21\u5143\u73A9\u5427\uFF1F"
+  stepLimit: 92
+  requiredMaterials: 3
