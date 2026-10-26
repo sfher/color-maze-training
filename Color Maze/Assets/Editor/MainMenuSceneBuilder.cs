@@ -15,8 +15,11 @@ public static class MainMenuSceneBuilder
 {
     private const string ScenePath =
         "Assets/Scenes/MainMenu.unity";
-    private const string CatalogPath =
-        "Assets/Data/ContentCatalog.asset";
+    private static readonly string[] CatalogPaths =
+    {
+        "Assets/Data/Content/ContentCatalog.asset",
+        "Assets/Data/ContentCatalog.asset",
+    };
     private const string FirstLevelPath =
         "Assets/Data/Level_01.asset";
 
@@ -50,12 +53,13 @@ public static class MainMenuSceneBuilder
         ProgressService progress =
             canvas.gameObject.AddComponent<ProgressService>();
 
-        Button start = MenuButton(canvas.transform, "开始游戏", 40f);
-        Button cont = MenuButton(canvas.transform, "读取存档", -50f);
-        Button delete = MenuButton(canvas.transform, "清空存档", -140f);
-        Button levels = MenuButton(canvas.transform, "选择关卡", -230f);
-        Button shopButton = MenuButton(canvas.transform, "商店", -320f);
-        Button settings = MenuButton(canvas.transform, "设置", -410f);
+        // Keep the accepted release layout compact around the title.
+        Button start = MenuButton(canvas.transform, "开始游戏", 120f);
+        Button cont = MenuButton(canvas.transform, "读取存档", 45f);
+        Button delete = MenuButton(canvas.transform, "清空存档", -30f);
+        Button levels = MenuButton(canvas.transform, "选择关卡", -105f);
+        Button shopButton = MenuButton(canvas.transform, "商店", -180f);
+        Button settings = MenuButton(canvas.transform, "设置", -255f);
         Button quit = UiFactory.CreateButton(
             canvas.transform,
             "Button_退出游戏",
@@ -81,8 +85,7 @@ public static class MainMenuSceneBuilder
 
         Inject(controller, "progress", progress);
         Inject(controller, "catalog",
-            AssetDatabase.LoadAssetAtPath<ContentCatalog>(
-                CatalogPath));
+            LoadCatalog());
         Inject(controller, "firstMainLevel",
             AssetDatabase.LoadAssetAtPath<LevelDefinition>(
                 FirstLevelPath));
@@ -157,7 +160,38 @@ public static class MainMenuSceneBuilder
         Debug.Log($"主菜单场景已创建：{ScenePath}");
     }
 
+    public static void BuildFromCommandLine()
+    {
+        try
+        {
+            Build();
+            EditorApplication.Exit(0);
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogException(exception);
+            EditorApplication.Exit(1);
+        }
+    }
+
     // ---------- 元素工厂 ----------
+
+    private static ContentCatalog LoadCatalog()
+    {
+        foreach (string path in CatalogPaths)
+        {
+            ContentCatalog catalog =
+                AssetDatabase.LoadAssetAtPath<ContentCatalog>(
+                    path);
+            if (catalog != null)
+            {
+                return catalog;
+            }
+        }
+
+        Debug.LogError("未找到 ContentCatalog.asset。");
+        return null;
+    }
 
     private const string FontPath =
         "Assets/ThirdParty/Fonts/FusionPixel/FusionPixel12SDF.asset";

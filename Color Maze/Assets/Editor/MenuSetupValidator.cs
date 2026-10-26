@@ -13,9 +13,16 @@ public static class MenuSetupValidator
     {
         var report = new StringBuilder();
 
-        ContentCatalog catalog =
-            AssetDatabase.LoadAssetAtPath<ContentCatalog>(
-                "Assets/Data/ContentCatalog.asset");
+        string[] catalogGuids =
+            AssetDatabase.FindAssets("t:ContentCatalog");
+        string catalogPath = catalogGuids.Length > 0
+            ? AssetDatabase.GUIDToAssetPath(catalogGuids[0])
+            : string.Empty;
+        ContentCatalog catalog = string.IsNullOrEmpty(catalogPath)
+            ? null
+            : AssetDatabase.LoadAssetAtPath<ContentCatalog>(
+                catalogPath);
+        report.AppendLine($"目录路径: {catalogPath}");
         report.AppendLine($"目录资产加载: {catalog != null}");
 
         if (catalog != null)
