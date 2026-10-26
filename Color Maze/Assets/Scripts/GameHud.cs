@@ -18,6 +18,7 @@ public class GameHud : MonoBehaviour
     [SerializeField] private GameObject pausePanel;
     [SerializeField] private Button resumeButton;
     [SerializeField] private Button pauseRestartButton;
+    [SerializeField] private Button returnHomeButton;
     [SerializeField] private Button nextLevelButton;
 
     private Coroutine _hintRoutine;
@@ -39,6 +40,7 @@ public class GameHud : MonoBehaviour
         restartButton.onClick.AddListener(flow.Restart);
         resumeButton.onClick.AddListener(flow.Resume);
         pauseRestartButton.onClick.AddListener(flow.Restart);
+        returnHomeButton.onClick.AddListener(flow.ReturnToMenu);
         nextLevelButton.onClick.AddListener(flow.AdvanceToNextLevel);
 
         endPanel.SetActive(false);
@@ -117,6 +119,12 @@ public class GameHud : MonoBehaviour
             pauseRestartButton.onClick.RemoveListener(flow.Restart);
         }
 
+        if (returnHomeButton != null && flow != null)
+        {
+            returnHomeButton.onClick.RemoveListener(
+                flow.ReturnToMenu);
+        }
+
         if (nextLevelButton != null && flow != null)
         {
             nextLevelButton.onClick.RemoveListener(
@@ -132,7 +140,7 @@ public class GameHud : MonoBehaviour
             endTitleText == null || endHintText == null ||
             restartButton == null || pausePanel == null ||
             resumeButton == null || pauseRestartButton == null ||
-            nextLevelButton == null)
+            returnHomeButton == null || nextLevelButton == null)
         {
             Debug.LogError(
                 "GameHud: 有引用没有绑定，请检查 Inspector。",

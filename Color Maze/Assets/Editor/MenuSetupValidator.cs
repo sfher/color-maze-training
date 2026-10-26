@@ -45,7 +45,7 @@ public static class MenuSetupValidator
         report.AppendLine($"当前场景: {scene.name}");
 
         MainMenuController controller =
-            Object.FindFirstObjectByType<MainMenuController>();
+            Object.FindAnyObjectByType<MainMenuController>();
         report.AppendLine($"控制器存在: {controller != null}");
 
         if (controller != null)

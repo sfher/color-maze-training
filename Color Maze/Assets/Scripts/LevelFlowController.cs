@@ -55,6 +55,14 @@ public class LevelFlowController : MonoBehaviour
     {
         Time.timeScale = 1f;
 
+        if (progress == null)
+        {
+            progress = gameObject.AddComponent<ProgressService>();
+            Debug.LogWarning(
+                "LevelFlowController: progress 未绑定，已自动创建 ProgressService。",
+                this);
+        }
+
         if (playerStats == null || audio == null || maze == null)
         {
             Debug.LogError(
@@ -177,6 +185,7 @@ public class LevelFlowController : MonoBehaviour
     /// <summary>回主菜单（build index 0）。临时入口：暂停中按 M。</summary>
     public void ReturnToMenu()
     {
+        progress?.Save();
         Time.timeScale = 1f;
         SceneManager.LoadScene(0);
     }

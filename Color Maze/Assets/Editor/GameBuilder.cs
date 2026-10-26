@@ -13,7 +13,7 @@ public static class GameBuilder
     private const string ExecutableName = "ColorMaze.exe";
 
     [MenuItem("Color Maze/Build/Windows 64-bit")]
-    private static void BuildWindows64()
+    public static void BuildWindows64()
     {
         string outputPath = Path.Combine(OutputDir, ExecutableName);
         Directory.CreateDirectory(OutputDir);

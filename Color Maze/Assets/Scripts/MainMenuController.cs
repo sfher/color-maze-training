@@ -21,6 +21,7 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] private Button levelsButton;
     [SerializeField] private Button shopButton;
     [SerializeField] private Button settingsButton;
+    [SerializeField] private Button quitButton;
 
     [SerializeField] private GameObject confirmPanel;
     [SerializeField] private TMP_Text confirmText;
@@ -50,6 +51,7 @@ public class MainMenuController : MonoBehaviour
         levelsButton.onClick.AddListener(HandleLevels);
         shopButton.onClick.AddListener(HandleShop);
         settingsButton.onClick.AddListener(HandleSettings);
+        quitButton.onClick.AddListener(HandleQuit);
 
         confirmYesButton.onClick.AddListener(() =>
         {
@@ -162,6 +164,12 @@ public class MainMenuController : MonoBehaviour
     private void HandleSettings()
     {
         settingsPanel.SetActive(!settingsPanel.activeSelf);
+    }
+
+    private void HandleQuit()
+    {
+        progress.Save();
+        Application.Quit();
     }
 
     private void HandleVolumeChanged(float value)

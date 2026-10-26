@@ -56,6 +56,18 @@ public static class MainMenuSceneBuilder
         Button levels = MenuButton(canvas.transform, "选择关卡", -230f);
         Button shopButton = MenuButton(canvas.transform, "商店", -320f);
         Button settings = MenuButton(canvas.transform, "设置", -410f);
+        Button quit = UiFactory.CreateButton(
+            canvas.transform,
+            "Button_退出游戏",
+            "退出游戏",
+            _font,
+            new Vector2(160f, 48f),
+            24);
+        RectTransform quitRect =
+            (RectTransform)quit.transform;
+        quitRect.anchorMin = new Vector2(1f, 1f);
+        quitRect.anchorMax = new Vector2(1f, 1f);
+        quitRect.anchoredPosition = new Vector2(-110f, -55f);
 
         GameObject confirmPanel = CreateConfirmPanel(canvas.transform);
         GameObject settingsPanel =
@@ -80,6 +92,7 @@ public static class MainMenuSceneBuilder
         Inject(controller, "levelsButton", levels);
         Inject(controller, "shopButton", shopButton);
         Inject(controller, "settingsButton", settings);
+        Inject(controller, "quitButton", quit);
         Inject(controller, "confirmPanel", confirmPanel);
         Inject(controller, "confirmText",
             confirmPanel.transform.Find("Message")
