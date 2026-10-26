@@ -13,13 +13,13 @@
 | ID | 显示名 | 类型 | 定价 | 状态 |
 |---|---|---|---:|---|
 | skin-default | 红兜帽（默认） | Skin | 免费 | ready |
-| skin-blue | 蓝兜帽 | Skin | 20 | ready |
-| skin-purple | 紫兜帽 | Skin | 40 | ready |
-| theme-deepsea | 深海 | Theme | 30 | 待生成 |
-| theme-lava-heart | 熔岩之心 | Theme | 50 | 待生成 |
-| theme-cyberpunk | 赛博朋克 | Theme | 70 | 待生成 |
-| level-water-world | 水世界（重置版） | Level | 40 | 设计待重置 |
-| level-corridor | 回廊 | Level | 60 | 设计待做 |
+| skin-blue | 蓝兜帽 | Skin | 10 | ready |
+| skin-purple | 紫兜帽 | Skin | 20 | ready |
+| theme-deepsea | 深海 | Theme | 15 | 待生成 |
+| theme-lava-heart | 熔岩之心 | Theme | 25 | 待生成 |
+| theme-cyberpunk | 赛博朋克 | Theme | 35 | 待生成 |
+| level-water-world | 水世界（重置版） | Level | 20 | 设计待重置 |
+| level-corridor | 回廊 | Level | 30 | 设计待做 |
 
 - 皮肤共 8 款已备，其余 6 款不上架、接口可随时补。
 - 主题 = 整套 `TileVisuals` 配色资产；赛博朋克方向：电子、霓虹、色彩饱满。
@@ -27,7 +27,7 @@
 
 ## 3. 主菜单（独立场景 MainMenu）
 
-按钮：开始游戏 / 读取存档 / 清空存档 / 选择关卡 / 商店 / 设置。
+按钮：开始游戏 / 读取存档 / 清空存档 / 选择关卡 / 商店 / 设置 / 退出游戏。
 
 - **开始游戏**：无存档 → 直接 Level_01；有存档 → 确认框警告覆盖 → 清档 + Level_01 + **开场通讯**（MAYA 风格 3–4 句交代背景，草稿见附录）。
 - **读取存档**：恢复 `lastLevelId` 进度与金币/装备；无存档置灰。
@@ -35,6 +35,7 @@
 - **选择关卡**：主线 Level_01→06 **顺序解锁**（首关默认开，通关 N 解锁 N+1）；购买关卡列尾部带"附加"标记，解锁即玩。
 - **设置**：复用现有 SettingsPanel。
 - **商店**：见 §4。
+- **退出游戏**：保存当前设置与进度后关闭 Windows 玩家。
 
 ## 4. 商店规则
 
@@ -47,7 +48,7 @@
 
 - 来源：宝箱 3/箱（不变）+ **首通奖励 +10**（`completedLevelIds` 判重）。
 - **金币结算**：通关时把本局 `PlayerStats.Coins` 累计进存档；失败/重开不结算。
-- 定价见 §2；数值为手写初值，17 课试玩时平衡。
+- 定价见 §2；2026-10-26 根据玩家反馈统一降至初版约一半，优先让玩家体验内容。
 
 ## 6. 存档（GameSaveData v2）
 

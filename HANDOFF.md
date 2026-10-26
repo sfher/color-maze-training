@@ -110,6 +110,13 @@
 
 ## 当前游戏状态
 
+2026-10-26 玩家反馈修复：
+
+- `Main.unity` 的 `LevelFlowController.progress` 原为空引用，导致 `SettleLevelComplete` 未执行、通关没有写档；现已绑定唯一 `ProgressService`，并移除旧 `SaveCoordinator` 双写组件。
+- 关卡胜利仍由 `ProgressService.SettleLevelComplete` 同步 `Save()`；新增存档回归探针，验证 7 币 + 首通 10 币在销毁服务后可从磁盘恢复为 17 币及通关记录。
+- 暂停菜单新增“返回主页”；主菜单右上角新增“退出游戏”。
+- 六项在售内容价格统一降至初版约一半：皮肤 10/20，主题 15/25/35，水世界 20。
+
 已工作的部分：
 
 - 玩家网格移动、生命、氧气、炸弹、金币、材料。
