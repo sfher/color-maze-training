@@ -15,7 +15,7 @@ MonoBehaviour:
   id: theme-deepsea
   displayName: 深海
   contentType: 1
-  price: 30
+  price: 15
   previewSprite: {fileID: 21300000, guid: 319913c224924a57ac6750c1e94f32cf, type: 3}
   skinSprite: {fileID: 0}
   themeVisuals: {fileID: 11400000, guid: 50d25f6c58df406f8c44cf6794cbf5ef, type: 2}

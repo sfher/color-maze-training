@@ -15,7 +15,7 @@ MonoBehaviour:
   id: theme-lava-heart
   displayName: 熔岩之心
   contentType: 1
-  price: 50
+  price: 25
   previewSprite: {fileID: 21300000, guid: c9aca6f6ac064da5983d5242a8c6edd2, type: 3}
   skinSprite: {fileID: 0}
   themeVisuals: {fileID: 11400000, guid: 192d42a715ce477fb447bf64a848a12d, type: 2}

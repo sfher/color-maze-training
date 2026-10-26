@@ -15,7 +15,7 @@ MonoBehaviour:
   id: theme-cyberpunk
   displayName: 赛博朋克
   contentType: 1
-  price: 70
+  price: 35
   previewSprite: {fileID: 21300000, guid: 2933df5828e14a099e3a55fd2cf26bbf, type: 3}
   skinSprite: {fileID: 0}
   themeVisuals: {fileID: 11400000, guid: a4f676f70ebd4ce9b9fe3b070fa59a70, type: 2}

@@ -15,7 +15,7 @@ MonoBehaviour:
   id: skin-purple
   displayName: "\u7D2B\u515C\u5E3D"
   contentType: 0
-  price: 40
+  price: 20
   previewSprite: {fileID: 21300000, guid: 6349f2da75f442208aa9eec770a88195, type: 3}
   skinSprite: {fileID: 21300000, guid: 6349f2da75f442208aa9eec770a88195, type: 3}
   themeVisuals: {fileID: 0}
