@@ -15,9 +15,9 @@ MonoBehaviour:
   floor: {fileID: 21300000, guid: faa056dd02a94ef6adca05130bfcb7ea, type: 3}
   wall: {fileID: 21300000, guid: 37960721feb14b9bae155f559551079f, type: 3}
   stone: {fileID: 21300000, guid: 685d3b198da54353a4d767421e8f5eca, type: 3}
-  water: {fileID: 21300000, guid: d204f8f3935c43018bd7bb3e389de069, type: 3}
-  lava: {fileID: 21300000, guid: b26593eb136a460cbfd9f09752752bac, type: 3}
-  chest: {fileID: 21300000, guid: 05adde1c832541cb954d8972bd3fb973, type: 3}
-  material: {fileID: 21300000, guid: fa5d1e07170547749a99dc29c12fbde5, type: 3}
-  exit: {fileID: 21300000, guid: 4fab69190b6e4b06868f030a3baf9689, type: 3}
+  water: {fileID: 21300000, guid: d898876319d2461eafe0d84f67d5105f, type: 3}
+  lava: {fileID: 21300000, guid: 506bef1c5c8f4a6e894d66895ea4f241, type: 3}
+  chest: {fileID: 21300000, guid: 86052574d19442deb1342b6b1b695f1e, type: 3}
+  material: {fileID: 21300000, guid: dbe5775870d64dc1928d71f5bf13a947, type: 3}
+  exit: {fileID: 21300000, guid: efb9a8140af94bcaad2ff9f6e0681f7e, type: 3}
   portalBase: {fileID: 21300000, guid: 53d81ca252fe4edfb55f59ba098fd2ea, type: 3}
