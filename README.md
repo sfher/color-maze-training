@@ -1,6 +1,12 @@
 # 色彩迷宫 · Unity 开发实训
 
-这是一个长期教学工作区：用真实的 Unity 项目学习 C#、Unity 与独立游戏开发规范。
+这是一个公开的长期教学工作区：用真实的 Unity 项目学习 C#、Unity
+与独立游戏开发规范。游戏本身位于 [`Color Maze/`](Color%20Maze/)，
+适合 Windows 平台。
+
+> 这是一个学习与实践项目，不是商业团队产品。开发、课程规划与复盘使用了
+> OpenAI Codex，并通过 Matt Pocock 的 `teach` skill 组织长期学习流程。
+> 详细说明见 [CREDITS.md](CREDITS.md)。
 
 ## 从这里开始
 
@@ -27,3 +33,13 @@
 预测 → 实现 → 检索 → Git 提交 → 写三行开发日志。
 
 课程不追求“看完”，追求“做出来、讲得清、下次还能接上”。
+
+## 开源许可
+
+除特别标注的第三方素材与 Unity 运行组件外，本仓库中的原创代码、课程、
+文档、关卡数据与原创美术采用
+[CC BY 4.0](LICENSE) 许可。转载或改编时请保留署名、许可链接，并注明
+是否做过修改。具体范围与第三方例外见 [LICENSING.md](LICENSING.md)。
+
+第三方素材来源和许可见
+[`Color Maze/THIRD_PARTY_NOTICES.md`](Color%20Maze/THIRD_PARTY_NOTICES.md)。
